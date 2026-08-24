@@ -11,7 +11,7 @@ import android.view.View
 import androidx.annotation.CallSuper
 import androidx.annotation.DrawableRes
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.children
+import androidx.core.view.descendants
 import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.core.KeyStates
@@ -118,7 +118,7 @@ abstract class BaseKeyboard(
         }
     }
 
-    private fun createKeyView(def: KeyDef): KeyView {
+    protected fun createKeyView(def: KeyDef): KeyView {
         return when (def.appearance) {
             is KeyDef.Appearance.AltText -> AltTextKeyView(context, theme, def.appearance)
             is KeyDef.Appearance.ImageText -> ImageTextKeyView(context, theme, def.appearance)
@@ -366,14 +366,11 @@ abstract class BaseKeyboard(
     }
 
     private fun findTargetChild(x: Float, y: Float): View? {
-        val y0 = y.roundToInt()
-        // assume all rows have equal height
-        val row = keyRows.getOrNull(y0 * keyRows.size / bounds.height()) ?: return null
         val x1 = x.roundToInt() + bounds.left
-        val y1 = y0 + bounds.top
-        return row.children.find {
-            if (it !is KeyView) false else it.bounds.contains(x1, y1)
-        }
+        val y1 = y.roundToInt() + bounds.top
+        return descendants
+            .filterIsInstance<KeyView>()
+            .firstOrNull { it.bounds.contains(x1, y1) }
     }
 
     private fun transformMotionEventToChild(

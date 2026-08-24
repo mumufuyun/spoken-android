@@ -6,6 +6,11 @@ This repository adapts Fcitx5 for Android to physical T9-key smart/feature
 phones. The primary experience is physical-key input. The repository also carries a
 touch T9 spike that exposes the same short-press semantics through a full-height
 3-by-3 keypad; candidates, settings, symbols, and password entry remain shared UI.
+The accepted touch shell uses one four-row grid: a wide punctuation rail on the
+left, the 3-by-3 digit surface in the center, and Delete, a two-row voice target,
+and Return on the right. The bottom row contains Symbols, Numbers, Space, and the
+Chinese/English mode key. Columns and rows must share constraint boundaries so
+the side controls stay aligned with the central keys.
 
 Supported T9 mechanisms:
 
@@ -300,6 +305,13 @@ its results belong to the transient handwriting tray and use the compact strip
 described below.
 
 ## Voice And Toolbar
+
+The touch T9 shell reserves its right-center two rows for a persistent, tap-based
+voice target. It is presentation-only during the keyboard UI milestone. It must
+not switch to an external voice IME or use a hold-to-talk interaction; the action
+will be enabled only when an in-process Spoken recording and transcription
+pipeline can own tap-to-start and tap-to-finish states without leaving the
+keyboard.
 
 The idle KawaiiBar is always expanded. Voice occupies the former leading toggle
 slot; temporary clipboard or inline-suggestion content changes that slot to a
