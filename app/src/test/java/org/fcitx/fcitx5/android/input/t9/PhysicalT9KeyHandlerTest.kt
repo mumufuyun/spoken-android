@@ -336,6 +336,46 @@ class PhysicalT9KeyHandlerTest {
     }
 
     @Test
+    fun virtualFirstChineseDigitUsesOuterForwardExactlyOnce() {
+        val host = FakeHost(mode = PhysicalT9KeyHandler.Mode.CHINESE)
+        val handler = PhysicalT9KeyHandler(host)
+
+        val result = handler.handleVirtualShortPress(KeyEvent.KEYCODE_2, eventTime = 100L)
+
+        assertTrue(result.handled)
+        assertEquals(listOf(KeyEvent.KEYCODE_2), host.forwardedChineseT9Keys)
+    }
+
+    @Test
+    fun virtualComposingChineseDigitUsesCommandFlowExactlyOnce() {
+        val host = FakeHost(
+            mode = PhysicalT9KeyHandler.Mode.CHINESE,
+            chineseComposing = true,
+            compositionKeyCount = 1
+        )
+        val handler = PhysicalT9KeyHandler(host)
+
+        val result = handler.handleVirtualShortPress(KeyEvent.KEYCODE_3, eventTime = 100L)
+
+        assertTrue(result.handled)
+        assertEquals(listOf(KeyEvent.KEYCODE_3), host.forwardedChineseT9Keys)
+    }
+
+    @Test
+    fun virtualSmartEnglishDigitCompletesShortPress() {
+        val host = FakeHost(
+            mode = PhysicalT9KeyHandler.Mode.ENGLISH,
+            isSmartEnglishActive = true
+        )
+        val handler = PhysicalT9KeyHandler(host)
+
+        val result = handler.handleVirtualShortPress(KeyEvent.KEYCODE_4, eventTime = 100L)
+
+        assertTrue(result.handled)
+        assertEquals(listOf(4), host.appendedSmartEnglishDigits)
+    }
+
+    @Test
     fun chineseTransientComposingWithoutCompositionKeysFallsThroughButConsumesKeyUp() {
         val host = FakeHost(
             mode = PhysicalT9KeyHandler.Mode.CHINESE,

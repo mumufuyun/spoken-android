@@ -164,6 +164,28 @@ class PhysicalT9KeyHandler(
         return KeyResult(handled = false)
     }
 
+    /**
+     * Runs one on-screen tap through the physical T9 short-press contract. The first Chinese
+     * digit normally falls through to the outer Android key route; virtual keys have no such
+     * route, so this adapter performs that one forward here and consumes the matching key-up.
+     */
+    fun handleVirtualShortPress(keyCode: Int, eventTime: Long): KeyResult {
+        val down = KeyInput(
+            keyCode = keyCode,
+            action = KeyEvent.ACTION_DOWN,
+            repeatCount = 0,
+            downTime = eventTime,
+            eventTime = eventTime
+        )
+        val downResult = handleKeyDown(down)
+        if (!downResult.handled && downResult.consumedKeyUp == keyCode) {
+            host.forwardChineseT9KeyShortPress(keyCode, down)
+            return KeyResult(handled = true)
+        }
+        val upResult = handleKeyUp(down.copy(action = KeyEvent.ACTION_UP))
+        return KeyResult(handled = downResult.handled || upResult.handled)
+    }
+
     private fun handleCommandKeyFlow(input: KeyInput): KeyResult {
         val state = stateCapture.capture(input)
         val decision = keyFlow.handle(input, state) ?: return KeyResult(handled = false)

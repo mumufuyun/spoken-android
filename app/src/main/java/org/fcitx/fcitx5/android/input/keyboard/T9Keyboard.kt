@@ -6,17 +6,29 @@ package org.fcitx.fcitx5.android.input.keyboard
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.view.KeyEvent
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import splitties.views.imageResource
 
-/**
- * T9 Physical Keyboard Layout
- * A minimal keyboard layout for T9 physical keyboard users.
- * Only shows essential function keys: Symbol, Emoji, Language, Space, Backspace, Return
- */
+private class TouchT9DigitKey(
+    letters: String,
+    digit: String,
+    keyCode: Int
+) : KeyDef(
+    Appearance.AltText(
+        displayText = letters,
+        altText = digit,
+        textSize = 23f,
+        altTextSize = 12f,
+        percentWidth = 0.333f
+    ),
+    setOf(Behavior.Press(KeyAction.VirtualT9KeyAction(keyCode)))
+)
+
+/** Touch T9 spike backed by the physical T9 state machine. */
 @SuppressLint("ViewConstructor")
 class T9Keyboard(
     context: Context,
@@ -27,6 +39,21 @@ class T9Keyboard(
         const val Name = "T9"
 
         val Layout: List<List<KeyDef>> = listOf(
+            listOf(
+                TouchT9DigitKey("@#", "1", KeyEvent.KEYCODE_1),
+                TouchT9DigitKey("ABC", "2", KeyEvent.KEYCODE_2),
+                TouchT9DigitKey("DEF", "3", KeyEvent.KEYCODE_3)
+            ),
+            listOf(
+                TouchT9DigitKey("GHI", "4", KeyEvent.KEYCODE_4),
+                TouchT9DigitKey("JKL", "5", KeyEvent.KEYCODE_5),
+                TouchT9DigitKey("MNO", "6", KeyEvent.KEYCODE_6)
+            ),
+            listOf(
+                TouchT9DigitKey("PQRS", "7", KeyEvent.KEYCODE_7),
+                TouchT9DigitKey("TUV", "8", KeyEvent.KEYCODE_8),
+                TouchT9DigitKey("WXYZ", "9", KeyEvent.KEYCODE_9)
+            ),
             listOf(
                 LayoutSwitchKey("符号", PickerWindow.Key.Symbol.name, 0.15f, KeyDef.Appearance.Variant.Alternative),
                 ImagePickerSwitchKey(

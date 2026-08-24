@@ -552,6 +552,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         return false
     }
 
+    /** Routes an on-screen T9 tap through the shared physical-key decision pipeline. */
+    fun handleVirtualT9Key(keyCode: Int): Boolean =
+        physicalT9KeyHandler.handleVirtualShortPress(
+            keyCode = keyCode,
+            eventTime = SystemClock.uptimeMillis()
+        ).handled
+
     /**
      * Delete should first undo any selected pinyin segment before shrinking the digit input.
      * While a pinyin is selected, the user's most recent decision is the selection itself; a

@@ -3,8 +3,9 @@
 ## Product Boundary
 
 This repository adapts Fcitx5 for Android to physical T9-key smart/feature
-phones. The primary experience is physical-key input with a compact touch UI
-for candidates, settings, symbols, password entry, and secondary actions.
+phones. The primary experience is physical-key input. The repository also carries a
+touch T9 spike that exposes the same short-press semantics through a full-height
+3-by-3 keypad; candidates, settings, symbols, and password entry remain shared UI.
 
 Supported T9 mechanisms:
 
@@ -41,6 +42,10 @@ are:
 Key rules live in the Physical T9 flow. The Android service must not duplicate
 them as fallback branches.
 
+Touch T9 digit taps reuse the physical short-press contract. They do not yet expose
+physical long-press shortcuts, and that limitation must remain visible in product
+validation rather than being hidden behind a second touch-only rule set.
+
 ## Physical Input Pipeline
 
 `PhysicalInputRouter` owns route priority across transient number panels,
@@ -52,6 +57,10 @@ key cannot be interpreted twice.
 delegates to `PhysicalT9KeyFlow`. Internal Chinese, English, number, and
 selection modules return ordered domain commands. `PhysicalT9CommandExecutor`
 executes those commands through `PhysicalT9KeyHostAdapter`.
+
+`PhysicalT9KeyHandler.handleVirtualShortPress` adapts one touch tap into the same
+down/up sequence. It also owns the first-Chinese-digit outer-forward exception so
+the service and keyboard view cannot inject that digit twice.
 
 `FcitxInputMethodService` is the platform adapter. It may commit editor text,
 forward keys to Fcitx, switch modes, and request UI updates, but it does not own

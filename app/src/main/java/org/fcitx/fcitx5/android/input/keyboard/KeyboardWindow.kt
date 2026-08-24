@@ -125,6 +125,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
                 }
             }
             is KeyAction.PasswordPeekAction -> setPasswordPeekMode(it.enabled)
+            is KeyAction.VirtualT9KeyAction -> service.handleVirtualT9Key(it.keyCode)
             else -> commonKeyActionListener.listener.onKeyAction(it, source)
         }
     }

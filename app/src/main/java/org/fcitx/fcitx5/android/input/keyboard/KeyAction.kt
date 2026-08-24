@@ -42,4 +42,7 @@ sealed class KeyAction {
     data object SpaceLongPressAction : KeyAction()
 
     data class PasswordPeekAction(val enabled: Boolean) : KeyAction()
+
+    /** A touch key that must use the same short-press semantics as a physical T9 key. */
+    data class VirtualT9KeyAction(val keyCode: Int) : KeyAction()
 }
