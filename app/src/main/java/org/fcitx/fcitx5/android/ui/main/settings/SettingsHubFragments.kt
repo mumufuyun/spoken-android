@@ -7,6 +7,7 @@ package org.fcitx.fcitx5.android.ui.main.settings
 
 import android.os.Bundle
 import android.os.SystemClock
+import android.text.InputType
 import android.view.View
 import android.widget.Toast
 import androidx.annotation.DrawableRes
@@ -14,6 +15,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
+import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceScreen
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
@@ -24,6 +26,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.input.handwriting.HandwritingLanguage
 import org.fcitx.fcitx5.android.input.handwriting.MlKitHandwritingModelManager
+import org.fcitx.fcitx5.android.input.voice.SecureVoiceKeyStorage
 import org.fcitx.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fcitx.fcitx5.android.ui.main.modified.MySwitchPreference
 import org.fcitx.fcitx5.android.utils.addCategory
@@ -147,6 +150,43 @@ class InputOptionsSettingsFragment : GroupedManagedPreferenceFragment() {
     )
 
     override fun onGroupedPreferenceUiCreated(screen: PreferenceScreen) {
+        screen.findPreference<PreferenceCategory>(groupKey(R.string.voice_input))?.apply {
+            val storage = SecureVoiceKeyStorage(requireContext())
+            val apiKeyPreference = EditTextPreference(screen.context).apply {
+                key = "spoken_voice_api_key_secure"
+                setTitle(R.string.spoken_voice_api_key)
+                dialogTitle = screen.context.getString(R.string.spoken_voice_api_key)
+                dialogMessage = screen.context.getString(R.string.spoken_voice_api_key_hint)
+                isPersistent = false
+                isIconSpaceReserved = false
+                summary = screen.context.getString(
+                    if (storage.hasApiKey()) {
+                        R.string.spoken_voice_api_key_configured
+                    } else {
+                        R.string.spoken_voice_api_key_missing
+                    }
+                )
+                setOnBindEditTextListener { editText ->
+                    editText.inputType = InputType.TYPE_CLASS_TEXT or
+                        InputType.TYPE_TEXT_VARIATION_PASSWORD
+                    editText.setText("")
+                    editText.hint = screen.context.getString(R.string.spoken_voice_api_key_hint)
+                }
+                setOnPreferenceChangeListener { preference, newValue ->
+                    val key = newValue?.toString()?.trim().orEmpty()
+                    if (key.isNotEmpty()) storage.saveApiKey(key)
+                    preference.summary = screen.context.getString(
+                        if (storage.hasApiKey()) {
+                            R.string.spoken_voice_api_key_configured
+                        } else {
+                            R.string.spoken_voice_api_key_missing
+                        }
+                    )
+                    false
+                }
+            }
+            addPreference(apiKeyPreference)
+        }
         val schemeSwitches = listOfNotNull(
             screen.findPreference<MySwitchPreference>(prefs.chineseT9.pinyin.key),
             screen.findPreference<MySwitchPreference>(prefs.chineseT9.stroke.key),

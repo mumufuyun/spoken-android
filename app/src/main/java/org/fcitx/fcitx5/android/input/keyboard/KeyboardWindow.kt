@@ -126,6 +126,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             }
             is KeyAction.PasswordPeekAction -> setPasswordPeekMode(it.enabled)
             is KeyAction.VirtualT9KeyAction -> service.handleVirtualT9Key(it.keyCode)
+            is KeyAction.SpokenVoiceAction -> service.toggleSpokenVoiceInput()
             else -> commonKeyActionListener.listener.onKeyAction(it, source)
         }
     }
@@ -598,6 +599,10 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
 
     override fun onTouchT9ReadingOptionsUpdate(options: List<String>) {
         (currentKeyboard as? T9Keyboard)?.updateT9ReadingOptions(options)
+    }
+
+    fun updateSpokenVoiceState(state: org.fcitx.fcitx5.android.input.voice.SpokenVoiceState) {
+        (currentKeyboard as? T9Keyboard)?.updateSpokenVoiceState(state)
     }
 
     override fun onPunctuationUpdate(mapping: Map<String, String>) {

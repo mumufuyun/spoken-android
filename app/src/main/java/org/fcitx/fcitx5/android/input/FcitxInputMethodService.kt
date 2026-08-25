@@ -87,6 +87,9 @@ import org.fcitx.fcitx5.android.input.handwriting.HandwritingStroke
 import org.fcitx.fcitx5.android.input.handwriting.HandwritingViewState
 import org.fcitx.fcitx5.android.input.handwriting.PhysicalHandwritingKeyHandler
 import org.fcitx.fcitx5.android.input.status.PersistentStatusActionCoordinator
+import org.fcitx.fcitx5.android.input.voice.SecureVoiceKeyStorage
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceCoordinator
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionCoordinator
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionLifecycle
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionTicket
@@ -185,6 +188,21 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var inputView: InputView? = null
     private var candidatesView: CandidatesView? = null
     private var modeIndicatorOverlay: TransientModeIndicatorOverlay? = null
+    private var spokenEditorGeneration = 0L
+    private val spokenVoiceCoordinator by lazy {
+        SpokenVoiceCoordinator(
+            context = this,
+            scope = lifecycleScope,
+            keyStorage = SecureVoiceKeyStorage(this),
+            editorGeneration = { spokenEditorGeneration },
+            editorAllowsVoice = { voiceInputAllowedForEditor && isInputViewShown },
+            prepareEditor = ::prepareEditorForSpokenVoice,
+            commitIfCurrent = { generation, text ->
+                if (generation == spokenEditorGeneration && isInputViewShown) commitText(text)
+            },
+            onState = ::publishSpokenVoiceState
+        )
+    }
     private val persistentStatusActions by lazy { PersistentStatusActionCoordinator(this) }
     private val passwordInputPreviewBuffer = StringBuilder()
     private var passwordInputPreviewCursor = 0
@@ -506,6 +524,38 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         touchT9SessionActive && inputView?.isTouchT9KeyboardActive() == true
 
     fun isTouchT9CandidatesExpanded(): Boolean = touchT9CandidatesExpanded
+
+    fun isSpokenVoiceInputActive(): Boolean = spokenVoiceCoordinator.isActive
+
+    fun toggleSpokenVoiceInput() {
+        spokenVoiceCoordinator.toggle()
+    }
+
+    private fun prepareEditorForSpokenVoice() {
+        if (isHandwritingInputActive()) commitHandwritingCandidateBeforeAuxiliaryInput()
+        if (!commitChineseT9CodePreview(expectedScheme = null)) {
+            finishComposing()
+            clearT9CompositionState()
+        }
+        setTouchT9CandidatesExpanded(false)
+        updateTouchT9ReadingOptions(emptyList())
+    }
+
+    private fun publishSpokenVoiceState(state: SpokenVoiceState) {
+        inputView?.updateSpokenVoiceState(state)
+        when (state) {
+            SpokenVoiceState.Idle -> candidatesView?.hideSpokenVoiceStatus()
+            is SpokenVoiceState.Starting -> candidatesView?.showSpokenVoiceStatus(state.message)
+            is SpokenVoiceState.Recording -> candidatesView?.showSpokenVoiceStatus(
+                state.transcript.ifBlank { "可以开始说话，语音不会遗漏" }
+            )
+            SpokenVoiceState.Finishing -> candidatesView?.showSpokenVoiceStatus("正在完成识别…")
+            is SpokenVoiceState.Error -> candidatesView?.showSpokenVoiceStatus(
+                state.message,
+                isError = true
+            )
+        }
+    }
 
     fun setTouchT9CandidatesExpanded(expanded: Boolean) {
         if (touchT9CandidatesExpanded == expanded) return
@@ -3489,6 +3539,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
+        spokenEditorGeneration++
+        spokenVoiceCoordinator.cancel()
         resetNumberModeIfInitialized()
         clearPasswordInputPreview()
         // update selection as soon as possible
@@ -3858,6 +3910,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         Timber.d("onFinishInputView: finishingInput=$finishingInput")
+        spokenEditorGeneration++
+        spokenVoiceCoordinator.cancel()
         endHandwritingInput()
         resetNumberModeIfInitialized()
         updateSelectionBackCallback(false)
@@ -3883,6 +3937,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     override fun onFinishInput() {
         Timber.d("onFinishInput")
+        spokenEditorGeneration++
+        spokenVoiceCoordinator.cancel()
         fcitxInputFocusRequested = false
         endHandwritingInput()
         resetNumberModeIfInitialized()
@@ -3917,6 +3973,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onDestroy() {
+        spokenVoiceCoordinator.close()
         cancelRimeSchemaSelectionRetry()
         if (handwritingCoordinatorDelegate.isInitialized()) handwritingCoordinator.close()
         updateSelectionBackCallback(false)

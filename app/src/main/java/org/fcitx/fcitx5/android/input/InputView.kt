@@ -586,6 +586,10 @@ class InputView(
     fun isTouchT9KeyboardActive(): Boolean =
         isT9KeyboardActive && windowManager.isAttached(keyboardWindow)
 
+    fun updateSpokenVoiceState(state: org.fcitx.fcitx5.android.input.voice.SpokenVoiceState) {
+        keyboardWindow.updateSpokenVoiceState(state)
+    }
+
     fun showExpandedTouchT9Candidates() {
         if (!isTouchT9KeyboardActive()) return
         service.setTouchT9CandidatesExpanded(true)

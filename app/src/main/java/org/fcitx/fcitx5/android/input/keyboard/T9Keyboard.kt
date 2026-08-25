@@ -18,6 +18,7 @@ import org.fcitx.fcitx5.android.core.KeyStates
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.below
@@ -83,7 +84,7 @@ private class TouchT9VoiceKey : KeyDef(
         border = Border.On,
         margin = false
     ),
-    emptySet(),
+    setOf(Behavior.Press(KeyAction.SpokenVoiceAction)),
     emptyArray()
 )
 
@@ -488,7 +489,7 @@ class T9Keyboard(
     )
 
     private val backspace = createTouchKeyView(BackspaceKey(border = Border.On, margin = false))
-    private val voice = createTouchKeyView(TouchT9VoiceKey())
+    private val voice = createTouchKeyView(TouchT9VoiceKey()).apply { id = R.id.button_voice }
     private val returnKey = createTouchKeyView(ReturnKey(border = Border.On, margin = false))
 
     private val rightActionSurface = constraintLayout {
@@ -678,6 +679,34 @@ class T9Keyboard(
             val reading = options.getOrNull(index)
             view.mainText.text = reading.orEmpty()
             view.visibility = if (reading == null) View.INVISIBLE else View.VISIBLE
+        }
+    }
+
+    fun updateSpokenVoiceState(state: SpokenVoiceState) {
+        val active = state is SpokenVoiceState.Starting ||
+            state is SpokenVoiceState.Recording ||
+            state is SpokenVoiceState.Finishing
+        voice.animate().cancel()
+        voice.alpha = if (state is SpokenVoiceState.Finishing) 0.58f else 1f
+        voice.scaleX = 1f
+        voice.scaleY = 1f
+        if (state is SpokenVoiceState.Starting || state is SpokenVoiceState.Recording) {
+            voice.animate()
+                .scaleX(0.9f)
+                .scaleY(0.9f)
+                .alpha(0.72f)
+                .setDuration(520L)
+                .withEndAction {
+                    if (voice.isAttachedToWindow && active) {
+                        voice.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .alpha(1f)
+                            .setDuration(520L)
+                            .start()
+                    }
+                }
+                .start()
         }
     }
 }

@@ -819,6 +819,24 @@ class CandidatesView(
         t9RefreshGeneration.requestRefresh(T9ResponsivenessTrace.activeInputId())
     }
 
+    fun showSpokenVoiceStatus(text: String, isError: Boolean = false) {
+        t9RefreshGeneration.cancel()
+        t9CandidateUiRenderer.hideImmediately()
+        expandCandidatesSlot.visibility = View.GONE
+        candidateStatusView.text = text
+        candidateStatusView.setTextColor(
+            if (isError) theme.keyPressHighlightColor else theme.candidateTextColor
+        )
+        candidateStatusView.visibility = View.VISIBLE
+        visibility = View.VISIBLE
+    }
+
+    fun hideSpokenVoiceStatus() {
+        candidateStatusView.visibility = View.GONE
+        candidateStatusView.setTextColor(theme.candidateCommentColor)
+        refreshT9Ui()
+    }
+
     private fun refreshAfterSourceEvent(acceptedReceipt: ChineseT9InputReceipt?) {
         if (acceptedReceipt != null) {
             service.markPendingT9SelectionSourceReady(acceptedReceipt)
@@ -937,6 +955,9 @@ class CandidatesView(
     private fun updateUi(
         generation: T9CandidateRefreshGeneration.Generation
     ) = T9ResponsivenessTrace.measure("CandidatesView.updateUi") {
+        if (service.isSpokenVoiceInputActive()) {
+            return@measure
+        }
         if (service.isTouchT9CandidatesExpanded()) {
             hideT9CandidateUiImmediately()
             return@measure

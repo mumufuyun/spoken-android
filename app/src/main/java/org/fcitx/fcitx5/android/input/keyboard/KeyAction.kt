@@ -49,6 +49,9 @@ sealed class KeyAction {
     /** Selects one of the pinyin readings mirrored into the touch keyboard's left rail. */
     data class T9ReadingSlotAction(val slot: Int) : KeyAction()
 
+    /** Starts or finishes Spoken's in-keyboard voice recognition session. */
+    data object SpokenVoiceAction : KeyAction()
+
     /** Switches an in-keyboard Spoken touch panel without replacing the keyboard window. */
     data class TouchPanelAction(val panel: String) : KeyAction()
 }

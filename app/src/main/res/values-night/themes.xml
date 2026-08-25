@@ -10,6 +10,13 @@
         <item name="colorLogVerbose">@color/grey_400</item>
     </style>
 
+    <style name="Theme.Spoken.Permission" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
     <style name="Theme.DialogTheme" parent="@android:style/Theme.DeviceDefault.Dialog" />
 
     <style name="InputViewSnackbarTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
