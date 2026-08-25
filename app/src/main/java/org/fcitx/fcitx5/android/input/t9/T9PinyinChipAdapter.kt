@@ -165,6 +165,7 @@ class T9PinyinChipAdapter(
         private val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize = textSizeSp * context.resources.displayMetrics.scaledDensity
             InputUiFont.applyTo(this)
+            isFakeBoldText = true
         }
         private val opticalSampleBounds = android.graphics.Rect().apply {
             textPaint.getTextBounds(OPTICAL_SAMPLE, 0, OPTICAL_SAMPLE.length, this)
@@ -247,7 +248,7 @@ class T9PinyinChipAdapter(
                 }
                 textPaint.color = when {
                     active -> theme.genericActiveForegroundColor
-                    !highlightActive -> theme.candidateCommentColor
+                    !highlightActive -> theme.candidateTextColor
                     else -> theme.candidateTextColor
                 }
                 val textX = bounds.startPx + horizontalPaddingPx.toFloat()

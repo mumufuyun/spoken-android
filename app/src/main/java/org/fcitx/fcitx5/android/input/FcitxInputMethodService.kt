@@ -2437,13 +2437,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             if (chineseT9EngineReadiness == RimeAvailabilitySession.EngineReadiness.READY) {
                 applyChinesePredictionOption(chinesePredictionModeController.enabled)
             }
-            val label = getString(next.compactLabelRes)
-            onT9ModeChanged?.invoke(label)
+            val schemeLabel = getString(next.compactLabelRes)
+            onT9ModeChanged?.invoke(getCurrentT9ModeLabel())
             if (activationPresentation ==
                 ChineseT9SchemeCycleSession.ActivationPresentation.SHOW_CONFIRMATION &&
                 rimeSchemaSelectionSession.desiredTarget != next
             ) {
-                showModeIndicatorBadge(label)
+                showModeIndicatorBadge(schemeLabel)
             }
         }
     }
@@ -2743,18 +2743,32 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     /**
-     * Callback invoked when T9 mode changes (for syncing space bar display).
+     * Callback invoked when T9 mode changes (for syncing the 中/英 key).
      * Set by InputView when the input scope is created.
      */
     var onT9ModeChanged: ((String) -> Unit)? = null
 
-    fun getCurrentT9ModeLabel(): String = if (currentT9Mode == T9InputMode.CHINESE) {
-        getString(activeChineseT9Scheme.compactLabelRes)
-    } else {
-        t9ModeCoordinator.currentLabel
+    var onTouchT9ReadingOptionsChanged: ((List<String>) -> Unit)? = null
+    private var touchT9ReadingOptions: List<String> = emptyList()
+
+    fun updateTouchT9ReadingOptions(options: List<String>) {
+        val next = options.take(4)
+        if (touchT9ReadingOptions == next) return
+        touchT9ReadingOptions = next
+        onTouchT9ReadingOptionsChanged?.invoke(next)
     }
 
+    fun getTouchT9ReadingOptions(): List<String> = touchT9ReadingOptions
+
+    fun commitTouchT9ReadingSlot(slot: Int): Boolean {
+        val reading = touchT9ReadingOptions.getOrNull(slot) ?: return false
+        return commitT9ReadingSelection(reading)
+    }
+
+    fun getCurrentT9ModeLabel(): String = t9ModeCoordinator.currentLabel
+
     fun switchToNextT9Mode() {
+        updateTouchT9ReadingOptions(emptyList())
         t9ModeCoordinator.switchToNextMode()
     }
 

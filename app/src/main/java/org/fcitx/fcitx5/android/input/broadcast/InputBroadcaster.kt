@@ -95,4 +95,8 @@ class InputBroadcaster : ConcreteUniqueComponent<InputBroadcaster>(), Dependent,
         receivers.forEach { it.onT9ModeUpdate(modeLabel) }
     }
 
+    override fun onTouchT9ReadingOptionsUpdate(options: List<String>) {
+        receivers.forEach { it.onTouchT9ReadingOptionsUpdate(options) }
+    }
+
 }

@@ -325,6 +325,9 @@ class InputView(
 
         // Sync T9 mode to space bar when user switches via # long press or language key
         service.onT9ModeChanged = { broadcaster.onT9ModeUpdate(it) }
+        service.onTouchT9ReadingOptionsChanged = {
+            broadcaster.onTouchT9ReadingOptionsUpdate(it)
+        }
 
         // restore punctuation mapping in case of InputView recreation
         fcitx.launchOnReady {
@@ -562,8 +565,8 @@ class InputView(
 
     companion object {
         private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 60
-        private const val TOUCH_T9_MAX_HEIGHT_PORTRAIT_PERCENT = 31
-        private const val TOUCH_T9_MAX_HEIGHT_LANDSCAPE_PERCENT = 37
+        private const val TOUCH_T9_MAX_HEIGHT_PORTRAIT_PERCENT = 29
+        private const val TOUCH_T9_MAX_HEIGHT_LANDSCAPE_PERCENT = 35
     }
 
     fun isTemporaryPasswordInputSessionActive(): Boolean {

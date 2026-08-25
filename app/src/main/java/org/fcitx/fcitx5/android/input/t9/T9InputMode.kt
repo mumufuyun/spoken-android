@@ -9,12 +9,12 @@ enum class T9InputMode(
     val label: String
 ) {
     CHINESE("中"),
-    ENGLISH("En"),
+    ENGLISH("英"),
     NUMBER("123");
 
     fun next(): T9InputMode = when (this) {
         CHINESE -> ENGLISH
-        ENGLISH -> NUMBER
+        ENGLISH -> CHINESE
         NUMBER -> CHINESE
     }
 }

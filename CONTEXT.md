@@ -16,7 +16,7 @@ This shell forces visible key surfaces instead of inheriting the global
 borderless-key preference: center keys are normal surfaces, side actions are
 alternative surfaces, and voice/Return use the accent treatment. The generic
 symbol Picker is still upstream UI and remains a separate productization task.
-The touch grid caps portrait height at 31 percent and uses a 2 dp inset on each
+The touch grid caps portrait height at 29 percent and uses a 2 dp inset on each
 keycap edge; the complete cell remains tappable. The bottom control row keeps a
 48 dp hit area while its visible keycaps use the same 2 dp edge gap as the rows
 above.
@@ -30,6 +30,12 @@ scaling hit targets by character count. Each visible item retains a minimum
 show only candidate text; numeric shortcut labels remain exclusive to
 physical-key operation. It suppresses the redundant
 floating preedit bubble.
+Touch digit keycaps show letters only; number entry remains available from the
+dedicated `123` layout. The language key switches only between Chinese and
+English. While Chinese pinyin is composing, the left punctuation rail mirrors
+up to four selectable pinyin readings and returns to punctuation when the
+composition clears. The complete pinyin sequence remains visible in the top
+candidate row. Both pinyin and Hanzi candidate text use a heavier foreground.
 Physical key operation does not enter this touch session and keeps cursor-following
 candidates. The dock changes only placement; it reuses the existing T9 snapshot,
 selection, and Rime pipeline.

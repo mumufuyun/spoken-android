@@ -178,7 +178,10 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             if (pendingInputMethod != null && target != TemporaryFullKeyboard.Name) {
                 pendingInputMethodDisplayAttached = true
             }
-            (it as? T9Keyboard)?.updateT9ModeLabel(service.getCurrentT9ModeLabel())
+            (it as? T9Keyboard)?.apply {
+                updateT9ModeLabel(service.getCurrentT9ModeLabel())
+                updateT9ReadingOptions(service.getTouchT9ReadingOptions())
+            }
         }
         onLayoutChanged?.invoke(target)
     }
@@ -591,6 +594,10 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
 
     override fun onT9ModeUpdate(modeLabel: String) {
         (currentKeyboard as? T9Keyboard)?.updateT9ModeLabel(modeLabel)
+    }
+
+    override fun onTouchT9ReadingOptionsUpdate(options: List<String>) {
+        (currentKeyboard as? T9Keyboard)?.updateT9ReadingOptions(options)
     }
 
     override fun onPunctuationUpdate(mapping: Map<String, String>) {

@@ -7,6 +7,7 @@ package org.fcitx.fcitx5.android.input
 
 import android.annotation.SuppressLint
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.text.TextPaint
@@ -194,6 +195,7 @@ class CandidatesView(
     private val setupTextViewCandidates: TextView.() -> Unit = {
         textSize = candidateFontSizeSp
         InputUiFont.applyTo(this)
+        setTypeface(typeface, Typeface.BOLD)
         val v = dp(itemPaddingVertical)
         val h = dp(itemPaddingHorizontal)
         setPadding(h, v, h, v)
@@ -690,6 +692,7 @@ class CandidatesView(
     }
 
     fun clearTransientState() {
+        service.updateTouchT9ReadingOptions(emptyList())
         T9ResponsivenessTrace.cancelActiveInput()
         t9RefreshGeneration.cancel()
         floatingWindowController.onSurfaceHidden()
@@ -894,6 +897,13 @@ class CandidatesView(
     ) = T9ResponsivenessTrace.measure("CandidatesView.updateUi") {
         val traceId = generation.traceInputId
         val snapshot = buildT9CandidateUiState() ?: return@measure
+        service.updateTouchT9ReadingOptions(
+            if (service.isTouchT9KeyboardActive() && snapshot.renderState.pinyinUseT9) {
+                snapshot.renderState.readingOptions
+            } else {
+                emptyList()
+            }
+        )
         T9ResponsivenessTrace.markSnapshotReady(traceId)
         applyT9CandidateUiSnapshot(snapshot)
         t9CandidateSurfaceGeometry.beginFrame(generation.id)
@@ -1078,6 +1088,7 @@ class CandidatesView(
         val paint = t9PinyinMeasurePaint.apply {
             textSize = compactTopRowFontSizeSp * ctx.resources.displayMetrics.scaledDensity
             InputUiFont.applyTo(this)
+            isFakeBoldText = true
         }
         return ceil(paint.measureText(text).toDouble()).toInt()
     }
@@ -1086,6 +1097,7 @@ class CandidatesView(
         val paint = t9CandidateMeasurePaint.apply {
             textSize = candidateFontSizeSp * ctx.resources.displayMetrics.scaledDensity
             InputUiFont.applyTo(this)
+            isFakeBoldText = true
         }
         return T9SemanticTextView.measureWidth(paint, text).roundToInt()
     }
@@ -1094,6 +1106,7 @@ class CandidatesView(
         val paint = t9CandidateMeasurePaint.apply {
             textSize = candidateFontSizeSp * ctx.resources.displayMetrics.scaledDensity
             InputUiFont.applyTo(this)
+            isFakeBoldText = true
         }
         return T9SemanticTextView.handles(candidate.text) || paint.hasGlyph(candidate.text)
     }

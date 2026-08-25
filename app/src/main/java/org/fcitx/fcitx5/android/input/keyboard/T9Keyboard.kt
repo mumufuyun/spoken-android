@@ -8,6 +8,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Typeface
 import android.view.KeyEvent
+import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
@@ -33,19 +34,29 @@ import splitties.views.padding
 
 private class TouchT9DigitKey(
     letters: String,
-    digit: String,
     keyCode: Int
 ) : KeyDef(
-    Appearance.AltText(
+    Appearance.Text(
         displayText = letters,
-        altText = digit,
-        textSize = 23f,
-        altTextSize = 12f,
+        textSize = 25f,
         percentWidth = 0.333f,
         border = Border.On,
         margin = false
     ),
     setOf(Behavior.Press(KeyAction.VirtualT9KeyAction(keyCode)))
+)
+
+private class TouchT9ReadingKey(slot: Int) : KeyDef(
+    Appearance.Text(
+        displayText = "",
+        textSize = 17f,
+        textStyle = Typeface.BOLD,
+        percentWidth = 1f,
+        variant = Variant.Alternative,
+        border = Border.On,
+        margin = false
+    ),
+    setOf(Behavior.Press(KeyAction.T9ReadingSlotAction(slot)))
 )
 
 private class TouchT9ModeKey : KeyDef(
@@ -138,8 +149,10 @@ class T9Keyboard(
         }
     }
 
-    private fun verticalColumn(definitions: List<KeyDef>): ConstraintLayout = constraintLayout {
-        val views = definitions.map(::createTouchKeyView)
+    private fun verticalColumn(definitions: List<KeyDef>): ConstraintLayout =
+        verticalViewColumn(definitions.map(::createTouchKeyView))
+
+    private fun verticalViewColumn(views: List<KeyView>): ConstraintLayout = constraintLayout {
         views.forEachIndexed { index, view ->
             add(view, lParams {
                 centerHorizontally()
@@ -154,7 +167,7 @@ class T9Keyboard(
                 } else {
                     above(views[index + 1])
                 }
-                matchConstraintPercentHeight = 1f / definitions.size
+                matchConstraintPercentHeight = 1f / views.size
             })
         }
     }
@@ -168,26 +181,48 @@ class T9Keyboard(
         )
     )
 
+    private val pinyinChoiceViews = (0 until 4).map { slot ->
+        createTouchKeyView(TouchT9ReadingKey(slot)) as TextKeyView
+    }
+    private val pinyinRail = verticalViewColumn(pinyinChoiceViews).apply {
+        visibility = View.GONE
+    }
+
+    private val leftRailSurface = constraintLayout {
+        add(punctuationRail, lParams {
+            leftOfParent()
+            rightOfParent()
+            topOfParent()
+            bottomOfParent()
+        })
+        add(pinyinRail, lParams {
+            leftOfParent()
+            rightOfParent()
+            topOfParent()
+            bottomOfParent()
+        })
+    }
+
     private val digitRows = listOf(
         horizontalRow(
             listOf(
-                TouchT9DigitKey("@#", "1", KeyEvent.KEYCODE_1),
-                TouchT9DigitKey("ABC", "2", KeyEvent.KEYCODE_2),
-                TouchT9DigitKey("DEF", "3", KeyEvent.KEYCODE_3)
+                TouchT9DigitKey("@#", KeyEvent.KEYCODE_1),
+                TouchT9DigitKey("ABC", KeyEvent.KEYCODE_2),
+                TouchT9DigitKey("DEF", KeyEvent.KEYCODE_3)
             )
         ),
         horizontalRow(
             listOf(
-                TouchT9DigitKey("GHI", "4", KeyEvent.KEYCODE_4),
-                TouchT9DigitKey("JKL", "5", KeyEvent.KEYCODE_5),
-                TouchT9DigitKey("MNO", "6", KeyEvent.KEYCODE_6)
+                TouchT9DigitKey("GHI", KeyEvent.KEYCODE_4),
+                TouchT9DigitKey("JKL", KeyEvent.KEYCODE_5),
+                TouchT9DigitKey("MNO", KeyEvent.KEYCODE_6)
             )
         ),
         horizontalRow(
             listOf(
-                TouchT9DigitKey("PQRS", "7", KeyEvent.KEYCODE_7),
-                TouchT9DigitKey("TUV", "8", KeyEvent.KEYCODE_8),
-                TouchT9DigitKey("WXYZ", "9", KeyEvent.KEYCODE_9)
+                TouchT9DigitKey("PQRS", KeyEvent.KEYCODE_7),
+                TouchT9DigitKey("TUV", KeyEvent.KEYCODE_8),
+                TouchT9DigitKey("WXYZ", KeyEvent.KEYCODE_9)
             )
         )
     )
@@ -251,14 +286,14 @@ class T9Keyboard(
     }
 
     init {
-        add(punctuationRail, lParams {
+        add(leftRailSurface, lParams {
             leftOfParent()
             topOfParent()
             above(bottomRow)
             matchConstraintPercentWidth = 0.15f
         })
         add(digitSurface, lParams {
-            leftToRightOf(punctuationRail)
+            leftToRightOf(leftRailSurface)
             rightToLeftOf(rightActionSurface)
             topOfParent()
             above(bottomRow)
@@ -292,5 +327,16 @@ class T9Keyboard(
 
     fun updateT9ModeLabel(modeLabel: String) {
         mode.mainText.text = modeLabel
+    }
+
+    fun updateT9ReadingOptions(options: List<String>) {
+        val showPinyin = options.isNotEmpty()
+        punctuationRail.visibility = if (showPinyin) View.GONE else View.VISIBLE
+        pinyinRail.visibility = if (showPinyin) View.VISIBLE else View.GONE
+        pinyinChoiceViews.forEachIndexed { index, view ->
+            val reading = options.getOrNull(index)
+            view.mainText.text = reading.orEmpty()
+            view.visibility = if (reading == null) View.INVISIBLE else View.VISIBLE
+        }
     }
 }

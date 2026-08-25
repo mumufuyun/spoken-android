@@ -44,8 +44,11 @@ interface InputBroadcastReceiver {
     fun onReturnKeyDrawableUpdate(@DrawableRes resourceId: Int) {}
 
     /**
-     * Called when T9 input mode is switched (中/En/123) so the space bar can sync its display.
+     * Called when T9 input mode is switched (中/英) so the language key can sync its display.
      */
     fun onT9ModeUpdate(modeLabel: String) {}
+
+    /** Pinyin readings shown in the touch keyboard's left disambiguation rail. */
+    fun onTouchT9ReadingOptionsUpdate(options: List<String>) {}
 
 }

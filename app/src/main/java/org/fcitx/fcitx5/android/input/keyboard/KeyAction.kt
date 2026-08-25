@@ -45,4 +45,7 @@ sealed class KeyAction {
 
     /** A touch key that must use the same short-press semantics as a physical T9 key. */
     data class VirtualT9KeyAction(val keyCode: Int) : KeyAction()
+
+    /** Selects one of the pinyin readings mirrored into the touch keyboard's left rail. */
+    data class T9ReadingSlotAction(val slot: Int) : KeyAction()
 }

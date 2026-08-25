@@ -11,7 +11,7 @@ import org.junit.Test
 class T9ModeCoordinatorTest {
 
     @Test
-    fun switchCyclesModesAndPublishesLabelsAfterCleanup() {
+    fun switchTogglesChineseAndEnglishAndPublishesLabelsAfterCleanup() {
         val events = mutableListOf<String>()
         val coordinator = T9ModeCoordinator(
             beforeModeChange = { events += "cleanup" },
@@ -22,18 +22,14 @@ class T9ModeCoordinatorTest {
 
         coordinator.switchToNextMode()
         coordinator.switchToNextMode()
-        coordinator.switchToNextMode()
 
         assertEquals(T9InputMode.CHINESE, coordinator.current)
         assertEquals(
             listOf(
                 "cleanup",
                 "english",
-                "label:En",
-                "badge:En",
-                "cleanup",
-                "label:123",
-                "badge:123",
+                "label:英",
+                "badge:英",
                 "cleanup",
                 "label:中",
                 "badge:中"

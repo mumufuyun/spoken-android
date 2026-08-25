@@ -108,6 +108,7 @@ class CommonKeyActionListener :
                     triggerUnicode()
                 }
                 is LangSwitchAction -> service.switchToNextT9Mode()
+                is KeyAction.T9ReadingSlotAction -> service.commitTouchT9ReadingSlot(action.slot)
                 is ShowInputMethodPickerAction -> showInputMethodPicker()
                 is MoveSelectionAction -> {
                     when (backspaceSwipeState) {
