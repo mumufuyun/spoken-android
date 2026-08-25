@@ -21,12 +21,12 @@ keycap edge; the complete cell remains tappable. The bottom control row keeps a
 48 dp hit area while its visible keycaps use the same 2 dp edge gap as the rows
 above.
 After the first on-screen T9 digit tap, its composition surface docks inside a
-68 dp reserved area immediately above the keys and replaces the idle toolbar. The touch surface is a
+60 dp reserved area immediately above the keys and replaces the idle toolbar. The touch surface is a
 full-width two-row strip: pinyin disambiguation above Hanzi candidates. Candidate
 pages are packed by measured text width and minimum tap width. Once a page is
 chosen, its items share the remaining horizontal space equally instead of
 scaling hit targets by character count. Each visible item retains a minimum
-48 dp tap height, with text centered in each allocated hit area. Touch candidates
+34 dp minimum tap height, with enlarged text centered in each allocated hit area. Touch candidates
 show only candidate text; numeric shortcut labels remain exclusive to
 physical-key operation. It suppresses the redundant
 floating preedit bubble.

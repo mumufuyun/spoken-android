@@ -354,7 +354,7 @@ class T9ShortcutCandidatesUi(
         )
 
     companion object {
-        private const val TOUCH_CANDIDATE_MIN_HEIGHT_DP = 48
+        private const val TOUCH_CANDIDATE_MIN_HEIGHT_DP = 34
         private val shortcutLabels = arrayOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 
         private fun shortcutLabelForPosition(position: Int): String =

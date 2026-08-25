@@ -561,7 +561,7 @@ class InputView(
     }
 
     companion object {
-        private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 68
+        private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 60
         private const val TOUCH_T9_MAX_HEIGHT_PORTRAIT_PERCENT = 31
         private const val TOUCH_T9_MAX_HEIGHT_LANDSCAPE_PERCENT = 37
     }

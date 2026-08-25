@@ -100,7 +100,7 @@ class CandidatesView(
     private val horizontalMargin = 8
     private val bubbleGap = 4
     private val candidateItemSpacing = 4
-    private val t9TopBottomRowRatioPercent = 82
+    private val t9TopBottomRowRatioPercent = 68
     private val showPaginationArrows = false
 
     private var inputPanel = FcitxEvent.InputPanelEvent.Data()
@@ -190,9 +190,9 @@ class CandidatesView(
         setPadding(h, v, h, v)
     }
 
-    /** Third row (candidates) use candidate font size setting as-is. */
+    /** Hanzi candidates add a small optical boost over the configured base size. */
     private val setupTextViewCandidates: TextView.() -> Unit = {
-        textSize = fontSize.toFloat().coerceAtLeast(1f)
+        textSize = candidateFontSizeSp
         InputUiFont.applyTo(this)
         val v = dp(itemPaddingVertical)
         val h = dp(itemPaddingHorizontal)
@@ -560,7 +560,7 @@ class CandidatesView(
     private val oneCandidateRowHeightPx: Int
         get() {
             val dm = ctx.resources.displayMetrics
-            val linePx = (fontSize * dm.scaledDensity * 1.2f).toInt()
+            val linePx = (candidateFontSizeSp * dm.scaledDensity * 1.2f).toInt()
             return linePx + 2 * dpCandidates(itemPaddingVertical)
         }
 
@@ -577,8 +577,11 @@ class CandidatesView(
     /** Second compact row: pinyin filter chips. */
     private val pinyinBarRowHeightPx: Int get() = compactTopRowHeightPx
 
-    /** Font size for compact top rows so text fits even when the height ratio is small. */
-    private val compactTopRowFontSizeSp: Float get() = fontSize * 6f / 11f
+    /** Touch candidates use more of their row instead of leaving most of the hit area blank. */
+    private val candidateFontSizeSp: Float get() = (fontSize + 4).toFloat().coerceAtLeast(1f)
+
+    /** Keep pinyin clearly subordinate to Hanzi while making it legible in the compact dock. */
+    private val compactTopRowFontSizeSp: Float get() = candidateFontSizeSp * 0.64f
 
     private val pinyinToHanziGapPx: Int get() = dp(T9_PINYIN_TO_HANZI_GAP_DP)
 
@@ -1081,7 +1084,7 @@ class CandidatesView(
 
     private fun measureT9CandidateTextWidthPx(text: String): Int {
         val paint = t9CandidateMeasurePaint.apply {
-            textSize = fontSize * ctx.resources.displayMetrics.scaledDensity
+            textSize = candidateFontSizeSp * ctx.resources.displayMetrics.scaledDensity
             InputUiFont.applyTo(this)
         }
         return T9SemanticTextView.measureWidth(paint, text).roundToInt()
@@ -1089,7 +1092,7 @@ class CandidatesView(
 
     private fun isT9CandidateRenderable(candidate: FcitxEvent.Candidate): Boolean {
         val paint = t9CandidateMeasurePaint.apply {
-            textSize = fontSize * ctx.resources.displayMetrics.scaledDensity
+            textSize = candidateFontSizeSp * ctx.resources.displayMetrics.scaledDensity
             InputUiFont.applyTo(this)
         }
         return T9SemanticTextView.handles(candidate.text) || paint.hasGlyph(candidate.text)
@@ -1171,7 +1174,7 @@ class CandidatesView(
             maxRowWidthPx = pinyinRowMaxWidthPx(),
             candidateSpacingPx = dp(candidateItemSpacing),
             candidateHorizontalPaddingPx = dpCandidates(itemPaddingHorizontal),
-            minimumCandidateWidthPx = (fontSize * ctx.resources.displayMetrics.scaledDensity * 1.35f)
+            minimumCandidateWidthPx = (candidateFontSizeSp * ctx.resources.displayMetrics.scaledDensity * 1.35f)
                 .roundToInt()
                 .coerceAtLeast(
                     if (service.isTouchT9KeyboardActive()) {
@@ -1265,6 +1268,13 @@ class CandidatesView(
         } else {
             makeBubbleBackground()
         }
+        val bubblePadding = dp(if (docked) 1 else windowPadding)
+        bubble2Wrapper.setPadding(
+            bubblePadding,
+            bubblePadding,
+            bubblePadding,
+            bubblePadding
+        )
         bubble2Wrapper.elevation = if (docked) 0f else dp(7).toFloat()
         bubble2Wrapper.updateLayoutParams<LinearLayout.LayoutParams> {
             width = if (docked) LinearLayout.LayoutParams.MATCH_PARENT

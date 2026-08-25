@@ -211,7 +211,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
             R.id.button_space -> {
                 val bkgRadius = dp(3f)
                 val minHeight = if (def.border == Border.On) h else dp(26)
-                val hInset = dp(10)
+                val hInset = if (def.border == Border.On) 0 else dp(10)
                 val vInset = if (h < minHeight) 0 else min((h - minHeight) / 2, dp(16))
                 appearanceView.background = insetRadiusDrawable(
                     hInset, vInset, bkgRadius, theme.spaceBarColor
@@ -227,21 +227,26 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
                 )
             }
             R.id.button_return -> {
-                val drawableSize = if (def.border == Border.On) {
-                    min(w, h)
+                val touchT9Style = def.border == Border.On
+                val drawableSize = min(min(w, h), dp(30))
+                val hInset = if (touchT9Style) 0 else (w - drawableSize) / 2
+                val vInset = if (touchT9Style) 0 else (h - drawableSize) / 2
+                appearanceView.background = if (touchT9Style) {
+                    insetRadiusDrawable(
+                        hInset, vInset, dp(3f), theme.accentKeyBackgroundColor
+                    )
                 } else {
-                    min(min(w, h), dp(30))
+                    insetOvalDrawable(hInset, vInset, theme.accentKeyBackgroundColor)
                 }
-                val hInset = (w - drawableSize) / 2
-                val vInset = (h - drawableSize) / 2
-                appearanceView.background = insetOvalDrawable(
-                    hInset, vInset, theme.accentKeyBackgroundColor
-                )
                 appearanceView.padding = 0
                 setupPressHighlight(
-                    insetOvalDrawable(
-                        hInset, vInset, theme.keyPressHighlightColor
-                    )
+                    if (touchT9Style) {
+                        insetRadiusDrawable(
+                            hInset, vInset, dp(3f), theme.keyPressHighlightColor
+                        )
+                    } else {
+                        insetOvalDrawable(hInset, vInset, theme.keyPressHighlightColor)
+                    }
                 )
             }
         }

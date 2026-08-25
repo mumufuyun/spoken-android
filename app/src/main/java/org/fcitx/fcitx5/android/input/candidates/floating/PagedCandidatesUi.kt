@@ -281,7 +281,7 @@ class PagedCandidatesUi(
 
     companion object {
         private object SelectionPayload
-        private const val TOUCH_CANDIDATE_MIN_HEIGHT_DP = 48
+        private const val TOUCH_CANDIDATE_MIN_HEIGHT_DP = 34
     }
 
     private fun candidateRowAt(position: Int): Row.Candidate? =
