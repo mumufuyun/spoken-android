@@ -265,9 +265,13 @@ class InputView(
         get() {
             val percent = when (resources.configuration.orientation) {
                 Configuration.ORIENTATION_LANDSCAPE ->
-                    if (isT9KeyboardActive) t9KeyboardHeightPercentLandscape.getValue() else 45
+                    if (isT9KeyboardActive) {
+                        t9KeyboardHeightPercentLandscape.getValue().coerceAtMost(TOUCH_T9_MAX_HEIGHT_LANDSCAPE_PERCENT)
+                    } else 45
                 else ->
-                    if (isT9KeyboardActive) t9KeyboardHeightPercent.getValue() else 40
+                    if (isT9KeyboardActive) {
+                        t9KeyboardHeightPercent.getValue().coerceAtMost(TOUCH_T9_MAX_HEIGHT_PORTRAIT_PERCENT)
+                    } else 40
             }
             return resources.displayMetrics.heightPixels * percent / 100
         }
@@ -557,7 +561,9 @@ class InputView(
     }
 
     companion object {
-        private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 68
+        private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 84
+        private const val TOUCH_T9_MAX_HEIGHT_PORTRAIT_PERCENT = 34
+        private const val TOUCH_T9_MAX_HEIGHT_LANDSCAPE_PERCENT = 40
     }
 
     fun isTemporaryPasswordInputSessionActive(): Boolean {

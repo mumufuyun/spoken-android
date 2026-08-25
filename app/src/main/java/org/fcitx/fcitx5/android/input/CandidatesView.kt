@@ -234,7 +234,10 @@ class CandidatesView(
     )
 
     private val t9CandidateUiSnapshotPipeline = T9CandidateUiSnapshotPipeline(
-        characterBudget = { t9HanziCharacterBudget },
+        characterBudget = {
+            if (service.isTouchT9KeyboardActive()) TOUCH_T9_CHARACTER_SLOTS
+            else t9HanziCharacterBudget
+        },
         widthBudget = ::t9CandidateWidthBudget,
         candidateMatchesPrefix = { candidate, prefix ->
             service.candidateMatchesT9ResolvedPrefix(candidate, prefix)
@@ -313,6 +316,9 @@ class CandidatesView(
         showPaginationArrows,
         dp(windowRadius),
         dp(candidateItemSpacing),
+        fixedCharacterSlots = {
+            TOUCH_T9_CHARACTER_SLOTS.takeIf { service.isTouchT9KeyboardActive() }
+        },
         onCandidateClick = { shownIndex ->
             service.moveT9CandidateFocus(T9CandidateFocus.BOTTOM)
             updateT9FocusIndicator()
@@ -334,6 +340,9 @@ class CandidatesView(
         showPaginationArrows,
         dp(windowRadius),
         dp(candidateItemSpacing),
+        fixedCharacterSlots = {
+            TOUCH_T9_CHARACTER_SLOTS.takeIf { service.isTouchT9KeyboardActive() }
+        },
         onCandidateClick = { shownIndex ->
             service.moveT9CandidateFocus(T9CandidateFocus.BOTTOM)
             updateT9FocusIndicator()
@@ -1265,6 +1274,18 @@ class CandidatesView(
             else LinearLayout.LayoutParams.WRAP_CONTENT
             topMargin = if (docked) 0 else dp(bubbleGap)
         }
+        candidateRowWrapper.updateLayoutParams<FrameLayout.LayoutParams> {
+            width = if (docked) FrameLayout.LayoutParams.MATCH_PARENT
+            else FrameLayout.LayoutParams.WRAP_CONTENT
+        }
+        candidatesUi.root.updateLayoutParams<FrameLayout.LayoutParams> {
+            width = if (docked) FrameLayout.LayoutParams.MATCH_PARENT
+            else FrameLayout.LayoutParams.WRAP_CONTENT
+        }
+        t9ShortcutCandidatesUi.root.updateLayoutParams<FrameLayout.LayoutParams> {
+            width = if (docked) FrameLayout.LayoutParams.MATCH_PARENT
+            else FrameLayout.LayoutParams.WRAP_CONTENT
+        }
         minWidth = if (docked) 0 else dp(windowMinWidth)
         layoutParams = layoutParams.apply {
             width = if (docked) ViewGroup.LayoutParams.MATCH_PARENT
@@ -1357,6 +1378,7 @@ class CandidatesView(
     }
 
     companion object {
+        private const val TOUCH_T9_CHARACTER_SLOTS = 8
         private const val T9_BULK_FILTER_LIMIT = 80
         private const val T9_PINYIN_TO_HANZI_GAP_DP = 2
         private const val T9_PINYIN_ROW_MIN_VISIBLE_CHIPS = 4

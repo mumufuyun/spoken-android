@@ -14,6 +14,7 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
+import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.below
 import splitties.views.dsl.constraintlayout.bottomOfParent
@@ -28,6 +29,7 @@ import splitties.views.dsl.constraintlayout.rightToLeftOf
 import splitties.views.dsl.constraintlayout.topOfParent
 import splitties.views.dsl.core.add
 import splitties.views.imageResource
+import splitties.views.padding
 
 private class TouchT9DigitKey(
     letters: String,
@@ -40,7 +42,8 @@ private class TouchT9DigitKey(
         textSize = 23f,
         altTextSize = 12f,
         percentWidth = 0.333f,
-        border = Border.On
+        border = Border.On,
+        margin = false
     ),
     setOf(Behavior.Press(KeyAction.VirtualT9KeyAction(keyCode)))
 )
@@ -53,6 +56,7 @@ private class TouchT9ModeKey : KeyDef(
         percentWidth = 0.15f,
         variant = Variant.Normal,
         border = Border.On,
+        margin = false,
         viewId = R.id.button_lang
     ),
     setOf(Behavior.Press(KeyAction.LangSwitchAction))
@@ -62,7 +66,8 @@ private class TouchT9VoiceKey : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_spoken_waveform_36,
         variant = Variant.Accent,
-        border = Border.On
+        border = Border.On,
+        margin = false
     ),
     emptySet(),
     emptyArray()
@@ -84,10 +89,16 @@ class T9Keyboard(
 
     companion object {
         const val Name = "T9"
+        private const val TOUCH_KEY_GAP_DP = 2
+    }
+
+    private fun createTouchKeyView(def: KeyDef): KeyView = createKeyView(def).apply {
+        // Keep the whole cell tappable while reducing the visible gap between adjacent keycaps.
+        padding = dp(TOUCH_KEY_GAP_DP)
     }
 
     private fun horizontalRow(definitions: List<KeyDef>): ConstraintLayout = constraintLayout {
-        val views = definitions.map(::createKeyView)
+        val views = definitions.map(::createTouchKeyView)
         views.forEachIndexed { index, view ->
             add(view, lParams {
                 centerVertically()
@@ -108,7 +119,7 @@ class T9Keyboard(
     }
 
     private fun verticalColumn(definitions: List<KeyDef>): ConstraintLayout = constraintLayout {
-        val views = definitions.map(::createKeyView)
+        val views = definitions.map(::createTouchKeyView)
         views.forEachIndexed { index, view ->
             add(view, lParams {
                 centerHorizontally()
@@ -130,10 +141,10 @@ class T9Keyboard(
 
     private val punctuationRail = verticalColumn(
         listOf(
-            SymbolKey(",", variant = Variant.Alternative, border = Border.On),
-            SymbolKey(".", variant = Variant.Alternative, border = Border.On),
-            SymbolKey("?", variant = Variant.Alternative, border = Border.On),
-            SymbolKey("!", variant = Variant.Alternative, border = Border.On)
+            SymbolKey(",", variant = Variant.Alternative, border = Border.On, margin = false),
+            SymbolKey(".", variant = Variant.Alternative, border = Border.On, margin = false),
+            SymbolKey("?", variant = Variant.Alternative, border = Border.On, margin = false),
+            SymbolKey("!", variant = Variant.Alternative, border = Border.On, margin = false)
         )
     )
 
@@ -188,17 +199,18 @@ class T9Keyboard(
                 PickerWindow.Key.Symbol.name,
                 0.18f,
                 Variant.Alternative,
-                Border.On
+                Border.On,
+                margin = false
             ),
-            LayoutSwitchKey("123", NumberKeyboard.Name, 0.15f, Variant.Normal, Border.On),
-            SpaceKey(0.52f, Border.On),
+            LayoutSwitchKey("123", NumberKeyboard.Name, 0.15f, Variant.Normal, Border.On, margin = false),
+            SpaceKey(0.52f, Border.On, margin = false),
             TouchT9ModeKey()
         )
     )
 
-    private val backspace = createKeyView(BackspaceKey(border = Border.On))
-    private val voice = createKeyView(TouchT9VoiceKey())
-    private val returnKey = createKeyView(ReturnKey(border = Border.On))
+    private val backspace = createTouchKeyView(BackspaceKey(border = Border.On, margin = false))
+    private val voice = createTouchKeyView(TouchT9VoiceKey())
+    private val returnKey = createTouchKeyView(ReturnKey(border = Border.On, margin = false))
 
     init {
         add(punctuationRail, lParams {

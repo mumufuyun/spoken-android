@@ -17,10 +17,12 @@ import android.widget.TextView
 import androidx.core.view.updateLayoutParams
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.t9.T9CandidateBudget
 import org.fcitx.fcitx5.android.input.t9.T9ResponsivenessTrace
 import org.fcitx.fcitx5.android.input.t9.T9ShortcutCandidateLayout
 import org.fcitx.fcitx5.android.input.t9.T9ShortcutCandidateStyle
 import org.fcitx.fcitx5.android.input.t9.T9ShortcutTailPolicy
+import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 
 class T9ShortcutCandidatesUi(
@@ -30,6 +32,7 @@ class T9ShortcutCandidatesUi(
     private val showPaginationArrows: Boolean,
     private val highlightCornerRadiusPx: Int,
     private val itemSpacingPx: Int,
+    private val fixedCharacterSlots: () -> Int? = { null },
     private val onCandidateClick: (Int) -> Unit,
     private val onPrevPage: () -> Unit,
     private val onNextPage: () -> Unit
@@ -145,7 +148,11 @@ class T9ShortcutCandidatesUi(
                 verticalPadding
             )
         }
-        val targetWidth = layout.rowWidthPx.takeIf { it > 0 } ?: WRAP_CONTENT
+        val targetWidth = if (fixedCharacterSlots() != null) {
+            layout.maxRowWidthPx.takeIf { it > 0 } ?: WRAP_CONTENT
+        } else {
+            layout.rowWidthPx.takeIf { it > 0 } ?: WRAP_CONTENT
+        }
         if (root.layoutParams?.width != targetWidth) {
             root.updateLayoutParams<ViewGroup.LayoutParams> {
                 width = targetWidth
@@ -172,7 +179,7 @@ class T9ShortcutCandidatesUi(
                     )
                     is Row.Pagination -> paginationView(row)
                 }
-                attachChild(view, index, index == rows.lastIndex)
+                attachChild(view, index, index == rows.lastIndex, row)
             }
         }
         T9ResponsivenessTrace.measure("CandidatesView.updateUi.renderCandidates.shortcutTrim") {
@@ -239,10 +246,20 @@ class T9ShortcutCandidatesUi(
         }.root
     }
 
-    private fun attachChild(view: View, index: Int, last: Boolean) {
+    private fun attachChild(view: View, index: Int, last: Boolean, row: Row) {
         val params = (view.layoutParams as? LinearLayout.LayoutParams)
             ?: LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
-        val rightMargin = if (last) 0 else itemSpacingPx
+        val slots = fixedCharacterSlots()
+        val rightMargin = if (slots == null && !last) itemSpacingPx else 0
+        val candidateRow = row as? Row.Candidate
+        params.width = if (slots != null && candidateRow != null && layout.maxRowWidthPx > 0) {
+            val contentWidth = (layout.maxRowWidthPx - root.paddingLeft - root.paddingRight)
+                .coerceAtLeast(1)
+            contentWidth * T9CandidateBudget.candidateCost(candidateRow.candidate.text).coerceAtMost(slots) / slots
+        } else {
+            WRAP_CONTENT
+        }
+        view.minimumHeight = if (slots != null) ctx.dp(TOUCH_CANDIDATE_MIN_HEIGHT_DP) else 0
         if (params.leftMargin != 0 || params.rightMargin != rightMargin) {
             params.leftMargin = 0
             params.rightMargin = rightMargin
@@ -337,6 +354,7 @@ class T9ShortcutCandidatesUi(
         )
 
     companion object {
+        private const val TOUCH_CANDIDATE_MIN_HEIGHT_DP = 48
         private val shortcutLabels = arrayOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 
         private fun shortcutLabelForPosition(position: Int): String =

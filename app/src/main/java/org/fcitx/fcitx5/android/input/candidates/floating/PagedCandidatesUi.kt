@@ -23,6 +23,7 @@ import com.google.android.flexbox.FlexboxLayoutManager
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.core.FcitxEvent.PagedCandidateEvent.LayoutHint
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.t9.T9CandidateBudget
 import org.fcitx.fcitx5.android.input.t9.T9ResponsivenessTrace
 import kotlin.math.roundToInt
 import splitties.dimensions.dp
@@ -36,6 +37,7 @@ class PagedCandidatesUi(
     private val showPaginationArrows: Boolean,
     private val highlightCornerRadiusPx: Int,
     private val itemSpacingPx: Int,
+    private val fixedCharacterSlots: () -> Int? = { null },
     private val onCandidateClick: (Int) -> Unit,
     private val onPrevPage: () -> Unit,
     private val onNextPage: () -> Unit
@@ -102,6 +104,20 @@ class PagedCandidatesUi(
                     holder.ui.root.updateLayoutParams<ViewGroup.LayoutParams> {
                         width = if (isVertical) MATCH_PARENT else WRAP_CONTENT
                     }
+                    (holder.ui.root.layoutParams as? FlexboxLayoutManager.LayoutParams)?.apply {
+                        val slots = fixedCharacterSlots()
+                        flexBasisPercent = if (!isVertical && slots != null) {
+                            T9CandidateBudget.candidateCost(row?.candidate?.text.orEmpty())
+                                .coerceAtMost(slots).toFloat() / slots
+                        } else {
+                            -1f
+                        }
+                        flexGrow = 0f
+                        flexShrink = 0f
+                    }
+                    holder.ui.root.minimumHeight = if (fixedCharacterSlots() != null) {
+                        ctx.dp(TOUCH_CANDIDATE_MIN_HEIGHT_DP)
+                    } else 0
                 }
                 is UiHolder.Pagination -> {
                     val row = renderRows.getOrNull(position) as? Row.Pagination
@@ -180,7 +196,11 @@ class PagedCandidatesUi(
         addItemDecoration(object : RecyclerView.ItemDecoration() {
             override fun getItemOffsets(outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
                 val position = parent.getChildAdapterPosition(view)
-                outRect.right = if (position != RecyclerView.NO_POSITION && position < state.itemCount - 1) {
+                outRect.right = if (
+                    fixedCharacterSlots() == null &&
+                    position != RecyclerView.NO_POSITION &&
+                    position < state.itemCount - 1
+                ) {
                     itemSpacingPx
                 } else {
                     0
@@ -263,6 +283,7 @@ class PagedCandidatesUi(
 
     companion object {
         private object SelectionPayload
+        private const val TOUCH_CANDIDATE_MIN_HEIGHT_DP = 48
     }
 
     private fun candidateRowAt(position: Int): Row.Candidate? =
