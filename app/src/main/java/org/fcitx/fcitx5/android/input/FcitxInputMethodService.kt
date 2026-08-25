@@ -1441,6 +1441,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     }
     private var selectionBackCallbackRegistered = false
+    private var imeWindowVisible = false
     private var selectionPreImeBackConsumed = false
     private var lastEditorTouchUptime = 0L
     private var lastExplicitSelectionDeleteUptime = 0L
@@ -1474,13 +1475,18 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private fun updateSelectionBackCallback(hasSelection: Boolean) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
         val dispatcher = window.window?.onBackInvokedDispatcher ?: return
-        if (hasSelection && !selectionBackCallbackRegistered) {
+        val shouldRegister = SelectionBackCallbackPolicy.shouldRegister(
+            hasSelection = hasSelection,
+            imeWindowVisible = imeWindowVisible,
+            isVirtualKeyboard = inputDeviceMgr.isVirtualKeyboard
+        )
+        if (shouldRegister && !selectionBackCallbackRegistered) {
             dispatcher.registerOnBackInvokedCallback(
                 OnBackInvokedDispatcher.PRIORITY_OVERLAY,
                 selectionBackCallback
             )
             selectionBackCallbackRegistered = true
-        } else if (!hasSelection && selectionBackCallbackRegistered) {
+        } else if (!shouldRegister && selectionBackCallbackRegistered) {
             dispatcher.unregisterOnBackInvokedCallback(selectionBackCallback)
             selectionBackCallbackRegistered = false
         }
@@ -1796,6 +1802,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     override fun onWindowShown() {
         super.onWindowShown()
+        imeWindowVisible = true
+        updateSelectionBackCallback(selection.latest.isNotEmpty())
         try {
             highlightColor = styledColor(android.R.attr.colorAccent).alpha(0.4f)
         } catch (_: Exception) {
@@ -1808,6 +1816,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             )
             decorView.post(InputFeedbacks::preloadAppSoundsIfEnabled)
         }
+    }
+
+    override fun onWindowHidden() {
+        imeWindowVisible = false
+        updateSelectionBackCallback(false)
+        super.onWindowHidden()
     }
 
     override fun onCreateInputView(): View? {
@@ -3536,6 +3550,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             (!inputDeviceMgr.isPassthroughInput &&
                 (capabilityFlags.has(CapabilityFlag.Password) ||
                     inputView?.isTemporaryPasswordKeyboardVisible() == true))
+        // Device classification can change while starting the input view. Reconcile the
+        // predictive-back callback after it is authoritative so touch keyboards never own Back.
+        updateSelectionBackCallback(selection.latest.isNotEmpty())
         if (shouldStartInputView) {
             // because onStartInputView will always be called after onStartInput,
             // editorInfo and capFlags should be up-to-date
