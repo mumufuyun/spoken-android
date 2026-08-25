@@ -232,13 +232,14 @@ class LanguageKey(percentWidth: Float = 0.1f) : KeyDef(
     )
 )
 
-class SpaceKey(
+open class SpaceKey(
     percentWidth: Float = 0f,
     border: Border = Border.Special,
-    margin: Boolean = true
+    margin: Boolean = true,
+    displayText: String = " "
 ) : KeyDef(
     Appearance.Text(
-        displayText = " ",
+        displayText = displayText,
         textSize = 13f,
         percentWidth = percentWidth,
         border = border,

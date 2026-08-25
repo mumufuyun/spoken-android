@@ -213,8 +213,13 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
                 val minHeight = if (def.border == Border.On) h else dp(26)
                 val hInset = if (def.border == Border.On) 0 else dp(10)
                 val vInset = if (h < minHeight) 0 else min((h - minHeight) / 2, dp(16))
+                val backgroundColor = if (def.border == Border.On) {
+                    theme.keyBackgroundColor
+                } else {
+                    theme.spaceBarColor
+                }
                 appearanceView.background = insetRadiusDrawable(
-                    hInset, vInset, bkgRadius, theme.spaceBarColor
+                    hInset, vInset, bkgRadius, backgroundColor
                 )
                 // InsetDrawable sets padding to container view; remove padding to prevent text from bing clipped
                 appearanceView.padding = 0
@@ -273,7 +278,13 @@ open class TextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.Text) 
         InputUiFont.applyTo(this, def.textStyle)
         setTextColor(
             if (def.viewId == R.id.button_space) {
-                if (isDarkColor(theme.spaceBarColor)) Color.WHITE else Color.BLACK
+                if (def.border == Border.On) {
+                    theme.keyTextColor
+                } else if (isDarkColor(theme.spaceBarColor)) {
+                    Color.WHITE
+                } else {
+                    Color.BLACK
+                }
             } else {
                 when (def.variant) {
                     Variant.Normal -> theme.keyTextColor
