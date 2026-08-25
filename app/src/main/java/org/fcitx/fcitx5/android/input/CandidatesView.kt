@@ -512,8 +512,25 @@ class CandidatesView(
         theme
     ).apply {
         contentDescription = ctx.getString(R.string.expand_candidates_list)
-        visibility = View.GONE
+        minimumWidth = dp(EXPAND_CANDIDATES_BUTTON_WIDTH_DP)
+        minimumHeight = dp(EXPAND_CANDIDATES_BUTTON_MIN_HEIGHT_DP)
         setOnClickListener { service.showExpandedTouchT9Candidates() }
+    }
+    private val expandCandidatesSlot = FrameLayout(ctx).apply {
+        visibility = View.GONE
+        isClickable = false
+        addView(View(ctx).apply {
+            setBackgroundColor(theme.dividerColor)
+        }, FrameLayout.LayoutParams(
+            dp(EXPAND_CANDIDATES_DIVIDER_WIDTH_DP),
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ).apply {
+            gravity = Gravity.START
+        })
+        addView(expandCandidatesButton, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
     }
     private val candidateRowWrapper = LinearLayout(ctx).apply {
         orientation = LinearLayout.HORIZONTAL
@@ -525,7 +542,7 @@ class CandidatesView(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             1f
         ))
-        addView(expandCandidatesButton, LinearLayout.LayoutParams(
+        addView(expandCandidatesSlot, LinearLayout.LayoutParams(
             dp(EXPAND_CANDIDATES_BUTTON_WIDTH_DP),
             LinearLayout.LayoutParams.MATCH_PARENT
         ))
@@ -920,6 +937,10 @@ class CandidatesView(
     private fun updateUi(
         generation: T9CandidateRefreshGeneration.Generation
     ) = T9ResponsivenessTrace.measure("CandidatesView.updateUi") {
+        if (service.isTouchT9CandidatesExpanded()) {
+            hideT9CandidateUiImmediately()
+            return@measure
+        }
         val traceId = generation.traceInputId
         val snapshot = buildT9CandidateUiState() ?: return@measure
         service.updateTouchT9ReadingOptions(
@@ -931,10 +952,7 @@ class CandidatesView(
         )
         T9ResponsivenessTrace.markSnapshotReady(traceId)
         applyT9CandidateUiSnapshot(snapshot)
-        t9CandidateSurfaceGeometry.beginFrame(generation.id)
-        t9CandidateSurfaceAdapter.beginFrame(generation.id)
-        t9CandidateUiRenderer.render(snapshot.renderState)
-        expandCandidatesButton.visibility = if (
+        expandCandidatesSlot.visibility = if (
             service.isTouchT9KeyboardActive() &&
             service.isChineseT9InputModeActive() &&
             snapshot.renderState.shouldShow &&
@@ -945,6 +963,11 @@ class CandidatesView(
         } else {
             View.GONE
         }
+        // Reserve the trailing touch target before measuring and rendering candidate cells.
+        // Showing it after render lets the final candidate keep the old full-row geometry.
+        t9CandidateSurfaceGeometry.beginFrame(generation.id)
+        t9CandidateSurfaceAdapter.beginFrame(generation.id)
+        t9CandidateUiRenderer.render(snapshot.renderState)
         if (
             service.markPendingT9SelectionFrameRendered(
                 snapshot.chineseCompositionTicket
@@ -1279,7 +1302,10 @@ class CandidatesView(
                 maxRowWidthPx = (pinyinRowMaxWidthPx() - if (
                     service.isTouchT9KeyboardActive() && service.isChineseT9InputModeActive()
                 ) {
-                    dp(EXPAND_CANDIDATES_BUTTON_WIDTH_DP)
+                    dp(
+                        EXPAND_CANDIDATES_BUTTON_WIDTH_DP +
+                            EXPAND_CANDIDATES_CONTENT_GAP_DP
+                    )
                 } else {
                     0
                 })
@@ -1332,6 +1358,13 @@ class CandidatesView(
         if (touchT9DockStyleApplied == docked) return
         touchT9DockStyleApplied = docked
 
+        // Docked candidates share a row with a dedicated trailing action slot. Clip the
+        // candidate surface at its own boundary so focused text can never draw into that slot.
+        candidateItemsWrapper.clipChildren = docked
+        candidateItemsWrapper.clipToPadding = docked
+        candidateRowWrapper.clipChildren = docked
+        candidateRowWrapper.clipToPadding = docked
+
         val shadowOutset = candidateShadowOutsetPx
         setPadding(
             if (docked) 0 else shadowOutset,
@@ -1381,6 +1414,12 @@ class CandidatesView(
             width = if (docked) 0 else LinearLayout.LayoutParams.WRAP_CONTENT
             weight = if (docked) 1f else 0f
         }
+        candidateItemsWrapper.setPadding(
+            0,
+            0,
+            if (docked) dp(EXPAND_CANDIDATES_CONTENT_GAP_DP) else 0,
+            0
+        )
         candidatesUi.root.updateLayoutParams<FrameLayout.LayoutParams> {
             width = if (docked) FrameLayout.LayoutParams.MATCH_PARENT
             else FrameLayout.LayoutParams.WRAP_CONTENT
@@ -1489,6 +1528,9 @@ class CandidatesView(
         private const val T9_PINYIN_ROW_OVERFLOW_HINT_MIN_WIDTH_DP = 10
         private const val T9_PINYIN_ROW_FOLDED_EDGE_SAFETY_DP = 2
         private const val T9_PAGINATION_WIDTH_DP = 20
-        private const val EXPAND_CANDIDATES_BUTTON_WIDTH_DP = 40
+        private const val EXPAND_CANDIDATES_BUTTON_WIDTH_DP = 48
+        private const val EXPAND_CANDIDATES_BUTTON_MIN_HEIGHT_DP = 40
+        private const val EXPAND_CANDIDATES_DIVIDER_WIDTH_DP = 1
+        private const val EXPAND_CANDIDATES_CONTENT_GAP_DP = 4
     }
 }

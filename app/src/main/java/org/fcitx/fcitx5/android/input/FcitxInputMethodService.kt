@@ -500,9 +500,22 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         currentT9Mode == T9InputMode.CHINESE
 
     private var touchT9SessionActive = false
+    private var touchT9CandidatesExpanded = false
 
     fun isTouchT9KeyboardActive(): Boolean =
         touchT9SessionActive && inputView?.isTouchT9KeyboardActive() == true
+
+    fun isTouchT9CandidatesExpanded(): Boolean = touchT9CandidatesExpanded
+
+    fun setTouchT9CandidatesExpanded(expanded: Boolean) {
+        if (touchT9CandidatesExpanded == expanded) return
+        touchT9CandidatesExpanded = expanded
+        if (expanded) {
+            candidatesView?.hideT9CandidateUiImmediately()
+        } else {
+            candidatesView?.refreshT9Ui()
+        }
+    }
 
     fun isChinesePredictionModeActive(): Boolean =
         if (handwritingCoordinatorDelegate.isInitialized() && handwritingCoordinator.isActive) {
@@ -3833,6 +3846,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         updateSelectionBackCallback(false)
         decorLocationUpdated = false
         touchT9SessionActive = false
+        touchT9CandidatesExpanded = false
         inputDeviceMgr.onFinishInputView()
         currentInputConnection?.apply {
             finishComposingText()
@@ -3857,6 +3871,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         resetNumberModeIfInitialized()
         updateSelectionBackCallback(false)
         touchT9SessionActive = false
+        touchT9CandidatesExpanded = false
         inputDeviceMgr.onFinishInput()
         clearT9CompositionState()
         smartEnglishCoordinator.reset()

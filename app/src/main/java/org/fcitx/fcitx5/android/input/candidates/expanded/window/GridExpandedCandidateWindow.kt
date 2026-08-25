@@ -51,7 +51,7 @@ class GridExpandedCandidateWindow :
         ExpandedCandidateLayout(
             context,
             theme,
-            forceSolidBackground = service.isChineseT9InputModeActive()
+            touchT9Mode = service.isChineseT9InputModeActive()
         ).apply {
             recyclerView.apply {
                 adapter = this@GridExpandedCandidateWindow.adapter

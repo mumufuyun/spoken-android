@@ -32,18 +32,40 @@ import splitties.views.imageResource
 class ExpandedCandidateLayout(
     context: Context,
     theme: Theme,
-    forceSolidBackground: Boolean = false
+    touchT9Mode: Boolean = false
 ) : ConstraintLayout(context) {
 
-    class Keyboard(context: Context, theme: Theme) : BaseKeyboard(context, theme, Layout) {
+    class Keyboard(
+        context: Context,
+        theme: Theme,
+        touchT9Mode: Boolean
+    ) : BaseKeyboard(
+        context,
+        theme,
+        layout(touchT9Mode),
+        keyPreviewEnabled = !touchT9Mode
+    ) {
         companion object {
+            const val CollapseBtnLabel = "C"
             const val UpBtnLabel = "U"
             const val DownBtnLabel = "D"
 
+            const val CollapseBtnId = 0xff54
             const val UpBtnId = 0xff55
             const val DownBtnId = 0xff56
 
-            val Layout: List<List<KeyDef>> = listOf(
+            private val CollapseRow = listOf(
+                ImageLayoutSwitchKey(
+                    R.drawable.ic_baseline_expand_less_24,
+                    to = CollapseBtnLabel,
+                    percentWidth = 1f,
+                    variant = KeyDef.Appearance.Variant.Alternative,
+                    viewId = CollapseBtnId,
+                    previewText = "⌃"
+                )
+            )
+
+            private val StandardLayout: List<List<KeyDef>> = listOf(
                 listOf(
                     ImageLayoutSwitchKey(
                         R.drawable.ic_baseline_arrow_upward_24,
@@ -67,6 +89,9 @@ class ExpandedCandidateLayout(
                 listOf(BackspaceKey(percentWidth = 1f, KeyDef.Appearance.Variant.Alternative)),
                 listOf(ReturnKey(percentWidth = 1f))
             )
+
+            private fun layout(touchT9Mode: Boolean): List<List<KeyDef>> =
+                if (touchT9Mode) listOf(CollapseRow) + StandardLayout else StandardLayout
         }
 
         val pageUpBtn: ImageKeyView by lazy { findViewById(UpBtnId) }
@@ -88,14 +113,14 @@ class ExpandedCandidateLayout(
     var pageUpBtn: ImageKeyView
     var pageDnBtn: ImageKeyView
 
-    val embeddedKeyboard = Keyboard(context, theme).also {
+    val embeddedKeyboard = Keyboard(context, theme, touchT9Mode).also {
         pageUpBtn = it.pageUpBtn
         pageDnBtn = it.pageDnBtn
     }
 
     init {
         id = R.id.expanded_candidate_view
-        if (forceSolidBackground || !keyBorder) {
+        if (touchT9Mode || !keyBorder) {
             backgroundColor = theme.barColor
         }
 

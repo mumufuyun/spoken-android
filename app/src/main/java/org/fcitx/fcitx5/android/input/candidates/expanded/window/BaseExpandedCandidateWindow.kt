@@ -81,6 +81,8 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     private val keyActionListener = KeyActionListener { it, source ->
         if (it is KeyAction.LayoutSwitchAction) {
             when (it.act) {
+                ExpandedCandidateLayout.Keyboard.CollapseBtnLabel ->
+                    windowManager.attachWindow(KeyboardWindow)
                 ExpandedCandidateLayout.Keyboard.UpBtnLabel -> prevPage()
                 ExpandedCandidateLayout.Keyboard.DownBtnLabel -> nextPage()
             }

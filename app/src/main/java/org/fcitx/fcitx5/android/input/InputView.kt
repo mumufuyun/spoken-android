@@ -372,6 +372,9 @@ class InputView(
             updatePasswordInputPreviewChrome()
         }
         windowManager.onActiveWindowChanged = { oldWindow, newWindow ->
+            if (newWindow === keyboardWindow && keyboardWindow.isCurrentLayoutT9()) {
+                service.setTouchT9CandidatesExpanded(false)
+            }
             if (oldWindow === keyboardWindow && isT9KeyboardActive) {
                 // 离开键盘窗口 → 用默认高度 40/45
                 isT9KeyboardActive = false
@@ -517,6 +520,7 @@ class InputView(
     private fun updateTopBarVisibility() {
         kawaiiBar.view.visibility = when {
             keyboardWindow.isPasswordPeekMode() -> GONE
+            service.isTouchT9CandidatesExpanded() -> GONE
             isT9KeyboardActive -> INVISIBLE
             else -> VISIBLE
         }
@@ -584,6 +588,7 @@ class InputView(
 
     fun showExpandedTouchT9Candidates() {
         if (!isTouchT9KeyboardActive()) return
+        service.setTouchT9CandidatesExpanded(true)
         windowManager.attachWindow(GridExpandedCandidateWindow())
     }
 
