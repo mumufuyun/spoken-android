@@ -22,13 +22,15 @@ class SymbolKey(
     val symbol: String,
     percentWidth: Float = 0.1f,
     variant: Variant = Variant.Normal,
-    popup: Array<Popup>? = null
+    popup: Array<Popup>? = null,
+    border: Border = Border.Default
 ) : KeyDef(
     Appearance.Text(
         displayText = symbol,
         textSize = 23f,
         percentWidth = percentWidth,
         variant = variant,
+        border = border,
         pressHighlight = false
     ),
     setOf(
@@ -121,7 +123,8 @@ class LayoutSwitchKey(
     displayText: String,
     val to: String = "",
     percentWidth: Float = 0.15f,
-    variant: Variant = Variant.Alternative
+    variant: Variant = Variant.Alternative,
+    border: Border = Border.Default
 ) : KeyDef(
     Appearance.Text(
         displayText,
@@ -129,6 +132,7 @@ class LayoutSwitchKey(
         textStyle = Typeface.BOLD,
         percentWidth = percentWidth,
         variant = variant,
+        border = border,
         pressHighlight = false
     ),
     setOf(
@@ -141,12 +145,14 @@ class LayoutSwitchKey(
 
 class BackspaceKey(
     percentWidth: Float = 0.15f,
-    variant: Variant = Variant.Alternative
+    variant: Variant = Variant.Alternative,
+    border: Border = Border.Default
 ) : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_baseline_backspace_24,
         percentWidth = percentWidth,
         variant = variant,
+        border = border,
         viewId = R.id.button_backspace,
         soundEffect = InputFeedbacks.SoundEffect.Delete
     ),
@@ -220,12 +226,15 @@ class LanguageKey(percentWidth: Float = 0.1f) : KeyDef(
     )
 )
 
-class SpaceKey(percentWidth: Float = 0f) : KeyDef(
+class SpaceKey(
+    percentWidth: Float = 0f,
+    border: Border = Border.Special
+) : KeyDef(
     Appearance.Text(
         displayText = " ",
         textSize = 13f,
         percentWidth = percentWidth,
-        border = Border.Special,
+        border = border,
         viewId = R.id.button_space,
         soundEffect = InputFeedbacks.SoundEffect.SpaceBar,
         pressHighlight = true
@@ -236,12 +245,15 @@ class SpaceKey(percentWidth: Float = 0f) : KeyDef(
     )
 )
 
-class ReturnKey(percentWidth: Float = 0.15f) : KeyDef(
+class ReturnKey(
+    percentWidth: Float = 0.15f,
+    border: Border = Border.Special
+) : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_baseline_keyboard_return_24,
         percentWidth = percentWidth,
         variant = Variant.Accent,
-        border = Border.Special,
+        border = border,
         viewId = R.id.button_return,
         soundEffect = InputFeedbacks.SoundEffect.Return,
         pressHighlight = true

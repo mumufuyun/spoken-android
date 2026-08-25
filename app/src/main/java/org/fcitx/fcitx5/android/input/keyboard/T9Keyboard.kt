@@ -39,7 +39,8 @@ private class TouchT9DigitKey(
         altText = digit,
         textSize = 23f,
         altTextSize = 12f,
-        percentWidth = 0.333f
+        percentWidth = 0.333f,
+        border = Border.On
     ),
     setOf(Behavior.Press(KeyAction.VirtualT9KeyAction(keyCode)))
 )
@@ -50,7 +51,8 @@ private class TouchT9ModeKey : KeyDef(
         textSize = 14f,
         textStyle = Typeface.BOLD,
         percentWidth = 0.15f,
-        variant = Variant.Alternative,
+        variant = Variant.Normal,
+        border = Border.On,
         viewId = R.id.button_lang
     ),
     setOf(Behavior.Press(KeyAction.LangSwitchAction))
@@ -130,10 +132,10 @@ class T9Keyboard(
 
     private val punctuationRail = verticalColumn(
         listOf(
-            SymbolKey(",", variant = Variant.Alternative),
-            SymbolKey(".", variant = Variant.Alternative),
-            SymbolKey("?", variant = Variant.Alternative),
-            SymbolKey("!", variant = Variant.Alternative)
+            SymbolKey(",", variant = Variant.Alternative, border = Border.On),
+            SymbolKey(".", variant = Variant.Alternative, border = Border.On),
+            SymbolKey("?", variant = Variant.Alternative, border = Border.On),
+            SymbolKey("!", variant = Variant.Alternative, border = Border.On)
         )
     )
 
@@ -187,17 +189,18 @@ class T9Keyboard(
                 "符号",
                 PickerWindow.Key.Symbol.name,
                 0.18f,
-                Variant.Alternative
+                Variant.Alternative,
+                Border.On
             ),
-            LayoutSwitchKey("123", NumberKeyboard.Name, 0.15f, Variant.Alternative),
-            SpaceKey(0.52f),
+            LayoutSwitchKey("123", NumberKeyboard.Name, 0.15f, Variant.Normal, Border.On),
+            SpaceKey(0.52f, Border.On),
             TouchT9ModeKey()
         )
     )
 
-    private val backspace = createKeyView(BackspaceKey())
+    private val backspace = createKeyView(BackspaceKey(border = Border.On))
     private val voice = createKeyView(TouchT9VoiceKey())
-    private val returnKey = createKeyView(ReturnKey())
+    private val returnKey = createKeyView(ReturnKey(border = Border.On))
 
     init {
         add(punctuationRail, lParams {

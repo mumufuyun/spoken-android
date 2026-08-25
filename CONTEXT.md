@@ -11,6 +11,10 @@ left, the 3-by-3 digit surface in the center, and Delete, a two-row voice target
 and Return on the right. The bottom row contains Symbols, Numbers, Space, and the
 Chinese/English mode key. Columns and rows must share constraint boundaries so
 the side controls stay aligned with the central keys.
+This shell forces visible key surfaces instead of inheriting the global
+borderless-key preference: center keys are normal surfaces, side actions are
+alternative surfaces, and voice/Return use the accent treatment. The generic
+symbol Picker is still upstream UI and remains a separate productization task.
 
 Supported T9 mechanisms:
 
