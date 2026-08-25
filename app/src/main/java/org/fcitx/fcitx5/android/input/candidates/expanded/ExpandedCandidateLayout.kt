@@ -29,7 +29,11 @@ import splitties.views.dsl.recyclerview.recyclerView
 import splitties.views.imageResource
 
 @SuppressLint("ViewConstructor")
-class ExpandedCandidateLayout(context: Context, theme: Theme) : ConstraintLayout(context) {
+class ExpandedCandidateLayout(
+    context: Context,
+    theme: Theme,
+    forceSolidBackground: Boolean = false
+) : ConstraintLayout(context) {
 
     class Keyboard(context: Context, theme: Theme) : BaseKeyboard(context, theme, Layout) {
         companion object {
@@ -91,7 +95,7 @@ class ExpandedCandidateLayout(context: Context, theme: Theme) : ConstraintLayout
 
     init {
         id = R.id.expanded_candidate_view
-        if (!keyBorder) {
+        if (forceSolidBackground || !keyBorder) {
             backgroundColor = theme.barColor
         }
 

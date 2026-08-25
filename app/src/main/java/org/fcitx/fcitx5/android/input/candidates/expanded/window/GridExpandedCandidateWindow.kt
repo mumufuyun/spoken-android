@@ -23,7 +23,12 @@ class GridExpandedCandidateWindow :
         get() = if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) 6 else 8
 
     override val adapter by lazy {
-        object : GridPagingCandidateViewAdapter(theme) {
+        object : GridPagingCandidateViewAdapter(
+            theme,
+            candidateTextForMeasure = {
+                if (service.isChineseT9InputModeActive()) it.substringBefore(' ') else it
+            }
+        ) {
             override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
                 bindCandidateUiViewHolder(holder)
@@ -43,7 +48,11 @@ class GridExpandedCandidateWindow :
     }
 
     override fun onCreateCandidateLayout(): ExpandedCandidateLayout =
-        ExpandedCandidateLayout(context, theme).apply {
+        ExpandedCandidateLayout(
+            context,
+            theme,
+            forceSolidBackground = service.isChineseT9InputModeActive()
+        ).apply {
             recyclerView.apply {
                 adapter = this@GridExpandedCandidateWindow.adapter
                 layoutManager = this@GridExpandedCandidateWindow.layoutManager

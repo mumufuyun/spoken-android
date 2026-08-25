@@ -1845,6 +1845,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         inputView?.setTouchT9CandidatesVisible(visible)
     }
 
+    fun showExpandedTouchT9Candidates() {
+        inputView?.showExpandedTouchT9Candidates()
+    }
+
+    fun commitExpandedTouchT9Candidate(originalIndex: Int, rawCandidate: String): Boolean =
+        candidatesView?.commitExpandedTouchT9Candidate(originalIndex, rawCandidate) == true
+
     override fun onComputeInsets(outInsets: Insets) {
         if (inputDeviceMgr.isPassthroughInput) {
             val n = decorView.findViewById<View>(android.R.id.navigationBarBackground)?.height ?: 0

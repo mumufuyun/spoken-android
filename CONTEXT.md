@@ -51,6 +51,10 @@ Touch T9 keys rely on press highlighting and haptic feedback without showing the
 ordinary per-key preview bubble. Candidate positioning may use an internal
 `INVISIBLE` frame while preserving its pending reveal; only a real dismissal
 cancels that reveal and restores the idle settings entry.
+Chinese touch T9 reserves a fixed trailing expand button whenever another candidate
+page exists. It opens the existing paged candidate window from the first engine
+candidate, renders candidate text without pinyin comments in a compact multi-column
+grid, and returns to the T9 keyboard after selection.
 Physical key operation does not enter this touch session and keeps cursor-following
 candidates. The dock changes only placement; it reuses the existing T9 snapshot,
 selection, and Rime pipeline.

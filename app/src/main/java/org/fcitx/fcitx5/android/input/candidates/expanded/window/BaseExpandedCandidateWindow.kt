@@ -123,11 +123,13 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
         }
         offsetJob = service.lifecycleScope.launch {
             horizontalCandidate.expandedCandidateOffset.collect {
-                if (it <= 0) {
+                if (it <= 0 && !service.isChineseT9InputModeActive()) {
                     windowManager.attachWindow(KeyboardWindow)
                 } else {
                     candidateLayout.resetPosition()
-                    adapter.refreshWithOffset(it)
+                    adapter.refreshWithOffset(
+                        if (service.isChineseT9InputModeActive()) 0 else it
+                    )
                 }
             }
         }
@@ -139,8 +141,15 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     }
 
     fun bindCandidateUiViewHolder(holder: CandidateViewHolder) {
+        if (service.isChineseT9InputModeActive()) {
+            holder.ui.text.text = holder.text.substringBefore(' ')
+        }
         holder.itemView.setOnClickListener {
-            fcitx.launchOnReady { it.select(holder.idx) }
+            if (service.isChineseT9InputModeActive()) {
+                service.commitExpandedTouchT9Candidate(holder.idx, holder.text)
+            } else {
+                fcitx.launchOnReady { it.select(holder.idx) }
+            }
         }
         holder.itemView.setOnLongClickListener {
             horizontalCandidate.showCandidateActionMenu(holder)

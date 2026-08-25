@@ -31,6 +31,7 @@ import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
 import org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesOrientation
 import org.fcitx.fcitx5.android.input.candidates.floating.PagedCandidatesUi
 import org.fcitx.fcitx5.android.input.candidates.floating.T9ShortcutCandidatesUi
@@ -489,20 +490,44 @@ class CandidatesView(
             }
         )
     }
-    private val candidateRowWrapper = FrameLayout(ctx).apply {
+    private val candidateItemsWrapper = FrameLayout(ctx).apply {
         clipChildren = false
         clipToPadding = false
         addView(candidatesUi.root, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
         ))
         addView(t9ShortcutCandidatesUi.root, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
         ))
         addView(candidateStatusView, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
+        ))
+    }
+    private val expandCandidatesButton = ToolButton(
+        ctx,
+        R.drawable.ic_baseline_expand_more_24,
+        theme
+    ).apply {
+        contentDescription = ctx.getString(R.string.expand_candidates_list)
+        visibility = View.GONE
+        setOnClickListener { service.showExpandedTouchT9Candidates() }
+    }
+    private val candidateRowWrapper = LinearLayout(ctx).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        clipChildren = false
+        clipToPadding = false
+        addView(candidateItemsWrapper, LinearLayout.LayoutParams(
+            0,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            1f
+        ))
+        addView(expandCandidatesButton, LinearLayout.LayoutParams(
+            dp(EXPAND_CANDIDATES_BUTTON_WIDTH_DP),
+            LinearLayout.LayoutParams.MATCH_PARENT
         ))
         setOnClickListener {
             if (candidateStatusView.visibility != View.VISIBLE) {
@@ -909,6 +934,17 @@ class CandidatesView(
         t9CandidateSurfaceGeometry.beginFrame(generation.id)
         t9CandidateSurfaceAdapter.beginFrame(generation.id)
         t9CandidateUiRenderer.render(snapshot.renderState)
+        expandCandidatesButton.visibility = if (
+            service.isTouchT9KeyboardActive() &&
+            service.isChineseT9InputModeActive() &&
+            snapshot.renderState.shouldShow &&
+            snapshot.renderState.candidateStatus == null &&
+            snapshot.renderState.candidates.hasNext
+        ) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
         if (
             service.markPendingT9SelectionFrameRendered(
                 snapshot.chineseCompositionTicket
@@ -991,21 +1027,27 @@ class CandidatesView(
         selectedCandidate: FcitxEvent.Candidate,
         matchedPrefix: String?,
         fromAllCandidates: Boolean,
-        onSelected: (() -> Unit)? = null
+        onSelected: (() -> Unit)? = null,
+        requireCurrentShownTicket: Boolean = true
     ): Boolean {
         val compositionTicket = service.getChineseT9CompositionTicket()
-        val sourceTicket = t9CandidateUiSnapshotPipeline.currentChineseSelectionTicket(
-            originalIndex = originalIndex,
-            candidate = selectedCandidate
-        ) ?: return false
+        val sourceTicket = if (requireCurrentShownTicket) {
+            t9CandidateUiSnapshotPipeline.currentChineseSelectionTicket(
+                originalIndex = originalIndex,
+                candidate = selectedCandidate
+            ) ?: return false
+        } else {
+            null
+        }
         var predictionArm: ChinesePredictionCandidateSession.ArmToken? = null
         chineseT9EngineOperation.enqueue(
             acceptBefore = {
                 val accepted = service.isCurrentChineseT9Composition(compositionTicket) &&
-                    t9CandidateUiSnapshotPipeline.currentChineseSelectionTicket(
-                        originalIndex = originalIndex,
-                        candidate = selectedCandidate
-                    ) == sourceTicket
+                    (!requireCurrentShownTicket ||
+                        t9CandidateUiSnapshotPipeline.currentChineseSelectionTicket(
+                            originalIndex = originalIndex,
+                            candidate = selectedCandidate
+                        ) == sourceTicket)
                 if (accepted) {
                     predictionArm = chinesePredictionCandidateSession.arm(
                         source = compositionTicket,
@@ -1038,6 +1080,29 @@ class CandidatesView(
             }
         )
         return true
+    }
+
+    fun commitExpandedTouchT9Candidate(originalIndex: Int, rawCandidate: String): Boolean {
+        if (!service.isChineseT9InputModeActive() || originalIndex < 0) return false
+        val trimmed = rawCandidate.trim()
+        if (trimmed.isEmpty()) return false
+        val splitAt = trimmed.indexOf(' ')
+        val candidate = if (splitAt <= 0 || splitAt == trimmed.lastIndex) {
+            FcitxEvent.Candidate(label = "", text = trimmed, comment = "")
+        } else {
+            FcitxEvent.Candidate(
+                label = "",
+                text = trimmed.substring(0, splitAt),
+                comment = trimmed.substring(splitAt + 1).trim()
+            )
+        }
+        return selectT9ChineseCandidate(
+            originalIndex = originalIndex,
+            selectedCandidate = candidate,
+            matchedPrefix = t9CandidateUiSnapshotPipeline.currentShownMatchedPrefix,
+            fromAllCandidates = true,
+            requireCurrentShownTicket = false
+        )
     }
 
     private fun requestT9BulkFilteredCandidatesIfNeeded(
@@ -1209,7 +1274,18 @@ class CandidatesView(
         (dp(windowRadius) * 0.35f).roundToInt().coerceAtLeast(dp(2))
 
     private fun t9CandidateWidthBudget() =
-        t9CandidateSurfaceGeometry.widthBudget(t9CandidateSurfaceGeometryMetrics())
+        t9CandidateSurfaceGeometry.widthBudget(
+            t9CandidateSurfaceGeometryMetrics().copy(
+                maxRowWidthPx = (pinyinRowMaxWidthPx() - if (
+                    service.isTouchT9KeyboardActive() && service.isChineseT9InputModeActive()
+                ) {
+                    dp(EXPAND_CANDIDATES_BUTTON_WIDTH_DP)
+                } else {
+                    0
+                })
+                    .coerceAtLeast(1)
+            )
+        )
 
     /** Horizontal gap from screen edge so the bubble doesn't touch left/right. */
     private val horizontalMarginPx: Int get() = dp(horizontalMargin)
@@ -1300,6 +1376,10 @@ class CandidatesView(
         candidateRowWrapper.updateLayoutParams<FrameLayout.LayoutParams> {
             width = if (docked) FrameLayout.LayoutParams.MATCH_PARENT
             else FrameLayout.LayoutParams.WRAP_CONTENT
+        }
+        candidateItemsWrapper.updateLayoutParams<LinearLayout.LayoutParams> {
+            width = if (docked) 0 else LinearLayout.LayoutParams.WRAP_CONTENT
+            weight = if (docked) 1f else 0f
         }
         candidatesUi.root.updateLayoutParams<FrameLayout.LayoutParams> {
             width = if (docked) FrameLayout.LayoutParams.MATCH_PARENT
@@ -1409,5 +1489,6 @@ class CandidatesView(
         private const val T9_PINYIN_ROW_OVERFLOW_HINT_MIN_WIDTH_DP = 10
         private const val T9_PINYIN_ROW_FOLDED_EDGE_SAFETY_DP = 2
         private const val T9_PAGINATION_WIDTH_DP = 20
+        private const val EXPAND_CANDIDATES_BUTTON_WIDTH_DP = 40
     }
 }

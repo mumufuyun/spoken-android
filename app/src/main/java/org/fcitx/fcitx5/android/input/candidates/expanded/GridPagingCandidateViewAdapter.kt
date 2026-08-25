@@ -15,7 +15,10 @@ import org.fcitx.fcitx5.android.input.candidates.CandidateViewHolder
 import splitties.dimensions.dp
 import splitties.views.dsl.core.matchParent
 
-abstract class GridPagingCandidateViewAdapter(theme: Theme) : PagingCandidateViewAdapter(theme) {
+abstract class GridPagingCandidateViewAdapter(
+    theme: Theme,
+    private val candidateTextForMeasure: (String) -> String = { it }
+) : PagingCandidateViewAdapter(theme) {
 
     companion object {
         // 20f here is chosen randomly, since we only care about the ratio
@@ -34,7 +37,7 @@ abstract class GridPagingCandidateViewAdapter(theme: Theme) : PagingCandidateVie
 
     fun measureWidth(position: Int): Float {
         val candidate = getItem(position) ?: return 0f
-        return measuredWidths[candidate]
+        return measuredWidths[candidateTextForMeasure(candidate)]
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {

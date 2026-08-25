@@ -48,6 +48,7 @@ import org.fcitx.fcitx5.android.input.broadcast.InputBroadcaster
 import org.fcitx.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fcitx.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fcitx.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
+import org.fcitx.fcitx5.android.input.candidates.expanded.window.GridExpandedCandidateWindow
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fcitx.fcitx5.android.input.handwriting.HandwritingAction
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
@@ -580,6 +581,11 @@ class InputView(
 
     fun isTouchT9KeyboardActive(): Boolean =
         isT9KeyboardActive && windowManager.isAttached(keyboardWindow)
+
+    fun showExpandedTouchT9Candidates() {
+        if (!isTouchT9KeyboardActive()) return
+        windowManager.attachWindow(GridExpandedCandidateWindow())
+    }
 
     fun getTouchT9CandidateDockBottomLocation(outLocation: IntArray) {
         windowManager.view.getLocationInWindow(outLocation)

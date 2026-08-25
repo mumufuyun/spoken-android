@@ -409,7 +409,12 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     override fun onCandidateUpdate(data: CandidateListEvent.Data) {
         if (service.isChineseT9InputModeActive()) {
-            clearTransientState()
+            isInlineSuggestionPresent = false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                idleUi.inlineSuggestionsBar.clear()
+            }
+            barStateMachine.push(CandidatesUpdated, CandidateEmpty to true)
+            evalIdleUiState()
             return
         }
         barStateMachine.push(CandidatesUpdated, CandidateEmpty to data.candidates.isEmpty())
