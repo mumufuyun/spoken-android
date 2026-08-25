@@ -32,8 +32,10 @@ physical-key operation. It suppresses the redundant
 floating preedit bubble.
 When that reserved area is idle, it exposes a single settings entry at the right;
 the entry disappears whenever the candidate surface is visible. In gesture-navigation
-mode, the touch T9 input window also yields the system-reported left and right edge
-strips so an edge Back gesture cannot lose its initial touch to a flush keycap.
+mode, the touch T9 input window also yields a narrow 18 dp launch strip on the left
+and right so an edge Back gesture cannot lose its initial touch to a flush keycap.
+The strip is intentionally capped instead of using the full system-reported side
+inset because HyperOS can report an area wide enough to consume the T9 reading rail.
 Touch digit keycaps show letters only; number entry remains available from the
 dedicated `123` panel. English uses a full-width three-row QWERTY surface instead
 of touch T9 while retaining the fixed right-side Delete, voice, and Return rail.

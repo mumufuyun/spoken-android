@@ -1872,9 +1872,14 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 visibleTopInsets = inputViewLocation[1]
                 val gestureInsets = ViewCompat.getRootWindowInsets(decorView)
                     ?.getInsets(WindowInsetsCompat.Type.systemGestures())
-                val fallbackEdge = if ((gestureInsets?.bottom ?: 0) > 0) dp(18) else 0
-                val leftEdge = max(gestureInsets?.left ?: 0, fallbackEdge)
-                val rightEdge = max(gestureInsets?.right ?: 0, fallbackEdge)
+                val gestureNavigation = gestureInsets?.let {
+                    it.left > 0 || it.right > 0 || it.bottom > 0
+                } == true
+                // HyperOS can report a side gesture inset wider than the complete T9 reading rail.
+                // A narrow launch strip is enough for Back without making the rail pass through.
+                val edgeGestureLaunchStrip = if (gestureNavigation) dp(18) else 0
+                val leftEdge = edgeGestureLaunchStrip
+                val rightEdge = edgeGestureLaunchStrip
                 if (isTouchT9KeyboardActive() && (leftEdge > 0 || rightEdge > 0)) {
                     // Some gesture-navigation ROMs let a flush IME key win the initial edge touch.
                     // Leaving the system gesture strips outside our touch region keeps Back reliable.
