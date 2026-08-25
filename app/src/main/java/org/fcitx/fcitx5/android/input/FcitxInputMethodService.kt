@@ -44,6 +44,8 @@ import androidx.autofill.inline.common.ImageViewStyle
 import androidx.autofill.inline.common.TextViewStyle
 import androidx.autofill.inline.common.ViewStyle
 import androidx.autofill.inline.v1.InlineSuggestionUi
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineStart
@@ -1839,6 +1841,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var inputViewLocation = intArrayOf(0, 0)
     private var candidateDockBottomLocation = intArrayOf(0, 0)
 
+    fun setTouchT9CandidatesVisible(visible: Boolean) {
+        inputView?.setTouchT9CandidatesVisible(visible)
+    }
+
     override fun onComputeInsets(outInsets: Insets) {
         if (inputDeviceMgr.isPassthroughInput) {
             val n = decorView.findViewById<View>(android.R.id.navigationBarBackground)?.height ?: 0
@@ -1864,7 +1870,24 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             outInsets.apply {
                 contentTopInsets = inputViewLocation[1]
                 visibleTopInsets = inputViewLocation[1]
-                touchableInsets = Insets.TOUCHABLE_INSETS_VISIBLE
+                val gestureInsets = ViewCompat.getRootWindowInsets(decorView)
+                    ?.getInsets(WindowInsetsCompat.Type.systemGestures())
+                val fallbackEdge = if ((gestureInsets?.bottom ?: 0) > 0) dp(18) else 0
+                val leftEdge = max(gestureInsets?.left ?: 0, fallbackEdge)
+                val rightEdge = max(gestureInsets?.right ?: 0, fallbackEdge)
+                if (isTouchT9KeyboardActive() && (leftEdge > 0 || rightEdge > 0)) {
+                    // Some gesture-navigation ROMs let a flush IME key win the initial edge touch.
+                    // Leaving the system gesture strips outside our touch region keeps Back reliable.
+                    touchableRegion.set(
+                        leftEdge,
+                        inputViewLocation[1],
+                        (decorView.width - rightEdge).coerceAtLeast(leftEdge),
+                        decorView.height
+                    )
+                    touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+                } else {
+                    touchableInsets = Insets.TOUCHABLE_INSETS_VISIBLE
+                }
             }
         }
     }

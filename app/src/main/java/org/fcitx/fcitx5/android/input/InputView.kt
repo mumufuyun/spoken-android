@@ -43,6 +43,7 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
+import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcaster
 import org.fcitx.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fcitx.fcitx5.android.input.broadcast.PunctuationComponent
@@ -61,6 +62,7 @@ import org.fcitx.fcitx5.android.input.picker.symbolPicker
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import org.fcitx.fcitx5.android.input.preedit.PreeditComponent
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
+import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.utils.unset
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.manager.wrapToUniqueComponent
@@ -211,6 +213,16 @@ class InputView(
     private val commonKeyActionListener = CommonKeyActionListener()
     private val windowManager = InputWindowManager()
     private val kawaiiBar = KawaiiBarComponent()
+    private var touchT9CandidatesVisible = false
+    private val touchT9SettingsButton = ToolButton(
+        themedContext,
+        R.drawable.ic_baseline_settings_24,
+        theme
+    ).apply {
+        contentDescription = context.getString(R.string.settings)
+        setOnClickListener { AppUtil.launchMain(context) }
+        visibility = GONE
+    }
     private val horizontalCandidate = HorizontalCandidateComponent()
     private val keyboardWindow = KeyboardWindow()
     private val componentsCreated = StartupPerformanceTrace.endStage(componentsCreateStage)
@@ -397,6 +409,10 @@ class InputView(
                     topOfParent()
                     centerHorizontally()
                 })
+                add(touchT9SettingsButton, lParams(dp(48), dp(48)) {
+                    topOfParent(dp(6))
+                    endOfParent(dp(12))
+                })
                 add(leftPaddingSpace, lParams {
                     below(kawaiiBar.view)
                     startOfParent()
@@ -503,6 +519,21 @@ class InputView(
             isT9KeyboardActive -> INVISIBLE
             else -> VISIBLE
         }
+        touchT9SettingsButton.visibility = if (
+            isT9KeyboardActive &&
+            !keyboardWindow.isPasswordPeekMode() &&
+            !touchT9CandidatesVisible
+        ) {
+            VISIBLE
+        } else {
+            GONE
+        }
+    }
+
+    fun setTouchT9CandidatesVisible(visible: Boolean) {
+        if (touchT9CandidatesVisible == visible) return
+        touchT9CandidatesVisible = visible
+        updateTopBarVisibility()
     }
 
     private fun updatePasswordPeekChrome() {

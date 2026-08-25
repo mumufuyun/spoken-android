@@ -30,12 +30,21 @@ scaling hit targets by character count. Each visible item retains a minimum
 show only candidate text; numeric shortcut labels remain exclusive to
 physical-key operation. It suppresses the redundant
 floating preedit bubble.
+When that reserved area is idle, it exposes a single settings entry at the right;
+the entry disappears whenever the candidate surface is visible. In gesture-navigation
+mode, the touch T9 input window also yields the system-reported left and right edge
+strips so an edge Back gesture cannot lose its initial touch to a flush keycap.
 Touch digit keycaps show letters only; number entry remains available from the
-dedicated `123` layout. The language key switches only between Chinese and
-English. While Chinese pinyin is composing, the left punctuation rail mirrors
+dedicated `123` panel. English uses a full-width three-row QWERTY surface instead
+of touch T9 while retaining the fixed right-side Delete, voice, and Return rail.
+Number and two-page symbol panels stay inside the same compact shell so their
+grid boundaries and persistent voice entry do not jump between windows. The
+language key switches only between Chinese and English. While Chinese pinyin is composing, the left punctuation rail mirrors
 up to four selectable pinyin readings and returns to punctuation when the
 composition clears. The complete pinyin sequence remains visible in the top
 candidate row. Both pinyin and Hanzi candidate text use a heavier foreground.
+Text and symbol panels use a subtle lowercase `spoken` wordmark on a normal key
+surface instead of the standalone dark space-bar treatment.
 Physical key operation does not enter this touch session and keeps cursor-following
 candidates. The dock changes only placement; it reuses the existing T9 snapshot,
 selection, and Rime pipeline.

@@ -1235,7 +1235,7 @@ class CandidatesView(
     }
 
     private fun setCandidateWindowVisibilityImmediately(visibility: Int) {
-        super.setVisibility(visibility)
+        setVisibility(visibility)
     }
 
     fun updateCursorAnchor(@Size(4) anchor: FloatArray, @Size(2) parent: FloatArray) {
@@ -1386,6 +1386,7 @@ class CandidatesView(
             t9CandidateSurfaceAdapter.cancelPendingPinyinReveal()
         }
         super.setVisibility(visibility)
+        service.setTouchT9CandidatesVisible(visibility == VISIBLE)
     }
 
     override fun onDetachedFromWindow() {
