@@ -90,6 +90,8 @@ class T9Keyboard(
     companion object {
         const val Name = "T9"
         private const val TOUCH_KEY_GAP_DP = 2
+        private const val TOUCH_BOTTOM_KEY_VERTICAL_INSET_DP = 10
+        private const val TOUCH_BOTTOM_ROW_HEIGHT_DP = 48
     }
 
     private fun createTouchKeyView(def: KeyDef): KeyView = createKeyView(def).apply {
@@ -97,8 +99,26 @@ class T9Keyboard(
         padding = dp(TOUCH_KEY_GAP_DP)
     }
 
-    private fun horizontalRow(definitions: List<KeyDef>): ConstraintLayout = constraintLayout {
-        val views = definitions.map(::createTouchKeyView)
+    private fun createCompactBottomKeyView(def: KeyDef): KeyView = createKeyView(def).apply {
+        setPadding(
+            dp(TOUCH_KEY_GAP_DP),
+            dp(TOUCH_BOTTOM_KEY_VERTICAL_INSET_DP),
+            dp(TOUCH_KEY_GAP_DP),
+            dp(TOUCH_BOTTOM_KEY_VERTICAL_INSET_DP)
+        )
+    }
+
+    private fun horizontalRow(
+        definitions: List<KeyDef>,
+        compactBottomKeycaps: Boolean = false
+    ): ConstraintLayout = constraintLayout {
+        val views = definitions.map { definition ->
+            if (compactBottomKeycaps && definition !is SpaceKey) {
+                createCompactBottomKeyView(definition)
+            } else {
+                createTouchKeyView(definition)
+            }
+        }
         views.forEachIndexed { index, view ->
             add(view, lParams {
                 centerVertically()
@@ -205,12 +225,30 @@ class T9Keyboard(
             LayoutSwitchKey("123", NumberKeyboard.Name, 0.15f, Variant.Normal, Border.On, margin = false),
             SpaceKey(0.52f, Border.On, margin = false),
             TouchT9ModeKey()
-        )
+        ),
+        compactBottomKeycaps = true
     )
 
     private val backspace = createTouchKeyView(BackspaceKey(border = Border.On, margin = false))
     private val voice = createTouchKeyView(TouchT9VoiceKey())
     private val returnKey = createTouchKeyView(ReturnKey(border = Border.On, margin = false))
+
+    private val rightActionSurface = constraintLayout {
+        add(backspace, lParams {
+            leftOfParent()
+            rightOfParent()
+            topOfParent()
+            matchConstraintPercentWidth = 1f
+            matchConstraintPercentHeight = 1f / 3f
+        })
+        add(voice, lParams {
+            leftOfParent()
+            rightOfParent()
+            below(backspace)
+            bottomOfParent()
+            matchConstraintPercentWidth = 1f
+        })
+    }
 
     init {
         add(punctuationRail, lParams {
@@ -221,19 +259,13 @@ class T9Keyboard(
         })
         add(digitSurface, lParams {
             leftToRightOf(punctuationRail)
-            rightToLeftOf(backspace)
+            rightToLeftOf(rightActionSurface)
             topOfParent()
             above(bottomRow)
         })
-        add(backspace, lParams {
+        add(rightActionSurface, lParams {
             rightOfParent()
             topOfParent()
-            matchConstraintPercentWidth = 0.16f
-            matchConstraintPercentHeight = 0.25f
-        })
-        add(voice, lParams {
-            rightOfParent()
-            below(backspace)
             above(returnKey)
             matchConstraintPercentWidth = 0.16f
         })
@@ -241,13 +273,13 @@ class T9Keyboard(
             leftOfParent()
             rightToLeftOf(returnKey)
             bottomOfParent()
-            matchConstraintPercentHeight = 0.25f
+            height = dp(TOUCH_BOTTOM_ROW_HEIGHT_DP)
         })
         add(returnKey, lParams {
             rightOfParent()
             bottomOfParent()
             matchConstraintPercentWidth = 0.16f
-            matchConstraintPercentHeight = 0.25f
+            height = dp(TOUCH_BOTTOM_ROW_HEIGHT_DP)
         })
     }
 

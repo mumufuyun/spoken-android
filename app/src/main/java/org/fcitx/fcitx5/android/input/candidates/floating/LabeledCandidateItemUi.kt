@@ -101,7 +101,7 @@ class LabeledCandidateItemUi(
         lastShortcutUsesNaturalTailWidth = usesShortcutLabel && shortcutUsesNaturalTailWidth
         applyShortcutWidthLimit(if (usesShortcutLabel) shortcutMaxWidthPx else null)
         applyShortcutLineMetrics(usesShortcutLabel)
-        root.gravity = if (usesShortcutLabel) Gravity.CENTER else Gravity.CENTER_VERTICAL
+        root.gravity = if (t9InputModeEnabled) Gravity.CENTER else Gravity.CENTER_VERTICAL
         root.minimumWidth = if (usesShortcutLabel) {
             if (lastShortcutUsesNaturalTailWidth) {
                 // Product decision: the final visible T9 shortcut chip is measured by its text.
