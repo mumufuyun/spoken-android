@@ -210,7 +210,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
         when (def.viewId) {
             R.id.button_space -> {
                 val bkgRadius = dp(3f)
-                val minHeight = dp(26)
+                val minHeight = if (def.border == Border.On) h else dp(26)
                 val hInset = dp(10)
                 val vInset = if (h < minHeight) 0 else min((h - minHeight) / 2, dp(16))
                 appearanceView.background = insetRadiusDrawable(
@@ -227,7 +227,11 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
                 )
             }
             R.id.button_return -> {
-                val drawableSize = min(min(w, h), dp(30))
+                val drawableSize = if (def.border == Border.On) {
+                    min(w, h)
+                } else {
+                    min(min(w, h), dp(30))
+                }
                 val hInset = (w - drawableSize) / 2
                 val vInset = (h - drawableSize) / 2
                 appearanceView.background = insetOvalDrawable(

@@ -18,7 +18,8 @@ alternative surfaces, and voice/Return use the accent treatment. The generic
 symbol Picker is still upstream UI and remains a separate productization task.
 The touch grid caps portrait height at 31 percent and uses a 2 dp inset on each
 keycap edge; the complete cell remains tappable. The bottom control row keeps a
-48 dp hit area while its visible keycaps align to the compact space-bar surface.
+48 dp hit area while its visible keycaps use the same 2 dp edge gap as the rows
+above.
 After the first on-screen T9 digit tap, its composition surface docks inside a
 68 dp reserved area immediately above the keys and replaces the idle toolbar. The touch surface is a
 full-width two-row strip: pinyin disambiguation above Hanzi candidates. Candidate

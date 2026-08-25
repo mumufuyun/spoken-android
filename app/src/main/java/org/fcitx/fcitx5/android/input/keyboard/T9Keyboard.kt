@@ -90,7 +90,7 @@ class T9Keyboard(
     companion object {
         const val Name = "T9"
         private const val TOUCH_KEY_GAP_DP = 2
-        private const val TOUCH_BOTTOM_KEY_VERTICAL_INSET_DP = 10
+        private const val TOUCH_BOTTOM_KEY_VERTICAL_INSET_DP = 2
         private const val TOUCH_BOTTOM_ROW_HEIGHT_DP = 48
     }
 
