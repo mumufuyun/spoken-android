@@ -24,7 +24,9 @@ class T9CandidateSurfaceAndroidAdapter(
     private val onShortcutCandidateMeasured: (generationId: Long, widthPx: Int?) -> Unit,
     private val setPreferAboveInputPanel: (Boolean) -> Unit,
     private val showWhenPositioned: (contentReady: Boolean) -> Unit,
-    private val hideSurfaceImmediately: () -> Unit
+    private val hideSurfaceImmediately: () -> Unit,
+    private val showPreedit: () -> Boolean = { true },
+    private val setPreeditContainerVisible: (Boolean) -> Unit = {}
 ) : T9CandidateUiRenderer.Delegate {
     private var lastRenderedFocus = T9CandidateFocus.BOTTOM
     private var activeGenerationId = 0L
@@ -39,11 +41,16 @@ class T9CandidateSurfaceAndroidAdapter(
 
     override fun renderPreedit(panel: FcitxEvent.InputPanelEvent.Data, reserveRow: Boolean) {
         preeditUi.update(panel)
-        preeditUi.root.visibility = when {
-            preeditUi.visible -> View.VISIBLE
-            reserveRow -> View.INVISIBLE
-            else -> View.GONE
+        preeditUi.root.visibility = if (!showPreedit()) {
+            View.GONE
+        } else {
+            when {
+                preeditUi.visible -> View.VISIBLE
+                reserveRow -> View.INVISIBLE
+                else -> View.GONE
+            }
         }
+        setPreeditContainerVisible(preeditUi.root.visibility != View.GONE)
     }
 
     override fun renderCandidates(
@@ -140,6 +147,7 @@ class T9CandidateSurfaceAndroidAdapter(
     ) {
         preeditUi.update(inputPanel)
         preeditUi.root.visibility = View.GONE
+        setPreeditContainerVisible(false)
         pinyinRowAdapter.clear()
         resetFocus()
         candidatesUi.update(emptyPaged, orientation)

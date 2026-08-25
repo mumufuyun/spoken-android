@@ -497,8 +497,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     fun isChineseT9InputModeActive(): Boolean =
         currentT9Mode == T9InputMode.CHINESE
 
+    private var touchT9SessionActive = false
+
     fun isTouchT9KeyboardActive(): Boolean =
-        inputDeviceMgr.isVirtualKeyboard && inputView?.isTouchT9KeyboardActive() == true
+        touchT9SessionActive && inputView?.isTouchT9KeyboardActive() == true
 
     fun isChinesePredictionModeActive(): Boolean =
         if (handwritingCoordinatorDelegate.isInitialized() && handwritingCoordinator.isActive) {
@@ -556,11 +558,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     /** Routes an on-screen T9 tap through the shared physical-key decision pipeline. */
-    fun handleVirtualT9Key(keyCode: Int): Boolean =
-        physicalT9KeyHandler.handleVirtualShortPress(
+    fun handleVirtualT9Key(keyCode: Int): Boolean {
+        if (!touchT9SessionActive) {
+            touchT9SessionActive = true
+            requestImeInsetsRefresh()
+        }
+        return physicalT9KeyHandler.handleVirtualShortPress(
             keyCode = keyCode,
             eventTime = SystemClock.uptimeMillis()
         ).handled
+    }
 
     /**
      * Delete should first undo any selected pinyin segment before shrinking the digit input.
@@ -3776,6 +3783,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         resetNumberModeIfInitialized()
         updateSelectionBackCallback(false)
         decorLocationUpdated = false
+        touchT9SessionActive = false
         inputDeviceMgr.onFinishInputView()
         currentInputConnection?.apply {
             finishComposingText()
@@ -3799,6 +3807,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         endHandwritingInput()
         resetNumberModeIfInitialized()
         updateSelectionBackCallback(false)
+        touchT9SessionActive = false
         inputDeviceMgr.onFinishInput()
         clearT9CompositionState()
         smartEnglishCoordinator.reset()

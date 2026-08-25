@@ -23,6 +23,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.Size
+import androidx.core.view.updateLayoutParams
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
@@ -539,6 +540,14 @@ class CandidatesView(
             floatingWindowController.onSurfaceHidden()
             t9PinyinRowAdapter.cancelPendingReveal()
             setCandidateWindowVisibilityImmediately(INVISIBLE)
+        },
+        showPreedit = { !service.isTouchT9KeyboardActive() },
+        setPreeditContainerVisible = { visible ->
+            bubble1Wrapper.visibility = if (visible && touchT9DockStyleApplied != true) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
         }
     )
     private val t9CandidateUiRenderer = T9CandidateUiRenderer(t9CandidateSurfaceAdapter)
@@ -1212,7 +1221,56 @@ class CandidatesView(
     }
 
     fun updateInputPanelTop(inputPanelTop: Int) {
+        applyTouchT9DockStyle(service.isTouchT9KeyboardActive())
         floatingWindowController.setInputPanelTop(inputPanelTop)
+    }
+
+    private var touchT9DockStyleApplied: Boolean? = null
+
+    private fun applyTouchT9DockStyle(docked: Boolean) {
+        if (touchT9DockStyleApplied == docked) return
+        touchT9DockStyleApplied = docked
+
+        val shadowOutset = candidateShadowOutsetPx
+        setPadding(
+            if (docked) 0 else shadowOutset,
+            0,
+            if (docked) 0 else shadowOutset,
+            if (docked) 0 else shadowOutset
+        )
+        contentWrapper.translationX = if (docked) {
+            0f
+        } else {
+            -(shadowOutset - horizontalMarginPx).coerceAtLeast(0).toFloat()
+        }
+        contentWrapper.setPadding(0, 0, 0, if (docked) 0 else dp(12))
+        bubble1Wrapper.visibility = if (docked) {
+            View.GONE
+        } else if (preeditUi.root.visibility == View.GONE) {
+            View.GONE
+        } else {
+            View.VISIBLE
+        }
+        bubble2Wrapper.background = if (docked) {
+            GradientDrawable().apply {
+                setColor(theme.keyboardColor)
+                shape = GradientDrawable.RECTANGLE
+            }
+        } else {
+            makeBubbleBackground()
+        }
+        bubble2Wrapper.elevation = if (docked) 0f else dp(7).toFloat()
+        bubble2Wrapper.updateLayoutParams<LinearLayout.LayoutParams> {
+            width = if (docked) LinearLayout.LayoutParams.MATCH_PARENT
+            else LinearLayout.LayoutParams.WRAP_CONTENT
+            topMargin = if (docked) 0 else dp(bubbleGap)
+        }
+        minWidth = if (docked) 0 else dp(windowMinWidth)
+        layoutParams = layoutParams.apply {
+            width = if (docked) ViewGroup.LayoutParams.MATCH_PARENT
+            else ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        floatingWindowController.requestPositionUpdate()
     }
 
     init {

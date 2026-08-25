@@ -557,7 +557,7 @@ class InputView(
     }
 
     companion object {
-        private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 88
+        private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 68
     }
 
     fun isTemporaryPasswordInputSessionActive(): Boolean {

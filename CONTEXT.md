@@ -16,10 +16,13 @@ This shell forces visible key surfaces instead of inheriting the global
 borderless-key preference: center keys are normal surfaces, side actions are
 alternative surfaces, and voice/Return use the accent treatment. The generic
 symbol Picker is still upstream UI and remains a separate productization task.
-When this layout is used as a virtual keyboard, its T9 composition surface docks
-inside a reserved area immediately above the keys and replaces the idle toolbar.
-Physical-key operation keeps cursor-following candidates. The dock changes only
-placement; it must reuse the existing T9 snapshot, selection, and Rime pipeline.
+After the first on-screen T9 digit tap, its composition surface docks inside a
+68 dp reserved area immediately above the keys and replaces the idle toolbar.
+The touch surface is a full-width two-row strip: pinyin disambiguation above
+Hanzi candidates. It suppresses the redundant floating preedit bubble. Physical
+key operation does not enter this touch session and keeps cursor-following
+candidates. The dock changes only placement; it reuses the existing T9 snapshot,
+selection, and Rime pipeline.
 
 Supported T9 mechanisms:
 
