@@ -1235,7 +1235,10 @@ class CandidatesView(
     }
 
     private fun setCandidateWindowVisibilityImmediately(visibility: Int) {
-        setVisibility(visibility)
+        // Positioning temporarily uses INVISIBLE while keeping its pending-show state armed.
+        // Calling our public setVisibility() here would treat that as a real dismissal.
+        super.setVisibility(visibility)
+        service.setTouchT9CandidatesVisible(visibility == VISIBLE)
     }
 
     fun updateCursorAnchor(@Size(4) anchor: FloatArray, @Size(2) parent: FloatArray) {

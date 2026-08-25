@@ -171,7 +171,7 @@ private class TouchCommitKey(
 class T9Keyboard(
     context: Context,
     theme: Theme
-) : BaseKeyboard(context, theme, emptyList()) {
+) : BaseKeyboard(context, theme, emptyList(), keyPreviewEnabled = false) {
 
     private enum class CapsState { NONE, ONCE, LOCK }
 

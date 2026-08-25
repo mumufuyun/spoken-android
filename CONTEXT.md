@@ -47,6 +47,10 @@ composition clears. The complete pinyin sequence remains visible in the top
 candidate row. Both pinyin and Hanzi candidate text use a heavier foreground.
 Text and symbol panels use a subtle lowercase `spoken` wordmark on a normal key
 surface instead of the standalone dark space-bar treatment.
+Touch T9 keys rely on press highlighting and haptic feedback without showing the
+ordinary per-key preview bubble. Candidate positioning may use an internal
+`INVISIBLE` frame while preserving its pending reveal; only a real dismissal
+cancels that reveal and restores the idle settings entry.
 Physical key operation does not enter this touch session and keeps cursor-following
 candidates. The dock changes only placement; it reuses the existing T9 snapshot,
 selection, and Rime pipeline.

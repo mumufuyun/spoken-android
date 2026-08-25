@@ -44,7 +44,8 @@ import kotlin.math.roundToInt
 abstract class BaseKeyboard(
     context: Context,
     protected val theme: Theme,
-    private val keyLayout: List<List<KeyDef>>
+    private val keyLayout: List<List<KeyDef>>,
+    private val keyPreviewEnabled: Boolean = true
 ) : ConstraintLayout(context) {
 
     var keyActionListener: KeyActionListener? = null
@@ -242,7 +243,12 @@ abstract class BaseKeyboard(
                 }
             }
             val popupDefinitions = def.popup ?: defaultPreviewPopup(def)
-            popupDefinitions?.forEach {
+            popupDefinitions
+                ?.filterNot {
+                    !keyPreviewEnabled &&
+                        (it is KeyDef.Popup.Preview || it is KeyDef.Popup.AltPreview)
+                }
+                ?.forEach {
                 when (it) {
                     // TODO: gesture processing middleware
                     is KeyDef.Popup.Menu -> {
