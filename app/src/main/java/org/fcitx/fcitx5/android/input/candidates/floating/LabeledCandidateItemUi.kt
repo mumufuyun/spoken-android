@@ -151,12 +151,12 @@ class LabeledCandidateItemUi(
             else -> theme.candidateTextColor
         }
         val altFg = if (active) theme.genericActiveForegroundColor else theme.candidateCommentColor
-        if (t9InputModeEnabled && shortcutLabel != null) {
+        if (t9InputModeEnabled) {
             candidateText.setTextColor(fg)
             candidateText.text = candidate.text
             shortcutText.setTextColor(if (active) theme.genericActiveForegroundColor else theme.candidateCommentColor)
-            shortcutText.text = shortcutLabel
-            shortcutText.visibility = View.VISIBLE
+            shortcutText.text = shortcutLabel.orEmpty()
+            shortcutText.visibility = if (shortcutLabel != null) View.VISIBLE else View.GONE
         } else {
             candidateText.text = buildSpannedString {
                 color(labelFg) { append(candidate.label) }

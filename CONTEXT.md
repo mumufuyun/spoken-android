@@ -21,9 +21,12 @@ keycap edge; the complete cell remains tappable. After the first on-screen T9
 digit tap, its composition surface docks inside an 84 dp reserved area
 immediately above the keys and replaces the idle toolbar. The touch surface is a
 full-width two-row strip: pinyin disambiguation above Hanzi candidates. Candidate
-pages use eight fixed character units: one Hanzi occupies one equal-width unit,
-while longer phrases consume their character cost. Each visible item retains a
-minimum 48 dp tap height. It suppresses the redundant floating preedit bubble.
+pages are packed by measured text width and minimum tap width. Once a page is
+chosen, its items share the remaining horizontal space equally instead of
+scaling hit targets by character count. Each visible item retains a minimum
+48 dp tap height. Touch candidates show only candidate text; numeric shortcut
+labels remain exclusive to physical-key operation. It suppresses the redundant
+floating preedit bubble.
 Physical key operation does not enter this touch session and keeps cursor-following
 candidates. The dock changes only placement; it reuses the existing T9 snapshot,
 selection, and Rime pipeline.

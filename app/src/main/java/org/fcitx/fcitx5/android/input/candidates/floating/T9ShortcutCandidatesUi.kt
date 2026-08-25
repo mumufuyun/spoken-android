@@ -17,7 +17,6 @@ import android.widget.TextView
 import androidx.core.view.updateLayoutParams
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.data.theme.Theme
-import org.fcitx.fcitx5.android.input.t9.T9CandidateBudget
 import org.fcitx.fcitx5.android.input.t9.T9ResponsivenessTrace
 import org.fcitx.fcitx5.android.input.t9.T9ShortcutCandidateLayout
 import org.fcitx.fcitx5.android.input.t9.T9ShortcutCandidateStyle
@@ -32,7 +31,7 @@ class T9ShortcutCandidatesUi(
     private val showPaginationArrows: Boolean,
     private val highlightCornerRadiusPx: Int,
     private val itemSpacingPx: Int,
-    private val fixedCharacterSlots: () -> Int? = { null },
+    private val fillAvailableWidth: () -> Boolean = { false },
     private val onCandidateClick: (Int) -> Unit,
     private val onPrevPage: () -> Unit,
     private val onNextPage: () -> Unit
@@ -148,7 +147,7 @@ class T9ShortcutCandidatesUi(
                 verticalPadding
             )
         }
-        val targetWidth = if (fixedCharacterSlots() != null) {
+        val targetWidth = if (fillAvailableWidth()) {
             layout.maxRowWidthPx.takeIf { it > 0 } ?: WRAP_CONTENT
         } else {
             layout.rowWidthPx.takeIf { it > 0 } ?: WRAP_CONTENT
@@ -207,7 +206,7 @@ class T9ShortcutCandidatesUi(
                 active = row.active,
                 inactiveRow = row.inactiveRow,
                 t9InputModeEnabled = true,
-                shortcutLabel = row.shortcutLabel,
+                shortcutLabel = displayedShortcutLabel(row),
                 shortcutMaxWidthPx = layout.maxCandidateWidthPx
             )
         }
@@ -224,12 +223,13 @@ class T9ShortcutCandidatesUi(
                 candidateItems += it
             }
         item.apply {
+            val shortcutLabel = displayedShortcutLabel(row)
             update(
                 row.candidate,
                 active = row.active,
                 inactiveRow = row.inactiveRow,
                 t9InputModeEnabled = true,
-                shortcutLabel = row.shortcutLabel,
+                shortcutLabel = shortcutLabel,
                 shortcutMaxWidthPx = layout.maxCandidateWidthPx,
                 shortcutUsesNaturalTailWidth = usesNaturalTailWidth
             )
@@ -249,18 +249,16 @@ class T9ShortcutCandidatesUi(
     private fun attachChild(view: View, index: Int, last: Boolean, row: Row) {
         val params = (view.layoutParams as? LinearLayout.LayoutParams)
             ?: LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
-        val slots = fixedCharacterSlots()
-        val rightMargin = if (slots == null && !last) itemSpacingPx else 0
-        val candidateRow = row as? Row.Candidate
-        params.width = if (slots != null && candidateRow != null && layout.maxRowWidthPx > 0) {
-            val contentWidth = (layout.maxRowWidthPx - root.paddingLeft - root.paddingRight)
-                .coerceAtLeast(1)
-            contentWidth * T9CandidateBudget.candidateCost(candidateRow.candidate.text).coerceAtMost(slots) / slots
-        } else {
-            WRAP_CONTENT
-        }
-        view.minimumHeight = if (slots != null) ctx.dp(TOUCH_CANDIDATE_MIN_HEIGHT_DP) else 0
-        if (params.leftMargin != 0 || params.rightMargin != rightMargin) {
+        val fill = fillAvailableWidth() && row is Row.Candidate
+        val rightMargin = if (!fill && !last) itemSpacingPx else 0
+        val layoutChanged = params.width != WRAP_CONTENT ||
+            params.weight != (if (fill) 1f else 0f) ||
+            params.leftMargin != 0 ||
+            params.rightMargin != rightMargin
+        params.width = WRAP_CONTENT
+        params.weight = if (fill) 1f else 0f
+        view.minimumHeight = if (fill) ctx.dp(TOUCH_CANDIDATE_MIN_HEIGHT_DP) else 0
+        if (layoutChanged) {
             params.leftMargin = 0
             params.rightMargin = rightMargin
             view.layoutParams = params
@@ -316,6 +314,7 @@ class T9ShortcutCandidatesUi(
     private data class RenderStructure(
         val layout: T9ShortcutCandidateLayout,
         val style: T9ShortcutCandidateStyle,
+        val fillAvailableWidth: Boolean,
         val rows: List<RowStructure>
     )
 
@@ -324,7 +323,7 @@ class T9ShortcutCandidatesUi(
             val label: String,
             val text: String,
             val comment: String,
-            val shortcutLabel: String
+            val shortcutLabel: String?
         ) : RowStructure()
         data class Pagination(val hasPrev: Boolean, val hasNext: Boolean) : RowStructure()
     }
@@ -337,13 +336,14 @@ class T9ShortcutCandidatesUi(
         RenderStructure(
             layout = layout,
             style = style,
+            fillAvailableWidth = fillAvailableWidth(),
             rows = rows.map { row ->
                 when (row) {
                     is Row.Candidate -> RowStructure.Candidate(
                         label = row.candidate.label,
                         text = row.candidate.text,
                         comment = row.candidate.comment,
-                        shortcutLabel = row.shortcutLabel
+                        shortcutLabel = displayedShortcutLabel(row)
                     )
                     is Row.Pagination -> RowStructure.Pagination(
                         hasPrev = row.hasPrev,
@@ -360,4 +360,7 @@ class T9ShortcutCandidatesUi(
         private fun shortcutLabelForPosition(position: Int): String =
             shortcutLabels.getOrNull(position).orEmpty()
     }
+
+    private fun displayedShortcutLabel(row: Row.Candidate): String? =
+        row.shortcutLabel.takeUnless { fillAvailableWidth() }
 }

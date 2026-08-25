@@ -23,7 +23,6 @@ import com.google.android.flexbox.FlexboxLayoutManager
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.core.FcitxEvent.PagedCandidateEvent.LayoutHint
 import org.fcitx.fcitx5.android.data.theme.Theme
-import org.fcitx.fcitx5.android.input.t9.T9CandidateBudget
 import org.fcitx.fcitx5.android.input.t9.T9ResponsivenessTrace
 import kotlin.math.roundToInt
 import splitties.dimensions.dp
@@ -37,7 +36,7 @@ class PagedCandidatesUi(
     private val showPaginationArrows: Boolean,
     private val highlightCornerRadiusPx: Int,
     private val itemSpacingPx: Int,
-    private val fixedCharacterSlots: () -> Int? = { null },
+    private val fillAvailableWidth: () -> Boolean = { false },
     private val onCandidateClick: (Int) -> Unit,
     private val onPrevPage: () -> Unit,
     private val onNextPage: () -> Unit
@@ -47,6 +46,7 @@ class PagedCandidatesUi(
 
     private var isVertical = false
     private var highlightActive = true
+    private var fillsAvailableWidth = false
 
     private val highlightOverflowPaddingPx =
         (highlightCornerRadiusPx * 0.35f).roundToInt().coerceAtLeast(ctx.dp(2))
@@ -105,17 +105,12 @@ class PagedCandidatesUi(
                         width = if (isVertical) MATCH_PARENT else WRAP_CONTENT
                     }
                     (holder.ui.root.layoutParams as? FlexboxLayoutManager.LayoutParams)?.apply {
-                        val slots = fixedCharacterSlots()
-                        flexBasisPercent = if (!isVertical && slots != null) {
-                            T9CandidateBudget.candidateCost(row?.candidate?.text.orEmpty())
-                                .coerceAtMost(slots).toFloat() / slots
-                        } else {
-                            -1f
-                        }
-                        flexGrow = 0f
+                        val fill = !isVertical && fillsAvailableWidth
+                        flexBasisPercent = -1f
+                        flexGrow = if (fill) 1f else 0f
                         flexShrink = 0f
                     }
-                    holder.ui.root.minimumHeight = if (fixedCharacterSlots() != null) {
+                    holder.ui.root.minimumHeight = if (fillsAvailableWidth) {
                         ctx.dp(TOUCH_CANDIDATE_MIN_HEIGHT_DP)
                     } else 0
                 }
@@ -197,7 +192,7 @@ class PagedCandidatesUi(
             override fun getItemOffsets(outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
                 val position = parent.getChildAdapterPosition(view)
                 outRect.right = if (
-                    fixedCharacterSlots() == null &&
+                    !fillsAvailableWidth &&
                     position != RecyclerView.NO_POSITION &&
                     position < state.itemCount - 1
                 ) {
@@ -215,13 +210,16 @@ class PagedCandidatesUi(
     ) {
         val oldRows = renderRows
         val oldVertical = isVertical
+        val oldFillAvailableWidth = fillsAvailableWidth
         val nextVertical = when (orientation) {
             FloatingCandidatesOrientation.Automatic -> data.layoutHint == LayoutHint.Vertical
             else -> orientation == FloatingCandidatesOrientation.Vertical
         }
-        val layoutChanged = oldVertical != nextVertical
         this.data = data
         this.isVertical = nextVertical
+        this.fillsAvailableWidth = fillAvailableWidth()
+        val layoutChanged = oldVertical != nextVertical ||
+            oldFillAvailableWidth != fillsAvailableWidth
         T9ResponsivenessTrace.measure("CandidatesView.updateUi.renderCandidates.pagedLayoutManager") {
             updateLayoutManager()
         }
