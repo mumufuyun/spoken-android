@@ -59,10 +59,8 @@ private class TouchT9ModeKey : KeyDef(
 )
 
 private class TouchT9VoiceKey : KeyDef(
-    Appearance.Text(
-        displayText = "点击说话",
-        textSize = 14f,
-        textStyle = Typeface.BOLD,
+    Appearance.Image(
+        src = R.drawable.ic_spoken_waveform_36,
         variant = Variant.Accent,
         border = Border.On
     ),
@@ -75,7 +73,7 @@ private class TouchT9VoiceKey : KeyDef(
  *
  * Punctuation and digits occupy the first three rows. Bottom controls occupy row four. Delete
  * aligns with digit row one, the voice target spans digit rows two and three, and Return aligns
- * with the bottom controls. The voice key stays presentation-only until the in-process Spoken
+ * with the bottom controls. The waveform key stays presentation-only until the in-process Spoken
  * voice pipeline replaces the legacy external-IME handoff.
  */
 @SuppressLint("ViewConstructor")

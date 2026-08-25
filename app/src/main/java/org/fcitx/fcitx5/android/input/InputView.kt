@@ -282,6 +282,12 @@ class InputView(
             return 0
         }
 
+    private val topBarHeightPx: Int
+        get() = dp(
+            if (isT9KeyboardActive) TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP
+            else KawaiiBarComponent.HEIGHT
+        )
+
     @Keep
     private val onKeyboardSizeChangeListener = ManagedPreferenceProvider.OnChangeListener { key ->
         if (keyboardSizePrefs.any { it.key == key }) {
@@ -439,6 +445,10 @@ class InputView(
 
     private fun updateKeyboardSize() {
         if (windowManager.view.layoutParams == null) return
+        kawaiiBar.view.updateLayoutParams {
+            height = topBarHeightPx
+        }
+        updateTopBarVisibility()
         windowManager.view.updateLayoutParams {
             height = keyboardHeightPx
         }
@@ -480,8 +490,16 @@ class InputView(
         }
     }
 
+    private fun updateTopBarVisibility() {
+        kawaiiBar.view.visibility = when {
+            keyboardWindow.isPasswordPeekMode() -> GONE
+            isT9KeyboardActive -> INVISIBLE
+            else -> VISIBLE
+        }
+    }
+
     private fun updatePasswordPeekChrome() {
-        kawaiiBar.view.visibility = if (keyboardWindow.isPasswordPeekMode()) GONE else VISIBLE
+        updateTopBarVisibility()
     }
 
     private fun updatePasswordInputPreviewChrome() {
@@ -522,6 +540,13 @@ class InputView(
         return keyboardWindow.isTemporaryTextKeyboardEnabled()
     }
 
+    fun isTouchT9KeyboardActive(): Boolean =
+        isT9KeyboardActive && windowManager.isAttached(keyboardWindow)
+
+    fun getTouchT9CandidateDockBottomLocation(outLocation: IntArray) {
+        windowManager.view.getLocationInWindow(outLocation)
+    }
+
     fun performHandwritingAction(action: HandwritingAction) {
         val window = windowManager.getEssentialWindow(HandwritingWindow) as HandwritingWindow
         if (windowManager.isAttached(window)) window.performAction(action)
@@ -529,6 +554,10 @@ class InputView(
 
     fun isTemporaryPasswordKeyboardVisible(): Boolean {
         return keyboardWindow.isTemporaryPasswordKeyboardVisible()
+    }
+
+    companion object {
+        private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 88
     }
 
     fun isTemporaryPasswordInputSessionActive(): Boolean {

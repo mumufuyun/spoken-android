@@ -497,6 +497,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     fun isChineseT9InputModeActive(): Boolean =
         currentT9Mode == T9InputMode.CHINESE
 
+    fun isTouchT9KeyboardActive(): Boolean =
+        inputDeviceMgr.isVirtualKeyboard && inputView?.isTouchT9KeyboardActive() == true
+
     fun isChinesePredictionModeActive(): Boolean =
         if (handwritingCoordinatorDelegate.isInitialized() && handwritingCoordinator.isActive) {
             handwritingCoordinator.currentLanguage == HandwritingLanguage.CHINESE
@@ -1827,6 +1830,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private var inputViewLocation = intArrayOf(0, 0)
+    private var candidateDockBottomLocation = intArrayOf(0, 0)
 
     override fun onComputeInsets(outInsets: Insets) {
         if (inputDeviceMgr.isPassthroughInput) {
@@ -1843,7 +1847,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // make the area of keyboardView touchable so it can receive tap events.
         run {
             inputView?.keyboardView?.getLocationInWindow(inputViewLocation)
-            candidatesView?.updateInputPanelTop(inputViewLocation[1])
+            val candidateDockBottom = if (isTouchT9KeyboardActive()) {
+                inputView?.getTouchT9CandidateDockBottomLocation(candidateDockBottomLocation)
+                candidateDockBottomLocation[1]
+            } else {
+                inputViewLocation[1]
+            }
+            candidatesView?.updateInputPanelTop(candidateDockBottom)
             outInsets.apply {
                 contentTopInsets = inputViewLocation[1]
                 visibleTopInsets = inputViewLocation[1]

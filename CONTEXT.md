@@ -8,13 +8,18 @@ touch T9 spike that exposes the same short-press semantics through a full-height
 3-by-3 keypad; candidates, settings, symbols, and password entry remain shared UI.
 The accepted touch shell uses one four-row grid: a wide punctuation rail on the
 left, the 3-by-3 digit surface in the center, and Delete, a two-row voice target,
-and Return on the right. The bottom row contains Symbols, Numbers, Space, and the
+and Return on the right. The voice target uses the nine-bar Spoken waveform with
+no instructional text. The bottom row contains Symbols, Numbers, Space, and the
 Chinese/English mode key. Columns and rows must share constraint boundaries so
 the side controls stay aligned with the central keys.
 This shell forces visible key surfaces instead of inheriting the global
 borderless-key preference: center keys are normal surfaces, side actions are
 alternative surfaces, and voice/Return use the accent treatment. The generic
 symbol Picker is still upstream UI and remains a separate productization task.
+When this layout is used as a virtual keyboard, its T9 composition surface docks
+inside a reserved area immediately above the keys and replaces the idle toolbar.
+Physical-key operation keeps cursor-following candidates. The dock changes only
+placement; it must reuse the existing T9 snapshot, selection, and Rime pipeline.
 
 Supported T9 mechanisms:
 

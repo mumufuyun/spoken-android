@@ -528,7 +528,11 @@ class CandidatesView(
         },
         shortcutCandidateLayout = ::t9ShortcutCandidateLayout,
         onShortcutCandidateMeasured = t9CandidateSurfaceGeometry::observeCandidateVisualWidth,
-        setPreferAboveInputPanel = floatingWindowController::setPreferAboveInputPanel,
+        setPreferAboveInputPanel = { requested ->
+            floatingWindowController.setPreferAboveInputPanel(
+                requested || service.isTouchT9KeyboardActive()
+            )
+        },
         showWhenPositioned = floatingWindowController::showWhenPositioned,
         hideSurfaceImmediately = {
             // RecyclerView won't update its items when ancestor view is GONE.
