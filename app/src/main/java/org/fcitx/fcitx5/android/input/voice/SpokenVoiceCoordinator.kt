@@ -20,6 +20,7 @@ class SpokenVoiceCoordinator(
     private val context: Context,
     private val scope: CoroutineScope,
     private val keyStorage: SecureVoiceKeyStorage,
+    private val voiceConfig: () -> SpokenVoiceConfig,
     private val editorGeneration: () -> Long,
     private val editorAllowsVoice: () -> Boolean,
     private val prepareEditor: () -> Unit,
@@ -29,13 +30,16 @@ class SpokenVoiceCoordinator(
     private data class Session(
         val id: UUID,
         val editorGeneration: Long,
+        val config: SpokenVoiceConfig,
+        val aiProcessor: AiProcessor?,
         var providerReady: Boolean = false,
         var firstAudioSeen: Boolean = false
     )
 
     private val audioCapture = AndroidVoiceAudioCapture()
     private var session: Session? = null
-    private var provider: QwenRealtimeAsrProvider? = null
+    private var provider: SpokenAsrProvider? = null
+    private var aiJob: Job? = null
     private var resetJob: Job? = null
     private var state: SpokenVoiceState = SpokenVoiceState.Idle
     private val permissionCallback: (Boolean) -> Unit = { granted ->
@@ -57,10 +61,31 @@ class SpokenVoiceCoordinator(
             showError("当前输入框不允许语音输入")
             return
         }
-        val apiKey = keyStorage.loadApiKey()
-        if (apiKey.isNullOrBlank()) {
-            showError("请先在 Spoken 设置中配置语音 API Key")
+        val config = voiceConfig()
+        if (!AsrProviderFactory.isConfigured(config, keyStorage)) {
+            showError("请先在 Spoken 设置中完成语音服务配置")
             return
+        }
+        val sessionId = UUID.randomUUID()
+        val listener = object : SpokenAsrProvider.Listener {
+            override fun onReady() = onSession(sessionId) {
+                it.providerReady = true
+                publishReadyIfPossible(it)
+            }
+
+            override fun onPartial(text: String) = onSession(sessionId) {
+                setState(SpokenVoiceState.Recording(text))
+            }
+
+            override fun onFinal(text: String) = onSession(sessionId) {
+                onTranscriptFinal(it, text)
+            }
+
+            override fun onError(message: String) = onSession(sessionId) {
+                scope.launch { audioCapture.stop() }
+                clearSession(closeProvider = true)
+                showError(message)
+            }
         }
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) !=
             PackageManager.PERMISSION_GRANTED
@@ -72,33 +97,20 @@ class SpokenVoiceCoordinator(
 
         resetJob?.cancel()
         prepareEditor()
-        val current = Session(UUID.randomUUID(), editorGeneration())
+        val current = Session(
+            id = sessionId,
+            editorGeneration = editorGeneration(),
+            config = config,
+            aiProcessor = createAiProcessor(config)
+        )
         session = current
         setState(SpokenVoiceState.Starting("正在连接云端，语音已暂存…"))
-        val currentProvider = QwenRealtimeAsrProvider(apiKey, object : QwenRealtimeAsrProvider.Listener {
-            override fun onReady() = onSession(current.id) {
-                it.providerReady = true
-                publishReadyIfPossible(it)
-            }
-
-            override fun onPartial(text: String) = onSession(current.id) {
-                setState(SpokenVoiceState.Recording(text))
-            }
-
-            override fun onFinal(text: String) = onSession(current.id) {
-                val generation = it.editorGeneration
-                clearSession(closeProvider = true)
-                val processed = SpokenSpeechPostProcessor.process(text)
-                if (processed.isNotEmpty()) commitIfCurrent(generation, processed)
-                setState(SpokenVoiceState.Idle)
-            }
-
-            override fun onError(message: String) = onSession(current.id) {
-                scope.launch { audioCapture.stop() }
-                clearSession(closeProvider = true)
-                showError(message)
-            }
-        })
+        val currentProvider = AsrProviderFactory.create(config, keyStorage, listener)
+        if (currentProvider == null) {
+            clearSession(closeProvider = false)
+            showError("请先在 Spoken 设置中完成语音服务配置")
+            return
+        }
         provider = currentProvider
         currentProvider.start()
         scope.launch {
@@ -137,6 +149,8 @@ class SpokenVoiceCoordinator(
     fun cancel() {
         VoicePermissionResult.clear(permissionCallback)
         resetJob?.cancel()
+        aiJob?.cancel()
+        aiJob = null
         session = null
         provider?.cancel()
         provider?.close()
@@ -146,6 +160,49 @@ class SpokenVoiceCoordinator(
     }
 
     fun close() = cancel()
+
+    private fun createAiProcessor(config: SpokenVoiceConfig): AiProcessor? {
+        if (!config.aiEnabled || config.workMode == WorkMode.DIRECT) return null
+        val apiKey = keyStorage.load(VoiceKeyPurpose.AI_KEY)?.takeIf(String::isNotBlank) ?: return null
+        return AiProcessor(
+            enabled = true,
+            client = AiClient(
+                AiConfig(
+                    baseUrl = config.aiBaseUrl,
+                    apiKey = apiKey,
+                    model = config.aiModel,
+                    timeoutSec = config.aiTimeoutSec
+                )
+            )
+        )
+    }
+
+    private fun onTranscriptFinal(current: Session, text: String) {
+        val generation = current.editorGeneration
+        clearSession(closeProvider = true)
+        val processed = SpokenSpeechPostProcessor.process(text)
+        if (processed.isEmpty()) {
+            setState(SpokenVoiceState.Idle)
+            return
+        }
+        val processor = current.aiProcessor
+        if (processor == null) {
+            commitIfCurrent(generation, processed)
+            setState(SpokenVoiceState.Idle)
+            return
+        }
+        setState(SpokenVoiceState.AiProcessing)
+        aiJob = scope.launch {
+            val result = processor.process(processed, current.config.workMode)
+            withContext(Dispatchers.Main.immediate) {
+                aiJob = null
+                if (state is SpokenVoiceState.AiProcessing) {
+                    commitIfCurrent(generation, result)
+                    setState(SpokenVoiceState.Idle)
+                }
+            }
+        }
+    }
 
     private fun onSession(id: UUID, block: (Session) -> Unit) {
         scope.launch(Dispatchers.Main.immediate) {

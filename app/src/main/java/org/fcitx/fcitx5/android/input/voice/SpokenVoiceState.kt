@@ -9,13 +9,15 @@ sealed interface SpokenVoiceState {
     data class Starting(val message: String) : SpokenVoiceState
     data class Recording(val transcript: String) : SpokenVoiceState
     data object Finishing : SpokenVoiceState
+    data object AiProcessing : SpokenVoiceState
     data class Error(val message: String) : SpokenVoiceState
 }
 
 val SpokenVoiceState.isActive: Boolean
     get() = this is SpokenVoiceState.Starting ||
         this is SpokenVoiceState.Recording ||
-        this is SpokenVoiceState.Finishing
+        this is SpokenVoiceState.Finishing ||
+        this is SpokenVoiceState.AiProcessing
 
 internal object SpokenSpeechPostProcessor {
     private val replacements = mapOf(

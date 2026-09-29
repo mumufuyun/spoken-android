@@ -685,9 +685,12 @@ class T9Keyboard(
     fun updateSpokenVoiceState(state: SpokenVoiceState) {
         val active = state is SpokenVoiceState.Starting ||
             state is SpokenVoiceState.Recording ||
-            state is SpokenVoiceState.Finishing
+            state is SpokenVoiceState.Finishing ||
+            state is SpokenVoiceState.AiProcessing
         voice.animate().cancel()
-        voice.alpha = if (state is SpokenVoiceState.Finishing) 0.58f else 1f
+        voice.alpha = if (state is SpokenVoiceState.Finishing ||
+            state is SpokenVoiceState.AiProcessing
+        ) 0.58f else 1f
         voice.scaleX = 1f
         voice.scaleY = 1f
         if (state is SpokenVoiceState.Starting || state is SpokenVoiceState.Recording) {

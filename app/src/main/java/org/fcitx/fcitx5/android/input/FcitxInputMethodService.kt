@@ -88,6 +88,7 @@ import org.fcitx.fcitx5.android.input.handwriting.HandwritingViewState
 import org.fcitx.fcitx5.android.input.handwriting.PhysicalHandwritingKeyHandler
 import org.fcitx.fcitx5.android.input.status.PersistentStatusActionCoordinator
 import org.fcitx.fcitx5.android.input.voice.SecureVoiceKeyStorage
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceConfig
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceCoordinator
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionCoordinator
@@ -194,6 +195,20 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             context = this,
             scope = lifecycleScope,
             keyStorage = SecureVoiceKeyStorage(this),
+            voiceConfig = {
+                val voice = prefs.voice
+                SpokenVoiceConfig(
+                    asrProvider = voice.asrProvider.getValue(),
+                    xunfeiAppId = voice.xunfeiAppId.getValue(),
+                    customAsrUrl = voice.customAsrUrl.getValue(),
+                    customAsrModel = voice.customAsrModel.getValue(),
+                    aiEnabled = voice.aiEnabled.getValue(),
+                    aiBaseUrl = voice.aiBaseUrl.getValue(),
+                    aiModel = voice.aiModel.getValue(),
+                    aiTimeoutSec = voice.aiTimeoutSec.getValue(),
+                    workMode = voice.defaultMode.getValue()
+                )
+            },
             editorGeneration = { spokenEditorGeneration },
             editorAllowsVoice = { voiceInputAllowedForEditor && isInputViewShown },
             prepareEditor = ::prepareEditorForSpokenVoice,
@@ -550,6 +565,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 state.transcript.ifBlank { "可以开始说话，语音不会遗漏" }
             )
             SpokenVoiceState.Finishing -> candidatesView?.showSpokenVoiceStatus("正在完成识别…")
+            SpokenVoiceState.AiProcessing -> candidatesView?.showSpokenVoiceStatus("正在智能处理…")
             is SpokenVoiceState.Error -> candidatesView?.showSpokenVoiceStatus(
                 state.message,
                 isError = true

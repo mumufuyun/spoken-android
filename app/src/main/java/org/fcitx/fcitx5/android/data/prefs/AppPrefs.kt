@@ -20,6 +20,8 @@ import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.popup.EmojiModifier
 import org.fcitx.fcitx5.android.input.t9.ChineseT9Scheme
 import org.fcitx.fcitx5.android.input.t9.ChineseT9OutputScript
+import org.fcitx.fcitx5.android.input.voice.SpokenAsrProviderKind
+import org.fcitx.fcitx5.android.input.voice.WorkMode
 import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.appContext
 import org.fcitx.fcitx5.android.utils.vibrator
@@ -340,6 +342,26 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             outputScriptPreference(scheme).getValue()
     }
 
+    inner class Voice : ManagedPreferenceInternal(sharedPreferences) {
+        val asrProvider = stringLike(
+            "spoken_asr_provider",
+            enumCodec<SpokenAsrProviderKind>(),
+            SpokenAsrProviderKind.QWEN
+        )
+        val aiEnabled = bool("spoken_ai_enabled", true)
+        val aiBaseUrl = string("spoken_ai_base_url", "https://api.openai.com/v1")
+        val aiModel = string("spoken_ai_model", "gpt-4o-mini")
+        val aiTimeoutSec = int("spoken_ai_timeout_sec", 15)
+        val defaultMode = stringLike(
+            "spoken_default_work_mode",
+            enumCodec<WorkMode>(),
+            WorkMode.POLISH
+        )
+        val xunfeiAppId = string("spoken_xunfei_app_id", "")
+        val customAsrUrl = string("spoken_custom_asr_url", "")
+        val customAsrModel = string("spoken_custom_asr_model", "whisper-1")
+    }
+
     private val providers = mutableListOf<ManagedPreferenceProvider>()
 
     fun <T : ManagedPreferenceProvider> registerProvider(
@@ -354,6 +376,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         registerProvider { this }
     }
 
+    private inline fun <reified T : Enum<T>> enumCodec() =
+        object : ManagedPreference.StringLikeCodec<T> {
+            override fun decode(raw: String): T? = runCatching { enumValueOf<T>(raw) }.getOrNull()
+        }
+
     val internal = Internal().register()
     val chineseT9 = ChineseT9().register()
     val keyboard = Keyboard().register()
@@ -361,6 +388,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
     val clipboard = Clipboard().register()
     val symbols = Symbols().register()
     val advanced = Advanced().register()
+    val voice = Voice().register()
 
     @Keep
     private val onSharedPreferenceChangeListener =
