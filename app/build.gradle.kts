@@ -131,6 +131,12 @@ android {
         @Suppress("UnstableApiUsage")
         generateLocaleConfig = true
     }
+
+    // Pre-existing findings from the fcitx5 upstream lineage are snapshotted in
+    // lint-baseline.xml; lint only fails on newly introduced issues.
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
 }
 
 fcitxComponent {
