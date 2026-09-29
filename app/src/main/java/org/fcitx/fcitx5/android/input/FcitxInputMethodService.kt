@@ -547,16 +547,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         inputView?.updateSpokenVoiceState(state)
         when (state) {
             SpokenVoiceState.Idle -> candidatesView?.hideSpokenVoiceStatus()
-            is SpokenVoiceState.Starting -> candidatesView?.showSpokenVoiceStatus(state.message)
+            is SpokenVoiceState.Starting -> candidatesView?.showSpokenVoiceStatus(state, state.message)
             is SpokenVoiceState.Recording -> candidatesView?.showSpokenVoiceStatus(
+                state,
                 state.transcript.ifBlank { "可以开始说话，语音不会遗漏" }
             )
-            SpokenVoiceState.Finishing -> candidatesView?.showSpokenVoiceStatus("正在完成识别…")
-            SpokenVoiceState.AiProcessing -> candidatesView?.showSpokenVoiceStatus("正在智能处理…")
-            is SpokenVoiceState.Error -> candidatesView?.showSpokenVoiceStatus(
-                state.message,
-                isError = true
-            )
+            SpokenVoiceState.Finishing ->
+                candidatesView?.showSpokenVoiceStatus(state, "正在完成识别…")
+            SpokenVoiceState.AiProcessing ->
+                candidatesView?.showSpokenVoiceStatus(state, "正在智能处理…")
+            is SpokenVoiceState.Error -> candidatesView?.showSpokenVoiceStatus(state, state.message)
         }
     }
 

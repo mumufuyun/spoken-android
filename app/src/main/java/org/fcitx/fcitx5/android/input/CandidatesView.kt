@@ -60,6 +60,8 @@ import org.fcitx.fcitx5.android.input.t9.T9ResponsivenessTrace
 import org.fcitx.fcitx5.android.input.t9.T9SemanticTextView
 import org.fcitx.fcitx5.android.input.t9.T9ShortcutCandidateLayout
 import org.fcitx.fcitx5.android.input.t9.T9CandidateRefreshGeneration
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceStatusView
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.below
 import splitties.views.dsl.constraintlayout.bottomOfParent
@@ -364,6 +366,9 @@ class CandidatesView(
         isFocusableInTouchMode = false
         visibility = View.GONE
     }
+    private val spokenVoiceStatusView = SpokenVoiceStatusView(ctx, theme, setupTextViewCandidates).apply {
+        visibility = View.GONE
+    }
 
     /** T9 pinyin selection bar: row above candidates, replaces number row when visible. */
     private val pinyinBarAdapter by lazy {
@@ -504,6 +509,10 @@ class CandidatesView(
         addView(candidateStatusView, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
+        ))
+        addView(spokenVoiceStatusView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
         ))
     }
     private val expandCandidatesButton = ToolButton(
@@ -819,21 +828,18 @@ class CandidatesView(
         t9RefreshGeneration.requestRefresh(T9ResponsivenessTrace.activeInputId())
     }
 
-    fun showSpokenVoiceStatus(text: String, isError: Boolean = false) {
+    fun showSpokenVoiceStatus(state: SpokenVoiceState, text: String) {
         t9RefreshGeneration.cancel()
         t9CandidateUiRenderer.hideImmediately()
         expandCandidatesSlot.visibility = View.GONE
-        candidateStatusView.text = text
-        candidateStatusView.setTextColor(
-            if (isError) theme.keyPressHighlightColor else theme.candidateTextColor
-        )
-        candidateStatusView.visibility = View.VISIBLE
+        candidateStatusView.visibility = View.GONE
+        spokenVoiceStatusView.render(state, text)
+        spokenVoiceStatusView.visibility = View.VISIBLE
         visibility = View.VISIBLE
     }
 
     fun hideSpokenVoiceStatus() {
-        candidateStatusView.visibility = View.GONE
-        candidateStatusView.setTextColor(theme.candidateCommentColor)
+        spokenVoiceStatusView.visibility = View.GONE
         refreshT9Ui()
     }
 
