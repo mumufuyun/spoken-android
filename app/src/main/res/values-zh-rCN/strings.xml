@@ -9,8 +9,6 @@
     <string name="key_feedback">按键反馈</string>
     <string name="voice_input">语音输入</string>
     <string name="spoken_voice_api_key">Spoken 语音 API Key</string>
-    <string name="spoken_voice_api_key_configured">已安全配置在本机</string>
-    <string name="spoken_voice_api_key_missing">使用 Spoken 语音识别前需要配置</string>
     <string name="spoken_voice_api_key_hint">阿里云百炼 DashScope API Key</string>
     <string name="voice_and_ai">语音与 AI</string>
     <string name="voice_recognition">语音识别</string>

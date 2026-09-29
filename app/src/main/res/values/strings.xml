@@ -9,8 +9,6 @@
     <string name="key_feedback">Key feedback</string>
     <string name="voice_input">Voice input</string>
     <string name="spoken_voice_api_key">Spoken voice API key</string>
-    <string name="spoken_voice_api_key_configured">Configured securely on this device</string>
-    <string name="spoken_voice_api_key_missing">Required for Spoken voice recognition</string>
     <string name="spoken_voice_api_key_hint">DashScope API key</string>
     <string name="voice_and_ai">Voice &amp; AI</string>
     <string name="voice_recognition">Speech recognition</string>
