@@ -124,11 +124,13 @@ digest, and the release-declared archive remains the offline-safe compatibility
 floor. A remote "latest" release must never replace the required version unless
 the manifest declares compatibility with the installed app and Rime plugin.
 
-Bundling the full configuration in the APK is deliberately rejected for now:
-the package would grow by tens of megabytes and duplicate an independently
-released dictionary. If first-run network reliability proves insufficient, a
-small bundled bootstrap dictionary can be added behind the same provisioner
-without changing input or UI code.
+Bundling the full configuration in the APK was initially rejected to keep the
+package small and avoid duplicating an independently released dictionary. The
+single-APK product decision reversed this: the baseline archive now ships in
+`app/src/main/assets/rime/` and `RimeConfigProvisioner` installs it through the
+same verified installer before any network download is attempted, so first-run
+Chinese input no longer depends on network reliability. The online release
+channel remains as the upgrade path for newer compatible configurations.
 
 ## Consequences
 
