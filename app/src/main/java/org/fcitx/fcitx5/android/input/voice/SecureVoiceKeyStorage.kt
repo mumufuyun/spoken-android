@@ -14,28 +14,34 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+enum class VoiceKeyPurpose { QWEN, XUNFEI_KEY, XUNFEI_SECRET, CUSTOM_KEY, AI_KEY }
+
 class SecureVoiceKeyStorage(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    fun hasApiKey(): Boolean = prefs.contains(KEY_CIPHERTEXT) && prefs.contains(KEY_IV)
+    fun has(purpose: VoiceKeyPurpose): Boolean =
+        prefs.contains(ciphertextKey(purpose)) && prefs.contains(ivKey(purpose))
 
-    fun saveApiKey(value: String) {
+    fun save(purpose: VoiceKeyPurpose, value: String) {
         val key = value.trim()
         if (key.isEmpty()) {
-            clear()
+            clear(purpose)
             return
         }
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
         prefs.edit()
-            .putString(KEY_CIPHERTEXT, Base64.encodeToString(cipher.doFinal(key.toByteArray()), Base64.NO_WRAP))
-            .putString(KEY_IV, Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
+            .putString(
+                ciphertextKey(purpose),
+                Base64.encodeToString(cipher.doFinal(key.toByteArray()), Base64.NO_WRAP)
+            )
+            .putString(ivKey(purpose), Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
             .apply()
     }
 
-    fun loadApiKey(): String? = runCatching {
-        val ciphertext = prefs.getString(KEY_CIPHERTEXT, null) ?: return null
-        val iv = prefs.getString(KEY_IV, null) ?: return null
+    fun load(purpose: VoiceKeyPurpose): String? = runCatching {
+        val ciphertext = prefs.getString(ciphertextKey(purpose), null) ?: return null
+        val iv = prefs.getString(ivKey(purpose), null) ?: return null
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(
             Cipher.DECRYPT_MODE,
@@ -45,8 +51,27 @@ class SecureVoiceKeyStorage(context: Context) {
         String(cipher.doFinal(Base64.decode(ciphertext, Base64.NO_WRAP)))
     }.getOrNull()
 
-    fun clear() {
-        prefs.edit().remove(KEY_CIPHERTEXT).remove(KEY_IV).apply()
+    fun clear(purpose: VoiceKeyPurpose) {
+        prefs.edit().remove(ciphertextKey(purpose)).remove(ivKey(purpose)).apply()
+    }
+
+    fun hasApiKey(): Boolean = has(VoiceKeyPurpose.QWEN)
+
+    fun saveApiKey(value: String) = save(VoiceKeyPurpose.QWEN, value)
+
+    fun loadApiKey(): String? = load(VoiceKeyPurpose.QWEN)
+
+    fun clear() = clear(VoiceKeyPurpose.QWEN)
+
+    private fun ciphertextKey(purpose: VoiceKeyPurpose): String = when (purpose) {
+        // The Qwen slot keeps the original preference keys so existing installs stay valid.
+        VoiceKeyPurpose.QWEN -> "api_key_ciphertext"
+        else -> "${purpose.name.lowercase()}_ciphertext"
+    }
+
+    private fun ivKey(purpose: VoiceKeyPurpose): String = when (purpose) {
+        VoiceKeyPurpose.QWEN -> "api_key_iv"
+        else -> "${purpose.name.lowercase()}_iv"
     }
 
     private fun getOrCreateKey(): SecretKey {
@@ -68,8 +93,6 @@ class SecureVoiceKeyStorage(context: Context) {
 
     private companion object {
         const val PREFS_NAME = "spoken_voice_secure"
-        const val KEY_CIPHERTEXT = "api_key_ciphertext"
-        const val KEY_IV = "api_key_iv"
         const val KEY_ALIAS = "spoken_voice_api_key"
         const val KEYSTORE = "AndroidKeyStore"
         const val TRANSFORMATION = "AES/GCM/NoPadding"

@@ -36,15 +36,9 @@ import timber.log.Timber
 
 class QwenRealtimeAsrProvider(
     private val apiKey: String,
-    private val listener: Listener,
+    private val listener: SpokenAsrProvider.Listener,
     private val client: OkHttpClient = defaultClient()
-) {
-    interface Listener {
-        fun onReady()
-        fun onPartial(text: String)
-        fun onFinal(text: String)
-        fun onError(message: String)
-    }
+) : SpokenAsrProvider {
 
     private val dispatcher = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "SpokenQwenSession")
@@ -62,7 +56,7 @@ class QwenRealtimeAsrProvider(
     private val replayFrames = ArrayDeque<ByteArray>()
     private var replayBytes = 0
 
-    fun start() {
+    override fun start() {
         scope.launch {
             resetSession()
             sessionId = UUID.randomUUID()
@@ -70,7 +64,7 @@ class QwenRealtimeAsrProvider(
         }
     }
 
-    fun appendAudio(bytes: ByteArray) {
+    override fun appendAudio(bytes: ByteArray) {
         scope.launch {
             if (sessionId == null || finishing) return@launch
             rememberForReplay(bytes)
@@ -78,7 +72,7 @@ class QwenRealtimeAsrProvider(
         }
     }
 
-    fun finish() {
+    override fun finish() {
         scope.launch {
             if (sessionId == null || finishing) return@launch
             finishing = true
@@ -91,11 +85,11 @@ class QwenRealtimeAsrProvider(
         }
     }
 
-    fun cancel() {
+    override fun cancel() {
         scope.launch { resetSession() }
     }
 
-    fun close() {
+    override fun close() {
         // close() is the terminal boundary. Cancel the transport synchronously so a scope
         // cancellation cannot strand a live microphone WebSocket behind the IME lifecycle.
         sessionId = null
