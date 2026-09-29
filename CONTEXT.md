@@ -367,6 +367,16 @@ will be enabled only when an in-process Spoken recording and transcription
 pipeline can own tap-to-start and tap-to-finish states without leaving the
 keyboard.
 
+The in-process Spoken pipeline lives under `input/voice/`. `SpokenVoiceCoordinator`
+owns the session state machine and `AndroidVoiceAudioCapture`; `SpokenAsrProvider`
+abstracts the recognition engine with Qwen realtime, Xunfei IAT, and Whisper-compatible
+batch implementations chosen via `AsrProviderFactory`. Final transcripts pass through
+`SpokenSpeechPostProcessor`, then optionally through `AiProcessor` (OpenAI-compatible
+chat completions) with a per-session `WorkMode`, falling back to the raw transcript on
+any failure. Non-secret voice settings live in the `AppPrefs.voice` category and are
+snapshotted at session start; API keys live in `SecureVoiceKeyStorage` (AndroidKeyStore
+AES/GCM) keyed by `VoiceKeyPurpose`.
+
 The idle KawaiiBar is always expanded. Voice occupies the former leading toggle
 slot; temporary clipboard or inline-suggestion content changes that slot to a
 Back action so the toolbar remains reachable. Voice, undo, redo, text editing,
