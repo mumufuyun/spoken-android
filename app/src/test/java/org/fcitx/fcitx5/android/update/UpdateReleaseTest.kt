@@ -12,20 +12,19 @@ import org.junit.Test
 
 class UpdateReleaseTest {
     @Test
-    fun `app release parser creates independent app and plugin artifacts`() {
+    fun `app release parser creates app artifact only`() {
         val releases = UpdateReleaseParser.parseAppReleases(
             releasesJson(
                 version = "4.4.0",
                 assets = listOf(
-                    "org.fcitx.fcitx5.android-4.4.0-arm64-v8a-release.apk" to "app",
-                    "org.fcitx.fcitx5.android.plugin.rime-4.4.0-arm64-v8a-release.apk" to "plugin"
+                    "org.fcitx.fcitx5.android-4.4.0-arm64-v8a-release.apk" to "app"
                 )
             )
         )
         val artifacts = releases.single().artifacts
 
-        assertEquals(listOf(UpdateComponent.APP, UpdateComponent.RIME_PLUGIN), artifacts.map { it.component })
-        assertEquals(listOf("4.4.0", "4.4.0"), artifacts.map { it.version })
+        assertEquals(listOf(UpdateComponent.APP), artifacts.map { it.component })
+        assertEquals(listOf("4.4.0"), artifacts.map { it.version })
         assertEquals("Release 4.4.0", releases.single().title)
         assertEquals("Notes for 4.4.0", releases.single().notes)
     }
@@ -55,7 +54,7 @@ class UpdateReleaseTest {
 
         val available = UpdatePlan.availableReleases(
             releases,
-            InstalledUpdateVersions(app = "4.2.0", rimePlugin = null, rimeConfig = "3.0.0"),
+            InstalledUpdateVersions(app = "4.2.0", rimeConfig = "3.0.0"),
             supportedComponents = setOf(UpdateComponent.APP, UpdateComponent.RIME_CONFIG)
         )
 
@@ -106,22 +105,28 @@ class UpdateReleaseTest {
     fun `update plan compares each component version independently`() {
         val artifacts = listOf(
             artifact(UpdateComponent.APP, "4.3.0", "app.apk" to "app"),
-            artifact(UpdateComponent.RIME_PLUGIN, "4.3.0", "plugin.apk" to "plugin"),
             artifact(UpdateComponent.RIME_CONFIG, "3.0.0", "config.zip" to "config")
         )
 
         assertEquals(
-            listOf(UpdateComponent.RIME_PLUGIN),
+            emptyList<UpdateArtifact>(),
             UpdatePlan.availableArtifacts(
                 artifacts,
-                InstalledUpdateVersions(app = "4.3.0", rimePlugin = "4.2.0", rimeConfig = "3.0.0")
+                InstalledUpdateVersions(app = "4.3.0", rimeConfig = "3.0.0")
+            ).map { it.component }
+        )
+        assertEquals(
+            listOf(UpdateComponent.APP),
+            UpdatePlan.availableArtifacts(
+                artifacts,
+                InstalledUpdateVersions(app = "4.2.0", rimeConfig = "3.0.0")
             ).map { it.component }
         )
         assertEquals(
             emptyList<UpdateArtifact>(),
             UpdatePlan.availableArtifacts(
                 artifacts,
-                InstalledUpdateVersions(app = "4.3.0", rimePlugin = null, rimeConfig = "3.0.0"),
+                InstalledUpdateVersions(app = "4.2.0", rimeConfig = "3.0.0"),
                 supportedComponents = setOf(UpdateComponent.RIME_CONFIG)
             )
         )

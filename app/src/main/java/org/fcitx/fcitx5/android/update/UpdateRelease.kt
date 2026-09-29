@@ -11,7 +11,6 @@ import kotlinx.serialization.json.Json
 
 enum class UpdateComponent {
     APP,
-    RIME_PLUGIN,
     RIME_CONFIG
 }
 
@@ -44,12 +43,10 @@ data class UpdateRelease(
 
 data class InstalledUpdateVersions(
     val app: String,
-    val rimePlugin: String?,
     val rimeConfig: String?
 ) {
     fun versionOf(component: UpdateComponent): String? = when (component) {
         UpdateComponent.APP -> app
-        UpdateComponent.RIME_PLUGIN -> rimePlugin
         UpdateComponent.RIME_CONFIG -> rimeConfig
     }
 }
@@ -118,17 +115,6 @@ object UpdateReleaseParser {
                     assets.filter { it.name.matches(APP_APK) }.takeIf(List<*>::isNotEmpty)?.let {
                         add(UpdateArtifact(UpdateComponent.APP, version, release.pageUrl, it))
                     }
-                    assets.filter { it.name.matches(RIME_PLUGIN_APK) }
-                        .takeIf(List<*>::isNotEmpty)?.let {
-                            add(
-                                UpdateArtifact(
-                                    UpdateComponent.RIME_PLUGIN,
-                                    version,
-                                    release.pageUrl,
-                                    it
-                                )
-                            )
-                        }
                 }
                 release.toUpdateRelease(UpdateReleaseChannel.APP, version, artifacts)
             }
@@ -171,8 +157,6 @@ object UpdateReleaseParser {
     }
 
     private val APP_APK = Regex("org\\.fcitx\\.fcitx5\\.android-[^-]+-.+-release\\.apk")
-    private val RIME_PLUGIN_APK =
-        Regex("org\\.fcitx\\.fcitx5\\.android\\.plugin\\.rime-[^-]+-.+-release\\.apk")
     private const val RIME_CONFIG_ARCHIVE = "rime-ice-t9-phone-main.zip"
 }
 

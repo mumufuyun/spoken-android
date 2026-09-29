@@ -5,12 +5,9 @@
 
 package org.fcitx.fcitx5.android.update
 
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
 import android.os.Environment
 import org.fcitx.fcitx5.android.BuildConfig
-import org.fcitx.fcitx5.android.daemon.FcitxDaemon
 import timber.log.Timber
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -80,6 +77,12 @@ object RimeConfigProvisioner {
         if (!running.compareAndSet(false, true)) return
         try {
             if (decision == RimeConfigProvisioningPolicy.Decision.DOWNLOAD) {
+                // Single-APK product: the baseline config archive ships in assets. Install it
+                // locally and only fall back to the network when the bundled copy fails.
+                if (installBundled(context)) {
+                    running.set(false)
+                    return
+                }
                 UpdateDownloader.enqueue(
                     context = context,
                     artifact = requiredArtifact(),
@@ -94,6 +97,22 @@ object RimeConfigProvisioner {
             running.set(false)
             throw error
         }
+    }
+
+    private fun installBundled(context: Context): Boolean {
+        val result = runCatching {
+            RimeConfigInstaller.install(
+                context = context,
+                pending = UpdateDownloader.Pending(
+                    component = UpdateComponent.RIME_CONFIG,
+                    version = BuildConfig.RIME_CONFIG_BASELINE_VERSION,
+                    automatic = true,
+                    expectedSha256 = BuildConfig.RIME_CONFIG_BASELINE_SHA256
+                ),
+                openArchive = { context.assets.open("rime/$ArchiveName") }
+            )
+        }.onFailure { Timber.w(it, "Unable to install bundled Rime configuration") }
+        return result.getOrNull()?.isSuccess == true
     }
 
     private fun schedulePoll(context: Context, attempt: Int) {
@@ -218,30 +237,4 @@ object RimeConfigProvisioner {
             ) >= 0
     }
 
-}
-
-object RimePluginPackagePolicy {
-    private const val ReleasePackage = "org.fcitx.fcitx5.android.plugin.rime"
-    private const val DebugPackage = "$ReleasePackage.debug"
-
-    fun isCurrentVariant(packageName: String?, debug: Boolean = BuildConfig.DEBUG): Boolean =
-        packageName == if (debug) DebugPackage else ReleasePackage
-}
-
-class RimePluginPackageReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_PACKAGE_ADDED &&
-            intent.action != Intent.ACTION_PACKAGE_REPLACED
-        ) {
-            return
-        }
-        if (!RimePluginPackagePolicy.isCurrentVariant(intent.data?.schemeSpecificPart)) return
-
-        RimeConfigProvisioner.ensureRequiredConfig(context)
-        // Package installation already interrupts the plugin boundary. Reload an active daemon
-        // now so users never need a second system-IME toggle to discover the new native plugin.
-        if (FcitxDaemon.getFirstConnectionOrNull() != null) {
-            FcitxDaemon.restartFcitx()
-        }
-    }
 }

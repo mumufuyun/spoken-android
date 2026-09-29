@@ -6,7 +6,6 @@
 package org.fcitx.fcitx5.android.update
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.util.AtomicFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -78,11 +77,8 @@ class UpdateChecker(
 }
 
 object InstalledUpdateVersionsResolver {
-    private const val ReleaseRimePackage = "org.fcitx.fcitx5.android.plugin.rime"
-
     fun resolve(context: Context): InstalledUpdateVersions = InstalledUpdateVersions(
         app = BuildConfig.VERSION_NAME,
-        rimePlugin = context.packageManager.versionNameOrNull(ReleaseRimePackage),
         rimeConfig = listOfNotNull(
             RimeConfigVersionStore.currentVersion(context),
             UpdateDownloader.pendingVersion(context, UpdateComponent.RIME_CONFIG)
@@ -96,10 +92,6 @@ object InstalledUpdateVersionsResolver {
     } else {
         UpdateComponent.entries.toSet()
     }
-
-    @Suppress("DEPRECATION")
-    private fun PackageManager.versionNameOrNull(packageName: String): String? =
-        runCatching { getPackageInfo(packageName, 0).versionName }.getOrNull()
 }
 
 internal enum class RimeConfigDeploymentRequirement {

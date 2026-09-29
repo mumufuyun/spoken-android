@@ -266,8 +266,6 @@ internal class UpdateReleaseHistoryUi(
 
         fun UpdateArtifact.downloadLabel(context: Context): String = when (component) {
             UpdateComponent.APP -> context.getString(R.string.download_app_update, version)
-            UpdateComponent.RIME_PLUGIN ->
-                context.getString(R.string.download_rime_plugin_update, version)
             UpdateComponent.RIME_CONFIG ->
                 context.getString(R.string.download_rime_config_update, version)
         }
@@ -275,8 +273,6 @@ internal class UpdateReleaseHistoryUi(
         fun UpdateArtifact.compactDownloadLabel(context: Context): String = when (component) {
             UpdateComponent.APP ->
                 context.getString(R.string.download_app_update_compact, version)
-            UpdateComponent.RIME_PLUGIN ->
-                context.getString(R.string.download_rime_plugin_update_compact, version)
             UpdateComponent.RIME_CONFIG ->
                 context.getString(R.string.download_rime_config_update_compact, version)
         }

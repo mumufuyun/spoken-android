@@ -25,8 +25,7 @@ object UpdateAssetSelector {
         supportedAbis: List<String>
     ): UpdateArtifact.Asset? = when (artifact.component) {
         UpdateComponent.RIME_CONFIG -> artifact.assets.firstOrNull()
-        UpdateComponent.APP,
-        UpdateComponent.RIME_PLUGIN -> supportedAbis.firstNotNullOfOrNull { abi ->
+        UpdateComponent.APP -> supportedAbis.firstNotNullOfOrNull { abi ->
             artifact.assets.firstOrNull { it.name.endsWith("-$abi-release.apk") }
         }
     }

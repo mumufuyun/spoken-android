@@ -39,28 +39,6 @@ class RimeConfigProvisioningPolicyTest {
         )
     }
 
-    @Test
-    fun `plugin package matching stays inside the current build family`() {
-        assertTrue(
-            RimePluginPackagePolicy.isCurrentVariant(
-                "org.fcitx.fcitx5.android.plugin.rime",
-                debug = false
-            )
-        )
-        assertTrue(
-            RimePluginPackagePolicy.isCurrentVariant(
-                "org.fcitx.fcitx5.android.plugin.rime.debug",
-                debug = true
-            )
-        )
-        assertFalse(
-            RimePluginPackagePolicy.isCurrentVariant(
-                "org.fcitx.fcitx5.android.plugin.rime",
-                debug = true
-            )
-        )
-    }
-
     private fun decide(
         installed: String?,
         healthy: Boolean,
