@@ -4,18 +4,31 @@
  */
 package org.fcitx.fcitx5.android.ui.setup
 
+import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.input.voice.AsrProviderFactory
+import org.fcitx.fcitx5.android.input.voice.SecureVoiceKeyStorage
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceConfig
+import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
+import org.fcitx.fcitx5.android.utils.appContext
 
 enum class SetupPage {
-    Enable, Select;
+    Enable, Select, Microphone, VoiceConfig;
 
     fun getHintText(context: Context) = context.getString(
         when (this) {
             Enable -> R.string.enable_ime_hint
             Select -> R.string.select_ime_hint
+            Microphone -> R.string.setup_microphone_hint
+            VoiceConfig -> R.string.setup_voice_config_hint
         }, context.getString(R.string.app_name)
     ).let { HtmlCompat.fromHtml(it, HtmlCompat.FROM_HTML_MODE_LEGACY) }
 
@@ -23,17 +36,34 @@ enum class SetupPage {
         when (this) {
             Enable -> R.string.enable_ime
             Select -> R.string.select_ime
+            Microphone -> R.string.grant_permission
+            VoiceConfig -> R.string.setup_voice_config
         }
     )
 
-    fun getButtonAction(context: Context) = when (this) {
-        Enable -> InputMethodUtil.startSettingsActivity(context)
-        Select -> InputMethodUtil.showPicker()
+    fun getButtonAction(context: Context) {
+        when (this) {
+            Enable -> InputMethodUtil.startSettingsActivity(context)
+            Select -> InputMethodUtil.showPicker()
+            Microphone -> (context as? Activity)?.let {
+                ActivityCompat.requestPermissions(it, arrayOf(Manifest.permission.RECORD_AUDIO), 0)
+            }
+            VoiceConfig -> AppUtil.launchMainToVoiceSettings(context)
+        }
     }
 
     fun isDone() = when (this) {
         Enable -> InputMethodUtil.isEnabled()
         Select -> InputMethodUtil.isSelected()
+        Microphone -> ContextCompat.checkSelfPermission(
+            appContext,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+
+        VoiceConfig -> AsrProviderFactory.isConfigured(
+            SpokenVoiceConfig.fromPrefs(AppPrefs.getInstance()),
+            SecureVoiceKeyStorage(appContext)
+        )
     }
 
     companion object {
