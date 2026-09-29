@@ -140,6 +140,7 @@ class AndroidAppConventionPlugin : AndroidBaseConventionPlugin() {
         target.pluginManager.apply(target.libs.plugins.aboutlibraries.get().pluginId)
 
         target.configure<AboutLibrariesExtension> {
+            offlineMode.set(true)
             collect {
                 configPath.set(target.file("licenses").takeIf { it.exists() })
                 fetchRemoteLicense.set(false)
