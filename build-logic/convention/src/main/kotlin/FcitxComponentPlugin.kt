@@ -83,7 +83,9 @@ class FcitxComponentPlugin : Plugin<Project> {
             buildTarget.set(target)
             installComponent.set(component)
             destDir.set(project.assetsDir)
-            mustRunAfter(sourceProject.tasks.withType<ExternalNativeBuildJsonTask>())
+            // dependsOn, not just ordering: the abiModel property is populated by a doFirst
+            // on the json task, so this task cannot run unless the json task runs first
+            dependsOn(sourceProject.tasks.withType<ExternalNativeBuildJsonTask>())
             doLast {
                 val ext = project.extensions.getByName<FcitxComponentExtension>(EXTENSION)
                 ext.modifyFiles.forEach { (path, function) ->

@@ -72,6 +72,12 @@ class DataDescriptorPlugin : Plugin<Project> {
         }.also {
             target.cleanTask.dependsOn(it)
         }
+        // The descriptor is generated into the assets dir, which AGP lint tasks also
+        // read. Declare the dependency explicitly to satisfy Gradle task validation.
+        target.tasks.matching { it.name.contains("Lint") || it.name.contains("lint") }
+            .configureEach {
+                dependsOn(TASK)
+            }
     }
 
     abstract class DataDescriptorTask : DefaultTask() {
