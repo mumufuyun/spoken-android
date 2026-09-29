@@ -51,7 +51,9 @@ android {
                     // android specific modules
                     "androidfrontend",
                     "androidkeyboard",
-                    "androidnotification"
+                    "androidnotification",
+                    // rime engine, merged into :app (single-APK product)
+                    "rime"
                 )
             }
         }
@@ -141,6 +143,8 @@ fcitxComponent {
     // exclude (delete immediately after install) tables that nobody would use
     excludeFiles = listOf("cangjie", "erbi", "qxm", "wanfeng").map {
         "usr/share/fcitx5/inputmethod/$it.conf"
+    } + listOf("wbx", "wbpy", "zrm", "db").map {
+        "usr/share/fcitx5/inputmethod/$it.conf"
     }
     installPrebuiltAssets = true
 }
@@ -148,6 +152,10 @@ fcitxComponent {
 generateDataDescriptor {
     // English T9 reads directly from APK assets; native data installation must not copy it.
     excludes.add("t9")
+    // The rime-ice config archive stays compressed in assets; RimeConfigProvisioner streams it.
+    excludes.add("rime")
+    // rime-data/opencc used to be provided by the standalone plugin APK via symlink
+    symlinks.put("usr/share/rime-data/opencc", "usr/share/opencc")
 }
 
 ksp {

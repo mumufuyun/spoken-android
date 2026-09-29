@@ -160,8 +160,12 @@ object DataManager {
         }.map { it.activityInfo.packageName }
             .distinct()
             .filter { packageName ->
-                BuildConfig.PERFORMANCE_PLUGIN_PACKAGE.isEmpty() ||
-                    packageName == BuildConfig.PERFORMANCE_PLUGIN_PACKAGE
+                // rime is compiled into :app; loading a leftover standalone rime plugin APK
+                // would dlopen the same addon twice
+                packageName != "org.fcitx.fcitx5.android.plugin.rime" &&
+                    packageName != "org.fcitx.fcitx5.android.plugin.rime.debug" &&
+                    (BuildConfig.PERFORMANCE_PLUGIN_PACKAGE.isEmpty() ||
+                        packageName == BuildConfig.PERFORMANCE_PLUGIN_PACKAGE)
             }
             .sorted()
     }

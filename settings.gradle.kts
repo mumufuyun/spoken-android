@@ -27,12 +27,7 @@ include(":codegen")
 include(":app")
 include(":performance")
 include(":lib:plugin-base")
-include(":plugin:anthy")
-include(":plugin:clipboard-filter")
-include(":plugin:unikey")
+// Spoken ships a single APK: rime is compiled into :app. The plugin module is kept only
+// because :performance uses its APK as a benchmark fixture. Other language plugins
+// (anthy/chewing/hangul/jyutping/sayura/thai/unikey/clipboard-filter) are dropped.
 include(":plugin:rime")
-include(":plugin:hangul")
-include(":plugin:chewing")
-include(":plugin:sayura")
-include(":plugin:jyutping")
-include(":plugin:thai")
