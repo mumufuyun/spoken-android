@@ -481,13 +481,14 @@ opening the window never waits for a new serialized engine query.
 
 Settings entry uses a persisted 24-hour gate before querying the latest GitHub
 releases. Automatic network failures are silent and still consume the gate;
-manual checks bypass it and report failures. The update catalog treats the app,
-the ABI-specific Rime plugin APK, and the architecture-independent
-`rime-ice-t9-phone` configuration as three independently versioned artifacts.
+manual checks bypass it and report failures. The update catalog treats the app
+and the architecture-independent `rime-ice-t9-phone` configuration as
+independently versioned artifacts; the rime engine itself ships inside the app
+APK since the single-APK merge, so there is no plugin component.
 The required configuration source set includes all three T9 schemas and
 `predict.db`; a receipt cannot mark an archive healthy when prediction data is
 missing.
-Release builds can download and install both APK components; debug builds only
+Release builds can download and install app updates; debug builds only
 offer configuration updates because release APKs cannot replace debug package
 IDs. Configuration archives are overlaid without deleting user files while
 Fcitx is stopped, then their release version is recorded before Rime restarts.
@@ -495,12 +496,15 @@ Fcitx is stopped, then their release version is recorded before Rime restarts.
 `RimeConfigProvisioner` owns the app release's required configuration version,
 immutable URL, digest, health check, single-lane download deduplication, bounded
 retry, independent DownloadManager destination verification, and a verified
-cache checkpoint. Its healthy path performs no network or deployment work.
+cache checkpoint. The baseline archive also ships in `app/src/main/assets/rime/`
+and is installed locally before any network download is attempted, so first-run
+Chinese input never depends on network availability. Its healthy path performs
+no network or deployment work.
 Download completion is read through the requesting app's
 `DownloadManager.openDownloadedFile` handle; vendor `all_downloads` content
 URIs are not assumed to be reopenable by the app.
-Application startup and matching Rime plugin package changes may request
-provisioning, but only this Module decides whether work is required. Automatic
+Application startup may request provisioning, but only this Module decides
+whether work is required. Automatic
 failure is quiet and preserves the previous tree. Rime synchronization remains
 explicit user-data maintenance and is never part of installation.
 Source overlay and native compilation form one durable transaction: installation

@@ -9,20 +9,23 @@ an already repaired developer workspace.
 The user has authorized deletion of these debug-only packages and their data:
 
 - `org.fcitx.fcitx5.android.debug`
-- `org.fcitx.fcitx5.android.plugin.rime.debug`
+- `org.fcitx.fcitx5.android.plugin.rime.debug` (legacy; the rime engine is
+  compiled into the app package since the single-APK merge, so this package
+  should normally be absent)
 
 Never clear or uninstall the release packages. Always pass the explicit physical
 device serial to every ADB command.
 
 ## Reset
 
-1. Build matching debug app and Rime plugin APKs from the same source revision.
+1. Build the debug app APK from the source revision under test. A separate Rime
+   plugin APK no longer exists for the product path.
 2. Record the physical device serial and confirm it with `adb devices -l`.
-3. Clear both debug packages before uninstalling them:
+3. Clear the debug package before uninstalling it, and uninstall any leftover
+   debug rime plugin from pre-merge builds:
 
    ```bash
    adb -s "$SERIAL" shell pm clear org.fcitx.fcitx5.android.debug
-   adb -s "$SERIAL" shell pm clear org.fcitx.fcitx5.android.plugin.rime.debug
    adb -s "$SERIAL" uninstall org.fcitx.fcitx5.android.debug
    adb -s "$SERIAL" uninstall org.fcitx.fcitx5.android.plugin.rime.debug
    ```
@@ -41,7 +44,7 @@ device serial to every ADB command.
 ## Fresh Installation
 
 1. Clear logcat.
-2. Install the debug app APK, then the matching debug Rime plugin APK.
+2. Install the single debug app APK. No second package is required.
 3. Enable and select the debug IME through Android settings.
 4. Do not copy Rime files, deploy manually, synchronize, or switch to another
    system IME to repair state.
@@ -54,8 +57,9 @@ device serial to every ADB command.
    adb -s "$SERIAL" shell input keyboard keyevent KEYCODE_7
    ```
 
-7. Allow the automatic first-install download, overlay, and native compilation
-   to finish.
+7. The first launch installs the bundled rime-ice archive from app assets and
+   runs the native deployment. No network access is required for this step;
+   watch for the deployment marker lifecycle and the final Rime `Ready` log.
 
 ## Required Rime Scenarios
 

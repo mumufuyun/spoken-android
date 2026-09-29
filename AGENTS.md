@@ -25,10 +25,15 @@ otherwise.
 
 ## Project Context
 
-This app is a modified Fcitx5 for Android input method for physical T9-key
-Android smart/feature phones. The primary workflow is Chinese T9 input through
-Rime, English multi-tap input, numeric mode, and a compact always-available
-screen keyboard for auxiliary controls.
+This app is Spoken Mobile: a Chinese T9 (9-key) pinyin keyboard for Android
+with integrated realtime voice input and AI post-processing, built on a
+modified Fcitx5 for Android. The product ships as a single APK: the Rime engine
+is compiled into `:app` and the baseline rime-ice-t9-phone configuration is
+bundled in `app/src/main/assets/rime/` and installed on first run without
+network access. The primary workflow is Chinese T9 input through Rime, English
+multi-tap input, numeric mode, a compact always-available screen keyboard for
+auxiliary controls, and the Spoken voice pipeline (Qwen/Xunfei/custom ASR,
+WorkMode AI processing) reachable from the keyboard.
 
 ## Documentation Hygiene
 
