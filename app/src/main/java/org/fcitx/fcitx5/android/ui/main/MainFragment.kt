@@ -49,6 +49,11 @@ class MainFragment : PaddingPreferenceFragment() {
                     SettingsRoute.InputOptions()
                 )
                 addDestinationPreference(
+                    R.string.voice_and_ai,
+                    R.drawable.ic_baseline_keyboard_voice_24,
+                    SettingsRoute.VoiceAi
+                )
+                addDestinationPreference(
                     R.string.appearance_and_candidates,
                     R.drawable.ic_baseline_palette_24,
                     SettingsRoute.AppearanceAndCandidates

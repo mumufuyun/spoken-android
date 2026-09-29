@@ -56,6 +56,9 @@ sealed class SettingsRoute : Parcelable {
     data object KeysAndToolbar : SettingsRoute()
 
     @Serializable
+    data object VoiceAi : SettingsRoute()
+
+    @Serializable
     data object AppearanceAndCandidates : SettingsRoute()
 
     @Serializable
@@ -212,6 +215,9 @@ sealed class SettingsRoute : Parcelable {
             }
             fragment<KeyboardSettingsFragment, KeysAndToolbar> {
                 label = ctx.getString(R.string.keys_and_toolbar)
+            }
+            fragment<VoiceSettingsFragment, VoiceAi> {
+                label = ctx.getString(R.string.voice_and_ai)
             }
             fragment<AppearanceAndCandidatesSettingsFragment, AppearanceAndCandidates> {
                 label = ctx.getString(R.string.appearance_and_candidates)

@@ -4,6 +4,8 @@
  */
 package org.fcitx.fcitx5.android.input.voice
 
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+
 enum class SpokenAsrProviderKind { QWEN, XUNFEI, CUSTOM }
 
 /**
@@ -20,7 +22,24 @@ data class SpokenVoiceConfig(
     val aiModel: String,
     val aiTimeoutSec: Int,
     val workMode: WorkMode
-)
+) {
+    companion object {
+        fun fromPrefs(prefs: AppPrefs): SpokenVoiceConfig {
+            val voice = prefs.voice
+            return SpokenVoiceConfig(
+                asrProvider = voice.asrProvider.getValue(),
+                xunfeiAppId = voice.xunfeiAppId.getValue(),
+                customAsrUrl = voice.customAsrUrl.getValue(),
+                customAsrModel = voice.customAsrModel.getValue(),
+                aiEnabled = voice.aiEnabled.getValue(),
+                aiBaseUrl = voice.aiBaseUrl.getValue(),
+                aiModel = voice.aiModel.getValue(),
+                aiTimeoutSec = voice.aiTimeoutSec.getValue(),
+                workMode = voice.defaultMode.getValue()
+            )
+        }
+    }
+}
 
 object AsrProviderFactory {
     /**

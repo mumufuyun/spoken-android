@@ -195,20 +195,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             context = this,
             scope = lifecycleScope,
             keyStorage = SecureVoiceKeyStorage(this),
-            voiceConfig = {
-                val voice = prefs.voice
-                SpokenVoiceConfig(
-                    asrProvider = voice.asrProvider.getValue(),
-                    xunfeiAppId = voice.xunfeiAppId.getValue(),
-                    customAsrUrl = voice.customAsrUrl.getValue(),
-                    customAsrModel = voice.customAsrModel.getValue(),
-                    aiEnabled = voice.aiEnabled.getValue(),
-                    aiBaseUrl = voice.aiBaseUrl.getValue(),
-                    aiModel = voice.aiModel.getValue(),
-                    aiTimeoutSec = voice.aiTimeoutSec.getValue(),
-                    workMode = voice.defaultMode.getValue()
-                )
-            },
+            voiceConfig = { SpokenVoiceConfig.fromPrefs(prefs) },
             editorGeneration = { spokenEditorGeneration },
             editorAllowsVoice = { voiceInputAllowedForEditor && isInputViewShown },
             prepareEditor = ::prepareEditorForSpokenVoice,
