@@ -52,6 +52,9 @@ sealed class KeyAction {
     /** Starts or finishes Spoken's in-keyboard voice recognition session. */
     data object SpokenVoiceAction : KeyAction()
 
+    /** Opens the Spoken scene-mode picker (long press on the voice key). */
+    data object SpokenVoiceModeAction : KeyAction()
+
     /** Switches an in-keyboard Spoken touch panel without replacing the keyboard window. */
     data class TouchPanelAction(val panel: String) : KeyAction()
 }

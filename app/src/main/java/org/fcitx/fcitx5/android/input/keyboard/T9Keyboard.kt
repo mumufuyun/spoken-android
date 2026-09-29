@@ -6,7 +6,11 @@ package org.fcitx.fcitx5.android.input.keyboard
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.view.KeyEvent
 import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -19,6 +23,7 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceVisuals
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.below
@@ -80,11 +85,15 @@ private class TouchT9ModeKey : KeyDef(
 private class TouchT9VoiceKey : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_spoken_waveform_36,
-        variant = Variant.Accent,
+        // Idle uses the inset surface per Spoken tokens; active states are tinted at runtime.
+        variant = Variant.Alternative,
         border = Border.On,
         margin = false
     ),
-    setOf(Behavior.Press(KeyAction.SpokenVoiceAction)),
+    setOf(
+        Behavior.Press(KeyAction.SpokenVoiceAction),
+        Behavior.LongPress(KeyAction.SpokenVoiceModeAction)
+    ),
     emptyArray()
 )
 
@@ -490,6 +499,9 @@ class T9Keyboard(
 
     private val backspace = createTouchKeyView(BackspaceKey(border = Border.On, margin = false))
     private val voice = createTouchKeyView(TouchT9VoiceKey()).apply { id = R.id.button_voice }
+
+    /** Anchor for the work-mode popup shown on voice-key long press. */
+    val voiceKeyView: KeyView get() = voice
     private val returnKey = createTouchKeyView(ReturnKey(border = Border.On, margin = false))
 
     private val rightActionSurface = constraintLayout {
@@ -683,33 +695,21 @@ class T9Keyboard(
     }
 
     fun updateSpokenVoiceState(state: SpokenVoiceState) {
-        val active = state is SpokenVoiceState.Starting ||
-            state is SpokenVoiceState.Recording ||
-            state is SpokenVoiceState.Finishing ||
-            state is SpokenVoiceState.AiProcessing
-        voice.animate().cancel()
-        voice.alpha = if (state is SpokenVoiceState.Finishing ||
-            state is SpokenVoiceState.AiProcessing
-        ) 0.58f else 1f
-        voice.scaleX = 1f
-        voice.scaleY = 1f
-        if (state is SpokenVoiceState.Starting || state is SpokenVoiceState.Recording) {
-            voice.animate()
-                .scaleX(0.9f)
-                .scaleY(0.9f)
-                .alpha(0.72f)
-                .setDuration(520L)
-                .withEndAction {
-                    if (voice.isAttachedToWindow && active) {
-                        voice.animate()
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .alpha(1f)
-                            .setDuration(520L)
-                            .start()
-                    }
-                }
-                .start()
+        val gradient = SpokenVoiceVisuals.voiceKeyGradient(state)
+        val icon = (voice as? ImageKeyView)?.img
+        if (gradient != null) {
+            voice.overrideAppearanceBackground(
+                InsetDrawable(
+                    GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, gradient).apply {
+                        cornerRadius = voice.radius
+                    },
+                    voice.hMargin, voice.vMargin, voice.hMargin, voice.vMargin
+                )
+            )
+            icon?.imageTintList = ColorStateList.valueOf(Color.WHITE)
+        } else {
+            voice.overrideAppearanceBackground(null)
+            icon?.imageTintList = ColorStateList.valueOf(theme.altKeyTextColor)
         }
     }
 }

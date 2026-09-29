@@ -107,6 +107,8 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
         isDuplicateParentStateEnabled = true
     }
 
+    private var defaultAppearanceBackground: Drawable? = null
+
     init {
         // trigger setEnabled(true)
         isEnabled = true
@@ -141,6 +143,15 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
             }
         }
         add(appearanceView, lParams(matchParent, matchParent))
+        defaultAppearanceBackground = appearanceView.background
+    }
+
+    /**
+     * Temporarily replaces the key background (e.g. voice-key state tinting). Passing null
+     * restores the theme-derived background captured at initialization.
+     */
+    fun overrideAppearanceBackground(background: Drawable?) {
+        appearanceView.background = background ?: defaultAppearanceBackground
     }
 
     private fun setupPressHighlight(mask: Drawable? = null) {
