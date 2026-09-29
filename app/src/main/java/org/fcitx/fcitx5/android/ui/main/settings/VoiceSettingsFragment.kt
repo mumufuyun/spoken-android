@@ -174,7 +174,7 @@ class VoiceSettingsFragment : PaddingPreferenceFragment() {
         summary = prefs.voice.aiTimeoutSec.getValue().toString()
         setOnBindEditTextListener { editText ->
             editText.inputType = InputType.TYPE_CLASS_NUMBER
-            editText.setText(prefs.voice.aiTimeoutSec.getValue().toString())
+            editText.setText(String.format(java.util.Locale.US, "%d", prefs.voice.aiTimeoutSec.getValue()))
             editText.setSelection(editText.text.length)
         }
         setOnPreferenceChangeListener { preference, newValue ->

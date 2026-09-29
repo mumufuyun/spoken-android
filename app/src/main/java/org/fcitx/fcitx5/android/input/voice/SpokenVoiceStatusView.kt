@@ -7,22 +7,25 @@ package org.fcitx.fcitx5.android.input.voice
 import android.content.Context
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
+import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import splitties.dimensions.dp
 
 /**
  * Voice session status area for the candidate dock: a semantic status dot, the status or live
  * transcript text, and the 24-bar waveform while a session is capturing or processing.
  */
-class SpokenVoiceStatusView(
+class SpokenVoiceStatusView @JvmOverloads constructor(
     context: Context,
-    private val theme: Theme,
+    attrs: AttributeSet? = null,
+    private val theme: Theme = ThemeManager.activeTheme,
     labelStyle: TextView.() -> Unit = {}
-) : LinearLayout(context) {
+) : LinearLayout(context, attrs) {
 
     private val dotBackground = GradientDrawable().apply { shape = GradientDrawable.OVAL }
 

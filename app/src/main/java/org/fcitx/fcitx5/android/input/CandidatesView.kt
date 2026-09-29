@@ -366,7 +366,7 @@ class CandidatesView(
         isFocusableInTouchMode = false
         visibility = View.GONE
     }
-    private val spokenVoiceStatusView = SpokenVoiceStatusView(ctx, theme, setupTextViewCandidates).apply {
+    private val spokenVoiceStatusView = SpokenVoiceStatusView(ctx, null, theme, setupTextViewCandidates).apply {
         visibility = View.GONE
     }
 
