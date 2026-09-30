@@ -5,7 +5,7 @@
 package org.fcitx.fcitx5.android.input.keyboard
 
 import androidx.annotation.ColorInt
-import org.fcitx.fcitx5.android.input.voice.WorkMode
+import org.fcitx.fcitx5.android.input.voice.WorkScene
 
 /**
  * Flat Pop macaron function-key tints (design mockup 15): mint, peach and lemon in light and
@@ -22,13 +22,15 @@ object FlatPopTints {
     @ColorInt
     fun lemon(dark: Boolean): Int = if (dark) 0xFF413C29.toInt() else 0xFFFFF6D6.toInt()
 
-    /** Work-mode grid tile tint; null keeps the plain sheet key surface with a hairline border. */
+    /** Scene grid tile tint; null keeps the plain sheet key surface with a hairline border. */
     @ColorInt
-    fun modeTint(mode: WorkMode, dark: Boolean): Int? = when (mode) {
-        WorkMode.POLISH -> mint(dark)
-        WorkMode.PROMPT -> lemon(dark)
-        WorkMode.TRANSLATE -> peach(dark)
-        WorkMode.STRUCTURE -> mint(dark)
-        WorkMode.DIRECT, WorkMode.MINUTES -> null
+    fun sceneTint(scene: WorkScene, dark: Boolean): Int? = when (scene) {
+        WorkScene.CHAT -> mint(dark)
+        WorkScene.WORK -> peach(dark)
+        WorkScene.FORMAL -> lemon(dark)
+        WorkScene.MINUTES -> mint(dark)
+        WorkScene.SHARE -> peach(dark)
+        WorkScene.PROMPT -> lemon(dark)
+        WorkScene.DIRECT -> null
     }
 }

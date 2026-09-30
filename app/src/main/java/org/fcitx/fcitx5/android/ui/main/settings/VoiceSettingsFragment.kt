@@ -17,10 +17,11 @@ import androidx.preference.SwitchPreferenceCompat
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
+import org.fcitx.fcitx5.android.input.voice.OutputLanguage
 import org.fcitx.fcitx5.android.input.voice.SecureVoiceKeyStorage
 import org.fcitx.fcitx5.android.input.voice.SpokenAsrProviderKind
 import org.fcitx.fcitx5.android.input.voice.VoiceKeyPurpose
-import org.fcitx.fcitx5.android.input.voice.WorkMode
+import org.fcitx.fcitx5.android.input.voice.WorkScene
 import org.fcitx.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fcitx.fcitx5.android.utils.addCategory
 
@@ -120,7 +121,8 @@ class VoiceSettingsFragment : PaddingPreferenceFragment() {
                 addSecureKeyPreference(null, VoiceKeyPurpose.AI_KEY, R.string.ai_api_key, R.string.ai_api_key)
                 addAppPrefsTextPreference(R.string.ai_model, prefs.voice.aiModel)
                 addPreference(buildTimeoutPreference(ctx))
-                addPreference(buildWorkModePreference(ctx))
+                addPreference(buildScenePreference(ctx))
+                addPreference(buildLanguagePreference(ctx))
             }
         }
         applyEngineVisibility(prefs.voice.asrProvider.getValue())
@@ -187,22 +189,43 @@ class VoiceSettingsFragment : PaddingPreferenceFragment() {
         }
     }
 
-    private fun buildWorkModePreference(ctx: Context): ListPreference {
-        val modes = WorkMode.entries
+    private fun buildScenePreference(ctx: Context): ListPreference {
+        val scenes = WorkScene.entries
         return ListPreference(ctx).apply {
-            key = "voice_work_mode_ui"
-            setTitle(R.string.default_work_mode)
-            entries = modes.map { it.label }.toTypedArray()
-            entryValues = modes.map { it.name }.toTypedArray()
+            key = "voice_scene_ui"
+            setTitle(R.string.default_scene)
+            entries = scenes.map { it.label }.toTypedArray()
+            entryValues = scenes.map { it.name }.toTypedArray()
             isPersistent = false
             isIconSpaceReserved = false
-            val current = prefs.voice.defaultMode.getValue()
+            val current = prefs.voice.defaultScene.getValue()
             value = current.name
             summary = current.description
             setOnPreferenceChangeListener { preference, newValue ->
-                val mode = WorkMode.valueOf(newValue as String)
-                prefs.voice.defaultMode.setValue(mode)
-                preference.summary = mode.description
+                val scene = WorkScene.valueOf(newValue as String)
+                prefs.voice.defaultScene.setValue(scene)
+                preference.summary = scene.description
+                false
+            }
+        }
+    }
+
+    private fun buildLanguagePreference(ctx: Context): ListPreference {
+        val languages = OutputLanguage.entries
+        return ListPreference(ctx).apply {
+            key = "voice_output_language_ui"
+            setTitle(R.string.output_language)
+            entries = languages.map { it.label }.toTypedArray()
+            entryValues = languages.map { it.name }.toTypedArray()
+            isPersistent = false
+            isIconSpaceReserved = false
+            val current = prefs.voice.outputLanguage.getValue()
+            value = current.name
+            summary = current.label
+            setOnPreferenceChangeListener { preference, newValue ->
+                val language = OutputLanguage.valueOf(newValue as String)
+                prefs.voice.outputLanguage.setValue(language)
+                preference.summary = language.label
                 false
             }
         }

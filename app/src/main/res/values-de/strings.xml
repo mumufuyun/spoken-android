@@ -165,5 +165,7 @@
     <string name="global_physical_key_sound_enabled_summary">Aktiv für Zurück, Menü, Annehmen und Auflegen außerhalb von Textfeldern</string>
     <string name="global_physical_key_sound_disabled_summary">Leichten Tastenbeobachter in den Android-Bedienungshilfen aktivieren</string>
     <string name="global_physical_key_sound_service_description">Gibt den gewählten Tastenton für physische Systemtasten wieder. Liest keine Bildschirminhalte und fängt keine Tastendrücke ab.</string>
-        <string name="work_mode_picker_title">Szenenmodus</string>
+    <string name="default_scene">Standard-Szene</string>
+    <string name="output_language">Ausgabesprache</string>
+    <string name="scene_language_picker_title">Szene &amp; Sprache</string>
 </resources>

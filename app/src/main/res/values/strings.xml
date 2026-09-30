@@ -31,8 +31,6 @@
     <string name="ai_api_key">AI API Key</string>
     <string name="ai_model">AI model</string>
     <string name="ai_timeout_sec">AI timeout (seconds)</string>
-    <string name="default_work_mode">Default scene mode</string>
-    <string name="work_mode_picker_title">Scene mode</string>
     <string name="setup_microphone_hint">Grant &lt;b>%1$s&lt;/b> microphone access for voice input</string>
     <string name="setup_voice_config">Configure voice input</string>
     <string name="setup_voice_config_hint">Pick a recognition engine and enter its credentials for voice input</string>
@@ -528,4 +526,7 @@
     <string name="t9_idle_long_zero_literal">Input 0</string>
     <string name="t9_idle_long_zero_voice">Voice input</string>
     <string name="voice_input_not_available">Enable a voice input method in Android settings first</string>
+    <string name="default_scene">Default scene</string>
+    <string name="output_language">Output language</string>
+    <string name="scene_language_picker_title">Scene &amp; language</string>
 </resources>

@@ -324,5 +324,7 @@
     <string name="global_physical_key_sound_enabled_summary">Работает для клавиш «Назад», «Меню», ответа и завершения вызова вне текстовых полей</string>
     <string name="global_physical_key_sound_disabled_summary">Включите лёгкую службу наблюдения за клавишами в настройках специальных возможностей Android</string>
     <string name="global_physical_key_sound_service_description">Воспроизводит выбранный звук для физических системных клавиш. Не читает содержимое экрана и не перехватывает нажатия.</string>
-    <string name="work_mode_picker_title">Сценарный режим</string>
+    <string name="default_scene">Сцена по умолчанию</string>
+    <string name="output_language">Язык вывода</string>
+    <string name="scene_language_picker_title">Сцена и язык</string>
 </resources>
