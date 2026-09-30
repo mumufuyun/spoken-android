@@ -4,69 +4,63 @@
  */
 package org.fcitx.fcitx5.android.input.voice
 
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class SpokenVoiceVisualsTest {
-    private val accent = 0xFF85644B.toInt()
+    private val accent = 0xFFFF6B4A.toInt()
 
     @Test
     fun waveformShowsDuringRecordingFinishingAndAiProcessing() {
-        assertArrayEquals(
-            SpokenVoiceVisuals.RECORDING_GRADIENT,
-            SpokenVoiceVisuals.waveformGradient(SpokenVoiceState.Recording("hi"))
+        assertEquals(
+            accent,
+            SpokenVoiceVisuals.waveformColor(SpokenVoiceState.Recording("hi"), accent)
         )
-        assertArrayEquals(
-            SpokenVoiceVisuals.FINISHING_GRADIENT,
-            SpokenVoiceVisuals.waveformGradient(SpokenVoiceState.Finishing)
+        assertEquals(
+            SpokenVoiceVisuals.COLOR_RECOGNIZING,
+            SpokenVoiceVisuals.waveformColor(SpokenVoiceState.Finishing, accent)
         )
-        assertArrayEquals(
-            SpokenVoiceVisuals.AI_PROCESSING_GRADIENT,
-            SpokenVoiceVisuals.waveformGradient(SpokenVoiceState.AiProcessing)
+        assertEquals(
+            SpokenVoiceVisuals.COLOR_AI_PROCESSING,
+            SpokenVoiceVisuals.waveformColor(SpokenVoiceState.AiProcessing, accent)
         )
     }
 
     @Test
     fun waveformHiddenOtherwise() {
-        assertNull(SpokenVoiceVisuals.waveformGradient(SpokenVoiceState.Idle))
-        assertNull(SpokenVoiceVisuals.waveformGradient(SpokenVoiceState.Starting("…")))
-        assertNull(SpokenVoiceVisuals.waveformGradient(SpokenVoiceState.Error("x")))
+        assertNull(SpokenVoiceVisuals.waveformColor(SpokenVoiceState.Idle, accent))
+        assertNull(SpokenVoiceVisuals.waveformColor(SpokenVoiceState.Starting("…"), accent))
+        assertNull(SpokenVoiceVisuals.waveformColor(SpokenVoiceState.Error("x"), accent))
     }
 
     @Test
     fun statusDotFollowsSemantics() {
         assertEquals(
             SpokenVoiceVisuals.COLOR_WARNING,
-            SpokenVoiceVisuals.statusDotColor(SpokenVoiceState.Starting("…"), accent)
+            SpokenVoiceVisuals.statusDotColor(SpokenVoiceState.Starting("…"), accent, dark = false)
         )
         assertEquals(
-            SpokenVoiceVisuals.COLOR_READY,
-            SpokenVoiceVisuals.statusDotColor(SpokenVoiceState.Recording("hi"), accent)
+            SpokenVoiceVisuals.readyColor(dark = false),
+            SpokenVoiceVisuals.statusDotColor(SpokenVoiceState.Recording("hi"), accent, dark = false)
+        )
+        assertEquals(
+            SpokenVoiceVisuals.readyColor(dark = true),
+            SpokenVoiceVisuals.statusDotColor(SpokenVoiceState.Recording("hi"), accent, dark = true)
         )
         assertEquals(
             accent,
-            SpokenVoiceVisuals.statusDotColor(SpokenVoiceState.AiProcessing, accent)
+            SpokenVoiceVisuals.statusDotColor(SpokenVoiceState.AiProcessing, accent, dark = false)
         )
         assertEquals(
             SpokenVoiceVisuals.COLOR_ERROR,
-            SpokenVoiceVisuals.statusDotColor(SpokenVoiceState.Error("x"), accent)
+            SpokenVoiceVisuals.statusDotColor(SpokenVoiceState.Error("x"), accent, dark = false)
         )
     }
 
     @Test
-    fun voiceKeyGradientOnlyWhileActive() {
-        assertArrayEquals(
-            SpokenVoiceVisuals.RECORDING_GRADIENT,
-            SpokenVoiceVisuals.voiceKeyGradient(SpokenVoiceState.Recording(""))
-        )
-        assertArrayEquals(
-            SpokenVoiceVisuals.AI_PROCESSING_GRADIENT,
-            SpokenVoiceVisuals.voiceKeyGradient(SpokenVoiceState.AiProcessing)
-        )
-        assertNull(SpokenVoiceVisuals.voiceKeyGradient(SpokenVoiceState.Idle))
-        assertNull(SpokenVoiceVisuals.voiceKeyGradient(SpokenVoiceState.Starting("…")))
-        assertNull(SpokenVoiceVisuals.voiceKeyGradient(SpokenVoiceState.Error("x")))
+    fun readyGreenFollowsThemeBrightness() {
+        assertEquals(0xFF2BAE5F.toInt(), SpokenVoiceVisuals.readyColor(dark = false))
+        assertEquals(0xFF3CCB74.toInt(), SpokenVoiceVisuals.readyColor(dark = true))
     }
 }
