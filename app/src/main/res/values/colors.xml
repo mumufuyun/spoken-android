@@ -7,8 +7,8 @@
     <color name="blue_500">#2196F3</color>
     <color name="grey_400">#BDBDBD</color>
     <color name="grey_700">#616161</color>
-    <color name="spoken_accent">#85644B</color>
-    <color name="spoken_background">#FAF8F5</color>
+    <color name="spoken_accent">#FF6B4A</color>
+    <color name="spoken_background">#FAFAF6</color>
     <color name="spoken_surface">#FFFFFF</color>
-    <color name="spoken_on_surface">#211F1D</color>
+    <color name="spoken_on_surface">#26262A</color>
 </resources>

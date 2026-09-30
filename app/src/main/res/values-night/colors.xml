@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="spoken_accent">#D6AD87</color>
-    <color name="spoken_background">#211F1D</color>
-    <color name="spoken_surface">#2C2926</color>
-    <color name="spoken_on_surface">#FAF8F5</color>
+    <color name="spoken_accent">#FF7B5C</color>
+    <color name="spoken_background">#1C1C1E</color>
+    <color name="spoken_surface">#2C2C2E</color>
+    <color name="spoken_on_surface">#F2F2F5</color>
 </resources>
