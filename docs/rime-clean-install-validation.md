@@ -8,7 +8,7 @@ an already repaired developer workspace.
 
 The user has authorized deletion of these debug-only packages and their data:
 
-- `org.fcitx.fcitx5.android.debug`
+- `com.spoken.android.debug` (current Spoken debug app)
 - `org.fcitx.fcitx5.android.plugin.rime.debug` (legacy; the rime engine is
   compiled into the app package since the single-APK merge, so this package
   should normally be absent)
@@ -25,8 +25,8 @@ device serial to every ADB command.
    debug rime plugin from pre-merge builds:
 
    ```bash
-   adb -s "$SERIAL" shell pm clear org.fcitx.fcitx5.android.debug
-   adb -s "$SERIAL" uninstall org.fcitx.fcitx5.android.debug
+   adb -s "$SERIAL" shell pm clear com.spoken.android.debug
+   adb -s "$SERIAL" uninstall com.spoken.android.debug
    adb -s "$SERIAL" uninstall org.fcitx.fcitx5.android.plugin.rime.debug
    ```
 
@@ -34,7 +34,7 @@ device serial to every ADB command.
 
    ```bash
    adb -s "$SERIAL" shell rm -rf \
-     /sdcard/Android/data/org.fcitx.fcitx5.android.debug \
+     /sdcard/Android/data/com.spoken.android.debug \
      /sdcard/Android/data/org.fcitx.fcitx5.android.plugin.rime.debug
    ```
 

@@ -371,14 +371,15 @@ described below.
 ## Voice And Toolbar
 
 The touch T9 shell reserves its right-center two rows for a persistent, tap-based
-voice target. It is presentation-only during the keyboard UI milestone. It must
-not switch to an external voice IME or use a hold-to-talk interaction; the action
-will be enabled only when an in-process Spoken recording and transcription
-pipeline can own tap-to-start and tap-to-finish states without leaving the
-keyboard.
+voice target. It starts and stops the in-process Spoken pipeline without leaving
+the keyboard. While AI is processing, another tap commits the recognized text
+and cancels AI processing. Long-press opens the scene and output-language picker.
 
 The in-process Spoken pipeline lives under `input/voice/`. `SpokenVoiceCoordinator`
-owns the session state machine and `AndroidVoiceAudioCapture`; `SpokenAsrProvider`
+owns the session state machine. Each recording owns a separate `VoiceAudioSession`
+and `AndroidVoiceAudioCapture`. Stopping cancels and joins microphone startup before
+releasing its resources; terminal cleanup survives IME scope cancellation and cannot
+stop a later recording. `SpokenAsrProvider`
 abstracts the recognition engine with Qwen realtime, Xunfei IAT, and Whisper-compatible
 batch implementations chosen via `AsrProviderFactory`. Final transcripts pass through
 `SpokenSpeechPostProcessor`, then optionally through `AiProcessor` (OpenAI-compatible
@@ -397,8 +398,8 @@ Back action so the toolbar remains reachable. Voice, undo, redo, text editing,
 clipboard, and hide-keyboard actions are independently configurable. Quick
 Settings is fixed and cannot be removed.
 
-Voice selection is an enabled IME target with an optional subtype. Explicit
-preferences support standalone voice IMEs without subtype metadata; automatic
+The legacy physical-key/toolbar voice action is an enabled IME target with an
+optional subtype. Explicit preferences support standalone voice IMEs without subtype metadata; automatic
 selection prefers declared voice subtypes and conservative voice-service
 identity hints. Target resolution happens when invoked, and unavailable targets
 show feedback instead of failing silently. The full contract is recorded in
@@ -494,7 +495,9 @@ Quick Settings renders from `FcitxCachedState.statusAreaActions` before attach;
 opening the window never waits for a new serialized engine query.
 
 Settings entry uses a persisted 24-hour gate before querying the latest GitHub
-releases. Automatic network failures are silent and still consume the gate;
+releases. App releases come from `mumufuyun/spoken-android`; Rime configuration
+releases remain owned by `Rizumu85/rime-ice-t9-phone`. Automatic network failures
+are silent and still consume the gate;
 manual checks bypass it and report failures. The update catalog treats the app
 and the architecture-independent `rime-ice-t9-phone` configuration as
 independently versioned artifacts; the rime engine itself ships inside the app
