@@ -16,12 +16,12 @@ This shell forces visible key surfaces instead of inheriting the global
 borderless-key preference: center keys are normal surfaces, side actions are
 alternative surfaces, and voice/Return use the accent treatment. The generic
 symbol Picker is still upstream UI and remains a separate productization task.
-The touch grid caps portrait height at 29 percent and uses a 2 dp inset on each
+The touch grid caps portrait height at 23 percent and uses a 2 dp inset on each
 keycap edge; the complete cell remains tappable. The bottom control row keeps a
-48 dp hit area while its visible keycaps use the same 2 dp edge gap as the rows
+38 dp hit area while its visible keycaps use the same 2 dp edge gap as the rows
 above.
 After the first on-screen T9 digit tap, its composition surface docks inside a
-60 dp reserved area immediately above the keys and replaces the idle toolbar. The touch surface is a
+50 dp reserved area immediately above the keys and replaces the idle toolbar. The touch surface is a
 full-width two-row strip: pinyin disambiguation above Hanzi candidates. Candidate
 pages are packed by measured text width and minimum tap width. Once a page is
 chosen, its items share the remaining horizontal space equally instead of
@@ -77,6 +77,16 @@ Supported T9 mechanisms:
 
 Rime supplies Chinese engine candidates. `rime-ice-t9-phone` is the maintained
 configuration companion and must provide `t9`, `t9_stroke`, and `t9_zhuyin`.
+
+The product visual language is Flat Pop (mockup 15): zero shadows, gradients, or
+glow — hierarchy comes from solid color blocks, hairline borders, and macaron
+function-key tints. `ThemePreset.FlatPopLight`/`FlatPopDark` are the default
+day/night themes (coral accent #FF6B4A/#FF7B5C, mint alt keys, hairline
+#E4E1D6/rgba(255,255,255,.08)); the punctuation rail takes mint from the theme's
+alt-key slot while `FlatPopTints` overrides the bottom row and the right rail
+(lemon/peach) only when a Flat Pop preset is active. The app-side AppCompat
+themes reuse the same accent and paper colors. Keycaps default to a 12 dp
+corner radius.
 
 ## Stable Key Contract
 
