@@ -7,10 +7,11 @@ package org.fcitx.fcitx5.android.data.prefs
 
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import org.fcitx.fcitx5.android.input.voice.WorkModeMigration
 
 object SettingsPreferenceMigration {
     private const val VersionKey = "product_settings_schema_version"
-    private const val CurrentVersion = 1
+    private const val CurrentVersion = 2
 
     // These controls were removed rather than hidden: product behavior now has one owner in code,
     // so retaining their values would make backups and Direct Boot storage imply false support.
@@ -56,9 +57,21 @@ object SettingsPreferenceMigration {
     fun migrate(preferences: SharedPreferences) {
         val version = preferences.getInt(VersionKey, 0)
         if (version >= CurrentVersion) return
+        // Read before entering the editor; Editor has no getters.
+        val legacyWorkMode = preferences.getString("spoken_default_work_mode", null)
         preferences.edit {
             if (version < 1) {
                 version1RemovedKeys.forEach(::remove)
+            }
+            if (version < 2) {
+                // Legacy single-dimension voice mode -> scene x language pair.
+                legacyWorkMode?.let { legacy ->
+                    WorkModeMigration.migrate(legacy)?.let { (scene, language) ->
+                        putString("spoken_default_scene", scene.name)
+                        putString("spoken_output_language", language.name)
+                    }
+                }
+                remove("spoken_default_work_mode")
             }
             putInt(VersionKey, CurrentVersion)
         }

@@ -169,7 +169,10 @@ class SpokenVoiceCoordinator(
     fun close() = cancel()
 
     private fun createAiProcessor(config: SpokenVoiceConfig): AiProcessor? {
-        if (!config.aiEnabled || config.workMode == WorkMode.DIRECT) return null
+        if (!config.aiEnabled) return null
+        if (config.scene == WorkScene.DIRECT && config.outputLanguage == OutputLanguage.ORIGINAL) {
+            return null
+        }
         val apiKey = keyStorage.load(VoiceKeyPurpose.AI_KEY)?.takeIf(String::isNotBlank) ?: return null
         return AiProcessor(
             enabled = true,
@@ -201,7 +204,7 @@ class SpokenVoiceCoordinator(
         aiFallback = generation to processed
         setState(SpokenVoiceState.AiProcessing)
         aiJob = scope.launch {
-            val result = processor.process(processed, current.config.workMode)
+            val result = processor.process(processed, current.config.scene, current.config.outputLanguage)
             withContext(Dispatchers.Main.immediate) {
                 aiJob = null
                 if (state is SpokenVoiceState.AiProcessing) {

@@ -20,8 +20,9 @@ import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.popup.EmojiModifier
 import org.fcitx.fcitx5.android.input.t9.ChineseT9Scheme
 import org.fcitx.fcitx5.android.input.t9.ChineseT9OutputScript
+import org.fcitx.fcitx5.android.input.voice.OutputLanguage
 import org.fcitx.fcitx5.android.input.voice.SpokenAsrProviderKind
-import org.fcitx.fcitx5.android.input.voice.WorkMode
+import org.fcitx.fcitx5.android.input.voice.WorkScene
 import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.appContext
 import org.fcitx.fcitx5.android.utils.vibrator
@@ -352,10 +353,15 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val aiBaseUrl = string("spoken_ai_base_url", "https://api.openai.com/v1")
         val aiModel = string("spoken_ai_model", "gpt-4o-mini")
         val aiTimeoutSec = int("spoken_ai_timeout_sec", 15)
-        val defaultMode = stringLike(
-            "spoken_default_work_mode",
-            enumCodec<WorkMode>(),
-            WorkMode.POLISH
+        val defaultScene = stringLike(
+            "spoken_default_scene",
+            enumCodec<WorkScene>(),
+            WorkScene.CHAT
+        )
+        val outputLanguage = stringLike(
+            "spoken_output_language",
+            enumCodec<OutputLanguage>(),
+            OutputLanguage.ORIGINAL
         )
         val xunfeiAppId = string("spoken_xunfei_app_id", "")
         val customAsrUrl = string("spoken_custom_asr_url", "")

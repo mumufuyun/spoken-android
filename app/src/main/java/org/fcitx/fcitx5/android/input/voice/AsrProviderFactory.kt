@@ -21,7 +21,8 @@ data class SpokenVoiceConfig(
     val aiBaseUrl: String,
     val aiModel: String,
     val aiTimeoutSec: Int,
-    val workMode: WorkMode
+    val scene: WorkScene,
+    val outputLanguage: OutputLanguage
 ) {
     companion object {
         fun fromPrefs(prefs: AppPrefs): SpokenVoiceConfig {
@@ -35,7 +36,8 @@ data class SpokenVoiceConfig(
                 aiBaseUrl = voice.aiBaseUrl.getValue(),
                 aiModel = voice.aiModel.getValue(),
                 aiTimeoutSec = voice.aiTimeoutSec.getValue(),
-                workMode = voice.defaultMode.getValue()
+                scene = voice.defaultScene.getValue(),
+                outputLanguage = voice.outputLanguage.getValue()
             )
         }
     }

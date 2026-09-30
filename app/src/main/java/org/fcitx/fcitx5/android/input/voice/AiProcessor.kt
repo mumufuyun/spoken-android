@@ -12,15 +12,18 @@ class AiProcessor(
     private val client: AiCompletionClient
 ) {
     /**
-     * Applies [mode] to [text]. DIRECT mode or disabled AI returns the transcript as-is;
-     * any AI failure falls back to the transcript so callers never handle exceptions.
+     * Applies the scene × language pair to [text]. DIRECT with the original language returns
+     * the transcript as-is; DIRECT with another language is pure translation; every other
+     * combination applies the scene prompt plus an optional output-language instruction.
+     * Any AI failure falls back to the transcript so callers never handle exceptions.
      * Cancellation is never swallowed: [CancellationException] propagates so the session
      * lifecycle can abandon in-flight work (e.g. the user tapped to skip AI).
      */
-    suspend fun process(text: String, mode: WorkMode): String {
-        if (!enabled || mode == WorkMode.DIRECT || text.isBlank()) return text
+    suspend fun process(text: String, scene: WorkScene, language: OutputLanguage): String {
+        if (!enabled || text.isBlank()) return text
+        if (scene == WorkScene.DIRECT && language == OutputLanguage.ORIGINAL) return text
         val result = runCatching {
-            client.complete(Prompts.system(mode), text)
+            client.complete(Prompts.system(scene, language), text)
         }.onFailure {
             if (it is CancellationException) throw it
             Timber.w(it, "Spoken AI processing failed, falling back to transcript")
