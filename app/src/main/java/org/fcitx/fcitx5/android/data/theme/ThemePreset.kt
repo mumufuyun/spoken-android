@@ -7,6 +7,66 @@ package org.fcitx.fcitx5.android.data.theme
 object ThemePreset {
 
     /**
+     * Flat Pop light scheme (design mockup 15): paper #FAFAF6, keyboard plate #F0EEE7,
+     * keycaps #FFFFFF with #E4E1D6 hairline, coral accent #FF6B4A, mint alt tint #D9F2EC.
+     */
+    val FlatPopLight = Theme.Builtin(
+        name = "FlatPopLight",
+        isDark = false,
+        backgroundColor = 0xfffafaf6,
+        barColor = 0xfff0eee7,
+        keyboardColor = 0xfff0eee7,
+        keyBackgroundColor = 0xffffffff,
+        keyTextColor = 0xff26262a,
+        candidateTextColor = 0xff26262a,
+        candidateLabelColor = 0xff26262a,
+        candidateCommentColor = 0x7a26262a,
+        altKeyBackgroundColor = 0xffd9f2ec,
+        altKeyTextColor = 0xff26262a,
+        accentKeyBackgroundColor = 0xffff6b4a,
+        accentKeyTextColor = 0xffffffff,
+        keyPressHighlightColor = 0x1f000000,
+        keyShadowColor = 0xffe4e1d6,
+        popupBackgroundColor = 0xffffffff,
+        popupTextColor = 0xff26262a,
+        spaceBarColor = 0xffffffff,
+        dividerColor = 0xffe4e1d6,
+        clipboardEntryColor = 0xffffffff,
+        genericActiveBackgroundColor = 0xffff6b4a,
+        genericActiveForegroundColor = 0xffffffff
+    )
+
+    /**
+     * Flat Pop dark scheme (design mockup 15): plate #232326, keycaps #2C2C2E with
+     * rgba(255,255,255,.08) hairline, lifted coral accent #FF7B5C, dark mint alt tint #24443D.
+     */
+    val FlatPopDark = Theme.Builtin(
+        name = "FlatPopDark",
+        isDark = true,
+        backgroundColor = 0xff1c1c1e,
+        barColor = 0xff232326,
+        keyboardColor = 0xff232326,
+        keyBackgroundColor = 0xff2c2c2e,
+        keyTextColor = 0xfff2f2f5,
+        candidateTextColor = 0xfff2f2f5,
+        candidateLabelColor = 0xfff2f2f5,
+        candidateCommentColor = 0x73f2f2f5,
+        altKeyBackgroundColor = 0xff24443d,
+        altKeyTextColor = 0xfff2f2f5,
+        accentKeyBackgroundColor = 0xffff7b5c,
+        accentKeyTextColor = 0xff1c1c1e,
+        keyPressHighlightColor = 0x33ffffff,
+        keyShadowColor = 0x14ffffff,
+        popupBackgroundColor = 0xff262629,
+        popupTextColor = 0xfff2f2f5,
+        spaceBarColor = 0xff2c2c2e,
+        dividerColor = 0x14ffffff,
+        clipboardEntryColor = 0xff2c2c2e,
+        genericActiveBackgroundColor = 0xffff7b5c,
+        genericActiveForegroundColor = 0xff1c1c1e
+    )
+
+    /**
      * Spoken desktop design tokens, light scheme.
      * background #FAF8F5, surface #FFFFFF, inset #F0ECE6, accent #85644B, border #E1DBD2.
      */

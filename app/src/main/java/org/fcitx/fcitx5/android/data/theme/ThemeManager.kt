@@ -24,6 +24,8 @@ object ThemeManager {
     }
 
     val BuiltinThemes = listOf(
+        ThemePreset.FlatPopLight,
+        ThemePreset.FlatPopDark,
         ThemePreset.SpokenLight,
         ThemePreset.SpokenDark,
         ThemePreset.MaterialLight,

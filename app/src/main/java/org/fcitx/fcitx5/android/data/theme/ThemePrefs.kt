@@ -80,7 +80,7 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         keyVerticalMarginLandscape = secondary
     }
 
-    val keyRadius = int(R.string.key_radius, "key_radius", 10, 0, 48, "dp")
+    val keyRadius = int(R.string.key_radius, "key_radius", 12, 0, 48, "dp")
 
     val inputPanelTopRadius =
         int(R.string.input_panel_top_radius, "input_panel_top_radius", 4, 0, 48, "dp")
@@ -143,7 +143,7 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     val lightModeTheme = themePreference(
         R.string.light_mode_theme,
         "light_mode_theme",
-        ThemePreset.SpokenLight,
+        ThemePreset.FlatPopLight,
         enableUiOn = {
             followSystemDayNightTheme.getValue()
         })
@@ -151,7 +151,7 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     val darkModeTheme = themePreference(
         R.string.dark_mode_theme,
         "dark_mode_theme",
-        ThemePreset.SpokenDark,
+        ThemePreset.FlatPopDark,
         enableUiOn = {
             followSystemDayNightTheme.getValue()
         })
