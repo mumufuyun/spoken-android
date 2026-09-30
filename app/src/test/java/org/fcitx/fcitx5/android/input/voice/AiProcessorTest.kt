@@ -63,4 +63,11 @@ class AiProcessorTest {
         val processor = AiProcessor(enabled = true, client = client)
         assertEquals("识别原文", processor.process("识别原文", WorkMode.MINUTES))
     }
+
+    @Test(expected = kotlinx.coroutines.CancellationException::class)
+    fun cancellationPropagatesInsteadOfFallingBack() = runBlocking<Unit> {
+        val client = FakeClient(failure = kotlinx.coroutines.CancellationException("skip"))
+        val processor = AiProcessor(enabled = true, client = client)
+        processor.process("识别原文", WorkMode.POLISH)
+    }
 }

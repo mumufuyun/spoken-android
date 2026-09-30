@@ -4,16 +4,20 @@
  */
 package org.fcitx.fcitx5.android.input.voice
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 data class AiConfig(
     val baseUrl: String,
@@ -49,23 +53,43 @@ class AiClient(
     private val client: OkHttpClient = defaultClient(config.timeoutSec)
 ) : AiCompletionClient {
 
-    override suspend fun complete(systemPrompt: String, userText: String): String =
-        withContext(Dispatchers.IO) {
-            val url = config.baseUrl.trimEnd('/') + "/chat/completions"
-            val request = Request.Builder()
-                .url(url)
-                .header("Authorization", "Bearer ${config.apiKey}")
-                .post(
-                    buildRequestBody(config.model, systemPrompt, userText)
-                        .toRequestBody("application/json".toMediaType())
-                )
-                .build()
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw IOException("AI HTTP ${response.code}")
-                parseContent(response.body?.string().orEmpty())
-                    ?: throw IOException("AI response carries no content")
-            }
+    override suspend fun complete(systemPrompt: String, userText: String): String {
+        val url = config.baseUrl.trimEnd('/') + "/chat/completions"
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer ${config.apiKey}")
+            .post(
+                buildRequestBody(config.model, systemPrompt, userText)
+                    .toRequestBody("application/json".toMediaType())
+            )
+            .build()
+        val call = client.newCall(request)
+        return suspendCancellableCoroutine { continuation ->
+            continuation.invokeOnCancellation { call.cancel() }
+            call.enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    if (continuation.isActive) continuation.resumeWithException(e)
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    response.use {
+                        if (!continuation.isActive) return
+                        when {
+                            !it.isSuccessful ->
+                                continuation.resumeWithException(IOException("AI HTTP ${it.code}"))
+                            else -> {
+                                val content = parseContent(it.body?.string().orEmpty())
+                                if (content != null) continuation.resume(content)
+                                else continuation.resumeWithException(
+                                    IOException("AI response carries no content")
+                                )
+                            }
+                        }
+                    }
+                }
+            })
         }
+    }
 
     internal companion object {
         private val json = Json { ignoreUnknownKeys = true }
