@@ -382,10 +382,14 @@ owns the session state machine and `AndroidVoiceAudioCapture`; `SpokenAsrProvide
 abstracts the recognition engine with Qwen realtime, Xunfei IAT, and Whisper-compatible
 batch implementations chosen via `AsrProviderFactory`. Final transcripts pass through
 `SpokenSpeechPostProcessor`, then optionally through `AiProcessor` (OpenAI-compatible
-chat completions) with a per-session `WorkMode`, falling back to the raw transcript on
-any failure. Non-secret voice settings live in the `AppPrefs.voice` category and are
-snapshotted at session start; API keys live in `SecureVoiceKeyStorage` (AndroidKeyStore
-AES/GCM) keyed by `VoiceKeyPurpose`.
+chat completions), falling back to the raw transcript on any failure. Post-processing
+follows the two-dimension model from the MVP spec: a `WorkScene` (verbatim, chat, work,
+formal, minutes, share, AI prompt) combined with an `OutputLanguage` (original, English,
+Japanese, Korean); DIRECT with the original language bypasses AI, and DIRECT with another
+language is pure translation. The voice-key long-press sheet picks both dimensions.
+Non-secret voice settings live in the `AppPrefs.voice` category and are snapshotted at
+session start; API keys live in `SecureVoiceKeyStorage` (AndroidKeyStore AES/GCM) keyed
+by `VoiceKeyPurpose`.
 
 The idle KawaiiBar is always expanded. Voice occupies the former leading toggle
 slot; temporary clipboard or inline-suggestion content changes that slot to a
