@@ -495,4 +495,5 @@
     <string name="t9_idle_long_zero_literal">輸入數字 0</string>
     <string name="t9_idle_long_zero_voice">語音輸入</string>
     <string name="voice_input_not_available">請先在系統設定中啟用語音輸入法</string>
+    <string name="work_mode_picker_title">場 景 模 式</string>
 </resources>
