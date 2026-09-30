@@ -42,13 +42,20 @@ object RimeConfigProvisioner {
         Thread(task, "RimeConfigProvisioning").apply { isDaemon = true }
     }
     private val PollDelaysSeconds = longArrayOf(0, 2, 4, 8, 15, 30, 60)
+    private const val INITIAL_DELAY_MILLIS = 1500L
 
     fun ensureRequiredConfig(context: Context) {
         val appContext = context.applicationContext
-        executor.execute {
-            runCatching { ensureRequiredConfigInternal(appContext) }
-                .onFailure { Timber.w(it, "Unable to schedule required Rime configuration") }
-        }
+        // Delay the first pass so IME service binding and its first frame win the
+        // FcitxDaemon lock on cold start; provisioning is not on the critical path.
+        executor.schedule(
+            {
+                runCatching { ensureRequiredConfigInternal(appContext) }
+                    .onFailure { Timber.w(it, "Unable to schedule required Rime configuration") }
+            },
+            INITIAL_DELAY_MILLIS,
+            TimeUnit.MILLISECONDS
+        )
     }
 
     private fun ensureRequiredConfigInternal(context: Context) {
