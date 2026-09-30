@@ -29,6 +29,9 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
 
 Set `sdk.dir` in `local.properties` when the SDK is not in its default location.
 Android Studio can use its bundled JBR if it meets the Gradle runtime requirement.
+For a non-Homebrew Extra CMake Modules installation, set `ECM_DIR` to its
+`share/ECM/cmake` directory; the native build checks this variable before its
+platform defaults. Put GNU Gettext tools (`msgfmt`, `msgmerge`) on `PATH`.
 
 ## Required Submodules
 
