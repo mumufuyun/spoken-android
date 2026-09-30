@@ -15,7 +15,7 @@
     <string name="voice_asr_engine">Recognition engine</string>
     <string name="voice_engine_qwen">Qwen realtime</string>
     <string name="voice_engine_xunfei">Xunfei IAT</string>
-    <string name="voice_engine_custom">Custom (Whisper-compatible)</string>
+    <string name="voice_engine_custom">Custom (Whisper-compatible, batch without live preview)</string>
     <string name="voice_xunfei_app_id">Xunfei AppID</string>
     <string name="voice_xunfei_api_key">Xunfei API Key</string>
     <string name="voice_xunfei_api_secret">Xunfei API Secret</string>

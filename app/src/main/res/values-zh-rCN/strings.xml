@@ -15,7 +15,7 @@
     <string name="voice_asr_engine">识别引擎</string>
     <string name="voice_engine_qwen">Qwen 实时识别</string>
     <string name="voice_engine_xunfei">讯飞听写</string>
-    <string name="voice_engine_custom">自定义（Whisper 兼容）</string>
+    <string name="voice_engine_custom">自定义（Whisper 兼容，批量识别无实时预览）</string>
     <string name="voice_xunfei_app_id">讯飞 AppID</string>
     <string name="voice_xunfei_api_key">讯飞 API Key</string>
     <string name="voice_xunfei_api_secret">讯飞 API Secret</string>

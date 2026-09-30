@@ -34,6 +34,13 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import timber.log.Timber
 
+/**
+ * Qwen realtime ASR over the DashScope WebSocket API.
+ *
+ * Behavior contract: streaming partials while recording; bounded reconnect (300ms, 800ms)
+ * with audio replay on mid-session loss; once finishing, the latest transcript completes
+ * the session.
+ */
 class QwenRealtimeAsrProvider(
     private val apiKey: String,
     private val listener: SpokenAsrProvider.Listener,

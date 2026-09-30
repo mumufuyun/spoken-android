@@ -58,7 +58,8 @@ internal object WavEncoder {
 
 /**
  * Batch ASR against an OpenAI Whisper-compatible endpoint: PCM frames are buffered and
- * uploaded as a single multipart WAV on [finish]. No streaming partials are produced.
+ * uploaded as a single multipart WAV on [finish]. There are no streaming partials and no
+ * retry — a failed upload surfaces as an error after the recording stops.
  */
 class CustomAsrProvider(
     private val endpointUrl: String,
