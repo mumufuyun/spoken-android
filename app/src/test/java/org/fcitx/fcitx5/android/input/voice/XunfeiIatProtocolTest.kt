@@ -25,10 +25,25 @@ class XunfeiIatProtocolTest {
         ).jsonObject
         assertEquals("app123", frame["common"]!!.jsonObject["app_id"]!!.jsonPrimitive.content)
         assertEquals("iat", frame["business"]!!.jsonObject["domain"]!!.jsonPrimitive.content)
+        // wpgs dynamic correction must stay off: the parser appends each segment verbatim.
+        assertNull(frame["business"]!!.jsonObject["dwa"])
         val data = frame["data"]!!.jsonObject
         assertEquals(0, data["status"]!!.jsonPrimitive.int)
         assertEquals("audio/L16;rate=16000", data["format"]!!.jsonPrimitive.content)
         assertEquals("AQID", data["audio"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun sequentialSegmentsAppendWithoutDuplication() {
+        val transcript = StringBuilder()
+        listOf(
+            """{"code":0,"data":{"status":1,"result":{"ws":[{"cw":[{"w":"你好"}]}]}}}""",
+            """{"code":0,"data":{"status":1,"result":{"ws":[{"cw":[{"w":"世界"}]}]}}}""",
+            """{"code":0,"data":{"status":2,"result":{"ws":[{"cw":[{"w":"。"}]}]}}}"""
+        ).forEach { raw ->
+            transcript.append(XunfeiIatProtocol.parseMessage(raw)!!.text)
+        }
+        assertEquals("你好世界。", transcript.toString())
     }
 
     @Test

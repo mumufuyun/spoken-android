@@ -79,7 +79,9 @@ internal object XunfeiIatProtocol {
                 put("language", language)
                 put("domain", "iat")
                 put("accent", "mandarin")
-                put("dwa", "wpgs")
+                // No dwa=wpgs: dynamic correction re-sends segments with sn/pgs/rg replacement
+                // semantics that the parser does not implement; without it each segment is
+                // delivered exactly once and plain append is correct.
                 put("vad_eos", 8000)
                 put("nunum", false)
             })
