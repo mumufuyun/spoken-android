@@ -156,7 +156,7 @@ object UpdateReleaseParser {
         )
     }
 
-    private val APP_APK = Regex("org\\.fcitx\\.fcitx5\\.android-[^-]+-.+-release\\.apk")
+    private val APP_APK = Regex("com\\.spoken\\.android-[^-]+-.+-release\\.apk")
     private const val RIME_CONFIG_ARCHIVE = "rime-ice-t9-phone-main.zip"
 }
 

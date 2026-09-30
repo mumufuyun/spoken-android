@@ -17,7 +17,7 @@ class UpdateReleaseTest {
             releasesJson(
                 version = "4.4.0",
                 assets = listOf(
-                    "org.fcitx.fcitx5.android-4.4.0-arm64-v8a-release.apk" to "app"
+                    "com.spoken.android-4.4.0-arm64-v8a-release.apk" to "app"
                 )
             )
         )
