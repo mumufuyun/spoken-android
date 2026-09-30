@@ -32,6 +32,14 @@ import splitties.dimensions.dp
  */
 object SpokenWorkModePopup {
 
+    private var current: PopupWindow? = null
+
+    /** Dismiss on keyboard detach so the popup never outlives its window token. */
+    fun dismissCurrent() {
+        current?.dismiss()
+        current = null
+    }
+
     @DrawableRes
     private fun iconFor(mode: WorkMode): Int = when (mode) {
         WorkMode.DIRECT -> R.drawable.ic_baseline_format_quote_24
@@ -174,6 +182,9 @@ object SpokenWorkModePopup {
         sheet.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
         val x = (anchor.width - sheet.measuredWidth) / 2
         val y = -(anchor.height + sheet.measuredHeight)
+        dismissCurrent()
         popup.showAsDropDown(anchor, x, y, Gravity.START)
+        current = popup
+        popup.setOnDismissListener { if (current === popup) current = null }
     }
 }

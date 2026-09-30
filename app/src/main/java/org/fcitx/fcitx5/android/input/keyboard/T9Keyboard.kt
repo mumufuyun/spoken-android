@@ -21,6 +21,7 @@ import org.fcitx.fcitx5.android.data.theme.ThemePreset
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
+import org.fcitx.fcitx5.android.input.voice.SpokenWorkModePopup
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.below
@@ -731,6 +732,15 @@ class T9Keyboard(
 
     /** Flat Pop recording feedback: opacity breathing on the solid accent voice key. */
     private var voiceBreathing = false
+
+    override fun onDetach() {
+        // The work-mode popup anchors to this view; it must not outlive the window token.
+        SpokenWorkModePopup.dismissCurrent()
+        voice.animate().cancel()
+        voiceBreathing = false
+        voice.alpha = 1f
+        super.onDetach()
+    }
 
     private fun startVoiceBreathing() {
         if (voiceBreathing) return
