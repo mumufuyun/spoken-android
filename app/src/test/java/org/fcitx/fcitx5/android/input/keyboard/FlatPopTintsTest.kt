@@ -4,7 +4,7 @@
  */
 package org.fcitx.fcitx5.android.input.keyboard
 
-import org.fcitx.fcitx5.android.input.voice.WorkMode
+import org.fcitx.fcitx5.android.input.voice.WorkScene
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -21,12 +21,14 @@ class FlatPopTintsTest {
     }
 
     @Test
-    fun modeTilesFollowMockupAssignment() {
-        assertEquals(FlatPopTints.mint(false), FlatPopTints.modeTint(WorkMode.POLISH, false))
-        assertEquals(FlatPopTints.lemon(false), FlatPopTints.modeTint(WorkMode.PROMPT, false))
-        assertEquals(FlatPopTints.peach(false), FlatPopTints.modeTint(WorkMode.TRANSLATE, false))
-        assertEquals(FlatPopTints.mint(false), FlatPopTints.modeTint(WorkMode.STRUCTURE, false))
-        assertNull(FlatPopTints.modeTint(WorkMode.DIRECT, false))
-        assertNull(FlatPopTints.modeTint(WorkMode.MINUTES, false))
+    fun sceneTilesCycleTintsAndKeepDirectPlain() {
+        assertEquals(FlatPopTints.mint(false), FlatPopTints.sceneTint(WorkScene.CHAT, false))
+        assertEquals(FlatPopTints.peach(false), FlatPopTints.sceneTint(WorkScene.WORK, false))
+        assertEquals(FlatPopTints.lemon(false), FlatPopTints.sceneTint(WorkScene.FORMAL, false))
+        assertEquals(FlatPopTints.mint(false), FlatPopTints.sceneTint(WorkScene.MINUTES, false))
+        assertEquals(FlatPopTints.peach(false), FlatPopTints.sceneTint(WorkScene.SHARE, false))
+        assertEquals(FlatPopTints.lemon(false), FlatPopTints.sceneTint(WorkScene.PROMPT, false))
+        assertNull(FlatPopTints.sceneTint(WorkScene.DIRECT, false))
     }
 }
+

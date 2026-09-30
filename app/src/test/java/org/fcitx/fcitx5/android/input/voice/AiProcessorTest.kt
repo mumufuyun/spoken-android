@@ -27,26 +27,39 @@ class AiProcessorTest {
 
     @Test
     fun returnsClientResult() = runBlocking {
-        val client = FakeClient(result = "润色后的文字")
+        val client = FakeClient(result = "整理后的文字")
         val processor = AiProcessor(enabled = true, client = client)
-        assertEquals("润色后的文字", processor.process("口语输入", WorkMode.POLISH))
+        assertEquals(
+            "整理后的文字",
+            processor.process("口语输入", WorkScene.WORK, OutputLanguage.ORIGINAL)
+        )
         assertEquals(1, client.calls)
-        assertEquals(Prompts.system(WorkMode.POLISH), client.lastSystemPrompt)
+        assertEquals(Prompts.system(WorkScene.WORK, OutputLanguage.ORIGINAL), client.lastSystemPrompt)
     }
 
     @Test
-    fun directModeBypassesClient() = runBlocking {
+    fun directOriginalBypassesClient() = runBlocking {
         val client = FakeClient(result = "x")
         val processor = AiProcessor(enabled = true, client = client)
-        assertEquals("原文", processor.process("原文", WorkMode.DIRECT))
+        assertEquals("原文", processor.process("原文", WorkScene.DIRECT, OutputLanguage.ORIGINAL))
         assertEquals(0, client.calls)
+    }
+
+    @Test
+    fun directWithLanguageIsPureTranslation() = runBlocking {
+        val client = FakeClient(result = "hello")
+        val processor = AiProcessor(enabled = true, client = client)
+        assertEquals("hello", processor.process("原文", WorkScene.DIRECT, OutputLanguage.ENGLISH))
+        assertEquals(1, client.calls)
+        assertEquals(Prompts.system(WorkScene.DIRECT, OutputLanguage.ENGLISH), client.lastSystemPrompt)
+        assertTrue(client.lastSystemPrompt!!.contains("翻译"))
     }
 
     @Test
     fun disabledBypassesClient() = runBlocking {
         val client = FakeClient(result = "x")
         val processor = AiProcessor(enabled = false, client = client)
-        assertEquals("原文", processor.process("原文", WorkMode.POLISH))
+        assertEquals("原文", processor.process("原文", WorkScene.CHAT, OutputLanguage.ORIGINAL))
         assertEquals(0, client.calls)
     }
 
@@ -54,20 +67,20 @@ class AiProcessorTest {
     fun failureFallsBackToTranscript() = runBlocking {
         val client = FakeClient(failure = RuntimeException("boom"))
         val processor = AiProcessor(enabled = true, client = client)
-        assertEquals("识别原文", processor.process("识别原文", WorkMode.TRANSLATE))
+        assertEquals("识别原文", processor.process("识别原文", WorkScene.SHARE, OutputLanguage.ENGLISH))
     }
 
     @Test
     fun blankResultFallsBackToTranscript() = runBlocking {
         val client = FakeClient(result = "  ")
         val processor = AiProcessor(enabled = true, client = client)
-        assertEquals("识别原文", processor.process("识别原文", WorkMode.MINUTES))
+        assertEquals("识别原文", processor.process("识别原文", WorkScene.MINUTES, OutputLanguage.ORIGINAL))
     }
 
     @Test(expected = kotlinx.coroutines.CancellationException::class)
     fun cancellationPropagatesInsteadOfFallingBack() = runBlocking<Unit> {
         val client = FakeClient(failure = kotlinx.coroutines.CancellationException("skip"))
         val processor = AiProcessor(enabled = true, client = client)
-        processor.process("识别原文", WorkMode.POLISH)
+        processor.process("识别原文", WorkScene.CHAT, OutputLanguage.ORIGINAL)
     }
 }
