@@ -67,10 +67,18 @@ enum class SetupPage {
     }
 
     companion object {
+        /**
+         * Pages that force the wizard to pop up on cold start. The microphone and voice
+         * configuration steps are optional enhancements: they render inside the wizard but
+         * never gate it, so existing users are not intercepted after upgrading.
+         */
+        internal val blockingPages = listOf(Enable, Select)
+
         fun valueOf(value: Int) = entries[value]
         fun SetupPage.isLastPage() = this == entries.last()
         fun Int.isLastPage() = this == entries.size - 1
         fun hasUndonePage() = entries.any { !it.isDone() }
+        fun hasUndoneBlockingPage() = blockingPages.any { !it.isDone() }
         fun firstUndonePage() = entries.firstOrNull { !it.isDone() }
     }
 }

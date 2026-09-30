@@ -151,6 +151,6 @@ class SetupActivity : FragmentActivity() {
         private var shown = false
         private const val CHANNEL_ID = "setup"
         private const val NOTIFY_ID = 233
-        fun shouldShowUp() = !shown && SetupPage.hasUndonePage()
+        fun shouldShowUp() = !shown && SetupPage.hasUndoneBlockingPage()
     }
 }
