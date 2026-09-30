@@ -32,11 +32,11 @@ class SpokenVoiceCoordinator(
         val editorGeneration: Long,
         val config: SpokenVoiceConfig,
         val aiProcessor: AiProcessor?,
+        val audio: VoiceAudioSession,
         var providerReady: Boolean = false,
         var firstAudioSeen: Boolean = false
     )
 
-    private val audioCapture = AndroidVoiceAudioCapture()
     private var session: Session? = null
     private var provider: SpokenAsrProvider? = null
     private var aiJob: Job? = null
@@ -88,7 +88,6 @@ class SpokenVoiceCoordinator(
             }
 
             override fun onError(message: String) = onSession(sessionId) {
-                scope.launch { audioCapture.stop() }
                 clearSession(closeProvider = true)
                 showError(message)
             }
@@ -107,7 +106,8 @@ class SpokenVoiceCoordinator(
             id = sessionId,
             editorGeneration = editorGeneration(),
             config = config,
-            aiProcessor = createAiProcessor(config)
+            aiProcessor = createAiProcessor(config),
+            audio = VoiceAudioSession(scope, AndroidVoiceAudioCapture())
         )
         session = current
         setState(SpokenVoiceState.Starting("正在连接云端，语音已暂存…"))
@@ -119,8 +119,8 @@ class SpokenVoiceCoordinator(
         }
         provider = currentProvider
         currentProvider.start()
-        scope.launch {
-            val result = audioCapture.start(scope) { frame ->
+        current.audio.start(
+            onFrame = { frame ->
                 scope.launch(Dispatchers.Main.immediate) {
                     val active = session
                     if (active?.id != current.id) return@launch
@@ -128,24 +128,23 @@ class SpokenVoiceCoordinator(
                     publishReadyIfPossible(active)
                     provider?.appendAudio(frame)
                 }
-            }
-            if (result.isFailure) {
-                withContext(Dispatchers.Main.immediate) {
-                    if (session?.id == current.id) {
-                        clearSession(closeProvider = true)
-                        showError("麦克风启动失败，请重试")
-                    }
+            },
+            onFailure = {
+                if (session?.id == current.id) {
+                    clearSession(closeProvider = true)
+                    showError("麦克风启动失败，请重试")
                 }
             }
-        }
+        )
     }
 
     fun stop() {
         val current = session ?: return
         if (state is SpokenVoiceState.Finishing) return
         setState(SpokenVoiceState.Finishing)
+        val stopping = current.audio.stop()
         scope.launch {
-            audioCapture.stop()
+            stopping.join()
             withContext(Dispatchers.Main.immediate) {
                 if (session?.id == current.id) provider?.finish()
             }
@@ -158,11 +157,11 @@ class SpokenVoiceCoordinator(
         aiJob?.cancel()
         aiJob = null
         aiFallback = null
+        session?.audio?.stop()
         session = null
         provider?.cancel()
         provider?.close()
         provider = null
-        scope.launch { audioCapture.stop() }
         setState(SpokenVoiceState.Idle)
     }
 
@@ -239,6 +238,7 @@ class SpokenVoiceCoordinator(
     }
 
     private fun clearSession(closeProvider: Boolean) {
+        session?.audio?.stop()
         session = null
         if (closeProvider) provider?.close()
         provider = null
