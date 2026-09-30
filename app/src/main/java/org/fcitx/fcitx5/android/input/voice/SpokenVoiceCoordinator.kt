@@ -40,6 +40,8 @@ class SpokenVoiceCoordinator(
     private var session: Session? = null
     private var provider: SpokenAsrProvider? = null
     private var aiJob: Job? = null
+    // Raw transcript fallback while AiProcessing; lets a voice-key tap skip the AI round trip.
+    private var aiFallback: Pair<Long, String>? = null
     private var resetJob: Job? = null
     private var state: SpokenVoiceState = SpokenVoiceState.Idle
     private val permissionCallback: (Boolean) -> Unit = { granted ->
@@ -52,7 +54,11 @@ class SpokenVoiceCoordinator(
         get() = state.isActive
 
     fun toggle() {
-        if (state.isActive) stop() else start()
+        when (voiceKeyTapAction(state)) {
+            VoiceKeyTapAction.START -> start()
+            VoiceKeyTapAction.STOP -> stop()
+            VoiceKeyTapAction.SKIP_AI -> skipAiProcessing()
+        }
     }
 
     fun start() {
@@ -151,6 +157,7 @@ class SpokenVoiceCoordinator(
         resetJob?.cancel()
         aiJob?.cancel()
         aiJob = null
+        aiFallback = null
         session = null
         provider?.cancel()
         provider?.close()
@@ -182,7 +189,7 @@ class SpokenVoiceCoordinator(
         clearSession(closeProvider = true)
         val processed = SpokenSpeechPostProcessor.process(text)
         if (processed.isEmpty()) {
-            setState(SpokenVoiceState.Idle)
+            showError("未检测到语音")
             return
         }
         val processor = current.aiProcessor
@@ -191,17 +198,28 @@ class SpokenVoiceCoordinator(
             setState(SpokenVoiceState.Idle)
             return
         }
+        aiFallback = generation to processed
         setState(SpokenVoiceState.AiProcessing)
         aiJob = scope.launch {
             val result = processor.process(processed, current.config.workMode)
             withContext(Dispatchers.Main.immediate) {
                 aiJob = null
                 if (state is SpokenVoiceState.AiProcessing) {
+                    aiFallback = null
                     commitIfCurrent(generation, result)
                     setState(SpokenVoiceState.Idle)
                 }
             }
         }
+    }
+
+    private fun skipAiProcessing() {
+        val (generation, text) = aiFallback ?: return
+        aiFallback = null
+        aiJob?.cancel()
+        aiJob = null
+        commitIfCurrent(generation, text)
+        setState(SpokenVoiceState.Idle)
     }
 
     private fun onSession(id: UUID, block: (Session) -> Unit) {

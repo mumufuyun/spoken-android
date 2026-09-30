@@ -19,6 +19,16 @@ val SpokenVoiceState.isActive: Boolean
         this is SpokenVoiceState.Finishing ||
         this is SpokenVoiceState.AiProcessing
 
+/** Voice-key tap semantics per state. */
+internal enum class VoiceKeyTapAction { START, STOP, SKIP_AI }
+
+internal fun voiceKeyTapAction(state: SpokenVoiceState): VoiceKeyTapAction = when {
+    // During AI processing the key stays live: a tap skips AI and commits the raw transcript.
+    state is SpokenVoiceState.AiProcessing -> VoiceKeyTapAction.SKIP_AI
+    state.isActive -> VoiceKeyTapAction.STOP
+    else -> VoiceKeyTapAction.START
+}
+
 internal object SpokenSpeechPostProcessor {
     private val replacements = mapOf(
         "阿皮哎" to "API",

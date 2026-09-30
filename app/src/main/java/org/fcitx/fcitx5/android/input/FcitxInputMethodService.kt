@@ -555,7 +555,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             SpokenVoiceState.Finishing ->
                 candidatesView?.showSpokenVoiceStatus(state, "正在完成识别…")
             SpokenVoiceState.AiProcessing ->
-                candidatesView?.showSpokenVoiceStatus(state, "正在智能处理…")
+                candidatesView?.showSpokenVoiceStatus(state, "正在智能处理…（点击语音键直接上屏）")
             is SpokenVoiceState.Error -> candidatesView?.showSpokenVoiceStatus(state, state.message)
         }
     }
