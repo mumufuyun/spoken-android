@@ -17,8 +17,8 @@
     <string name="extensions_and_fcitx">擴充與 Fcitx</string>
     <string name="diagnostics_and_compatibility">診斷與相容性</string>
     <string name="repair_and_recovery">修復與還原</string>
-    <string name="app_name_release">小企鵝輸入法</string>
-    <string name="app_name_debug">小企鵝輸入法 (除錯)</string>
+    <string name="app_name_release">Spoken</string>
+    <string name="app_name_debug">Spoken (除錯)</string>
     <string name="save">儲存</string>
     <string name="input_methods">輸入法</string>
     <string name="chinese_t9_schemes">中文輸入方式</string>
