@@ -7,10 +7,7 @@ package org.fcitx.fcitx5.android.input.keyboard
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.InsetDrawable
 import android.view.KeyEvent
 import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -20,10 +17,10 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.KeyState
 import org.fcitx.fcitx5.android.core.KeyStates
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.data.theme.ThemePreset
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
-import org.fcitx.fcitx5.android.input.voice.SpokenVoiceVisuals
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.below
@@ -85,8 +82,8 @@ private class TouchT9ModeKey : KeyDef(
 private class TouchT9VoiceKey : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_spoken_waveform_36,
-        // Idle uses the inset surface per Spoken tokens; active states are tinted at runtime.
-        variant = Variant.Alternative,
+        // Flat Pop keeps the voice key on the solid coral accent; recording shows breathing.
+        variant = Variant.Accent,
         border = Border.On,
         margin = false
     ),
@@ -189,8 +186,13 @@ class T9Keyboard(
         const val Name = "T9"
         private const val TOUCH_KEY_GAP_DP = 2
         private const val TOUCH_BOTTOM_KEY_VERTICAL_INSET_DP = 2
-        private const val TOUCH_BOTTOM_ROW_HEIGHT_DP = 48
+        // Flat Pop compact metrics (mockup 15): bottom function row 38dp.
+        private const val TOUCH_BOTTOM_ROW_HEIGHT_DP = 38
     }
+
+    /** Macaron tints apply only while a Flat Pop preset is active. */
+    private val flatPopTintsActive =
+        theme.name == ThemePreset.FlatPopLight.name || theme.name == ThemePreset.FlatPopDark.name
 
     private fun createTouchKeyView(def: KeyDef): KeyView = createKeyView(def).apply {
         // Keep the whole cell tappable while reducing the visible gap between adjacent keycaps.
@@ -502,7 +504,12 @@ class T9Keyboard(
 
     /** Anchor for the work-mode popup shown on voice-key long press. */
     val voiceKeyView: KeyView get() = voice
-    private val returnKey = createTouchKeyView(ReturnKey(border = Border.On, margin = false))
+
+    private val returnKey = createTouchKeyView(ReturnKey(border = Border.On, margin = false)).apply {
+        if (flatPopTintsActive) {
+            returnKeyBackgroundOverride = FlatPopTints.lemon(theme.isDark)
+        }
+    }
 
     private val rightActionSurface = constraintLayout {
         add(backspace, lParams {
@@ -594,6 +601,24 @@ class T9Keyboard(
                 }
             }
         showPanel(TouchPanel.TEXT)
+        if (flatPopTintsActive) applyFlatPopTints()
+    }
+
+    /**
+     * Mockup 15 function-key tints: 符号 lemon, 123 peach, 中/英 mint, delete peach,
+     * return lemon (set at creation because the return keycap is built in onSizeChanged).
+     * The punctuation rail takes mint from the theme's altKeyBackgroundColor slot.
+     */
+    private fun applyFlatPopTints() {
+        val dark = theme.isDark
+        fun KeyView.tint(color: Int) =
+            overrideAppearanceBackground(radiusDrawable(radius, color))
+        val bottomKeys = bottomRow.children.filterIsInstance<KeyView>().toList()
+        bottomKeys.getOrNull(0)?.tint(FlatPopTints.lemon(dark))
+        bottomKeys.getOrNull(1)?.tint(FlatPopTints.peach(dark))
+        bottomKeys.getOrNull(3)?.tint(FlatPopTints.mint(dark))
+        backspace.tint(FlatPopTints.peach(dark))
+        returnView.img.imageTintList = ColorStateList.valueOf(theme.keyTextColor)
     }
 
     private val mode: TextKeyView by lazy { findViewById(R.id.button_lang) }
@@ -695,21 +720,29 @@ class T9Keyboard(
     }
 
     fun updateSpokenVoiceState(state: SpokenVoiceState) {
-        val gradient = SpokenVoiceVisuals.voiceKeyGradient(state)
-        val icon = (voice as? ImageKeyView)?.img
-        if (gradient != null) {
-            voice.overrideAppearanceBackground(
-                InsetDrawable(
-                    GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, gradient).apply {
-                        cornerRadius = voice.radius
-                    },
-                    voice.hMargin, voice.vMargin, voice.hMargin, voice.vMargin
-                )
-            )
-            icon?.imageTintList = ColorStateList.valueOf(Color.WHITE)
+        voice.animate().cancel()
+        if (state is SpokenVoiceState.Recording) {
+            startVoiceBreathing()
         } else {
-            voice.overrideAppearanceBackground(null)
-            icon?.imageTintList = ColorStateList.valueOf(theme.altKeyTextColor)
+            voiceBreathing = false
+            voice.alpha = 1f
         }
+    }
+
+    /** Flat Pop recording feedback: opacity breathing on the solid accent voice key. */
+    private var voiceBreathing = false
+
+    private fun startVoiceBreathing() {
+        if (voiceBreathing) return
+        voiceBreathing = true
+        fun phase(target: Float) {
+            if (!voiceBreathing || !voice.isAttachedToWindow) return
+            voice.animate()
+                .alpha(target)
+                .setDuration(800L)
+                .withEndAction { phase(if (target < 1f) 1f else 0.72f) }
+                .start()
+        }
+        phase(0.72f)
     }
 }

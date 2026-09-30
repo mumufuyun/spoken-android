@@ -154,6 +154,13 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
         appearanceView.background = background ?: defaultAppearanceBackground
     }
 
+    /**
+     * Flat-tint override for [R.id.button_return]; its background is (re)built in
+     * [onSizeChanged], so a plain background swap would be lost on the next layout pass.
+     */
+    @ColorInt
+    var returnKeyBackgroundOverride: Int? = null
+
     private fun setupPressHighlight(mask: Drawable? = null) {
         if (!def.pressHighlight) {
             appearanceView.foreground = null
@@ -220,7 +227,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
         if (bordered) return
         when (def.viewId) {
             R.id.button_space -> {
-                val bkgRadius = dp(3f)
+                val bkgRadius = if (def.border == Border.On) radius else dp(3f)
                 val minHeight = if (def.border == Border.On) h else dp(26)
                 val hInset = if (def.border == Border.On) 0 else dp(10)
                 val vInset = if (h < minHeight) 0 else min((h - minHeight) / 2, dp(16))
@@ -247,18 +254,19 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
                 val drawableSize = min(min(w, h), dp(30))
                 val hInset = if (touchT9Style) 0 else (w - drawableSize) / 2
                 val vInset = if (touchT9Style) 0 else (h - drawableSize) / 2
+                val backgroundColor = returnKeyBackgroundOverride ?: theme.accentKeyBackgroundColor
                 appearanceView.background = if (touchT9Style) {
                     insetRadiusDrawable(
-                        hInset, vInset, dp(3f), theme.accentKeyBackgroundColor
+                        hInset, vInset, radius, backgroundColor
                     )
                 } else {
-                    insetOvalDrawable(hInset, vInset, theme.accentKeyBackgroundColor)
+                    insetOvalDrawable(hInset, vInset, backgroundColor)
                 }
                 appearanceView.padding = 0
                 setupPressHighlight(
                     if (touchT9Style) {
                         insetRadiusDrawable(
-                            hInset, vInset, dp(3f), theme.keyPressHighlightColor
+                            hInset, vInset, radius, theme.keyPressHighlightColor
                         )
                     } else {
                         insetOvalDrawable(hInset, vInset, theme.keyPressHighlightColor)

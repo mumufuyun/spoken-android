@@ -54,24 +54,24 @@ class SpokenVoiceStatusView @JvmOverloads constructor(
         addView(label, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         val waveWidth = SpokenWaveformView.BAR_COUNT * dp(4) +
             (SpokenWaveformView.BAR_COUNT - 1) * dp(4)
-        addView(waveform, LayoutParams(waveWidth, LayoutParams.MATCH_PARENT).apply {
+        addView(waveform, LayoutParams(waveWidth, dp(WAVE_HEIGHT_DP)).apply {
             marginStart = dp(8)
         })
     }
 
     fun render(state: SpokenVoiceState, text: String) {
         dotBackground.setColor(
-            SpokenVoiceVisuals.statusDotColor(state, theme.accentKeyBackgroundColor)
+            SpokenVoiceVisuals.statusDotColor(state, theme.accentKeyBackgroundColor, theme.isDark)
         )
         label.text = text
         label.setTextColor(
             if (state is SpokenVoiceState.Error) SpokenVoiceVisuals.COLOR_ERROR
             else theme.candidateTextColor
         )
-        val gradient = SpokenVoiceVisuals.waveformGradient(state)
-        if (gradient != null) {
+        val color = SpokenVoiceVisuals.waveformColor(state, theme.accentKeyBackgroundColor)
+        if (color != null) {
             waveform.visibility = View.VISIBLE
-            waveform.start(gradient)
+            waveform.start(color, theme.candidateCommentColor)
         } else {
             waveform.stop()
             waveform.visibility = View.GONE
@@ -86,5 +86,9 @@ class SpokenVoiceStatusView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         waveform.stop()
         super.onDetachedFromWindow()
+    }
+
+    private companion object {
+        const val WAVE_HEIGHT_DP = 30
     }
 }

@@ -32,6 +32,7 @@
     <string name="ai_model">AI 模型</string>
     <string name="ai_timeout_sec">AI 超时时间（秒）</string>
     <string name="default_work_mode">默认场景模式</string>
+    <string name="work_mode_picker_title">场 景 模 式</string>
     <string name="setup_microphone_hint">允许 &lt;b>%1$s&lt;/b> 使用麦克风以进行语音输入</string>
     <string name="setup_voice_config">配置语音输入</string>
     <string name="setup_voice_config_hint">选择语音识别引擎并填写凭证，即可在键盘上使用语音输入</string>

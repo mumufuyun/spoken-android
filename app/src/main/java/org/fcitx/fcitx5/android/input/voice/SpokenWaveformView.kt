@@ -7,21 +7,21 @@ package org.fcitx.fcitx5.android.input.voice
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.OvershootInterpolator
+import androidx.annotation.ColorInt
 import splitties.dimensions.dp
 import java.util.Random
 import kotlin.math.abs
 
 /**
- * Spoken desktop waveform: 24 bars (4dp wide, 4dp apart, 2dp corner), heights re-randomized
- * every 80ms with a center-weighted envelope (edges decay to 30% amplitude) and a spring-like
- * overshoot transition. Bars grow upward with a bottom-to-top gradient.
+ * Flat Pop waveform (mockup 15): 24 solid round bars (4dp wide, 4dp apart, 2dp corner),
+ * vertically centered, heights re-randomized every 80ms with a center-weighted envelope
+ * (edges decay to 30% amplitude) and a spring-like overshoot transition. Even bars take the
+ * dim color at 55% alpha, as in the mockup.
  */
 class SpokenWaveformView @JvmOverloads constructor(
     context: Context,
@@ -32,11 +32,11 @@ class SpokenWaveformView @JvmOverloads constructor(
     private val barGap = dp(BAR_GAP_DP).toFloat()
     private val barRadius = dp(BAR_CORNER_DP).toFloat()
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val dimPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val barRect = RectF()
     private val random = Random()
     private val heights = FloatArray(BAR_COUNT)
     private val animators = arrayOfNulls<ValueAnimator>(BAR_COUNT)
-    private var gradientColors: IntArray = SpokenVoiceVisuals.IDLE_GRADIENT
     private var running = false
 
     private val tick = object : Runnable {
@@ -47,9 +47,10 @@ class SpokenWaveformView @JvmOverloads constructor(
         }
     }
 
-    fun start(colors: IntArray) {
-        gradientColors = colors
-        applyShader()
+    fun start(@ColorInt color: Int, @ColorInt dimColor: Int) {
+        paint.color = color
+        dimPaint.color = dimColor
+        dimPaint.alpha = DIM_ALPHA
         if (!running) {
             running = true
             post(tick)
@@ -65,21 +66,6 @@ class SpokenWaveformView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         stop()
         super.onDetachedFromWindow()
-    }
-
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        applyShader()
-    }
-
-    private fun applyShader() {
-        paint.shader = if (height > 0) {
-            LinearGradient(
-                0f, height.toFloat(), 0f, 0f,
-                gradientColors, null, Shader.TileMode.CLAMP
-            )
-        } else {
-            null
-        }
     }
 
     private fun randomizeTargets() {
@@ -107,11 +93,11 @@ class SpokenWaveformView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         val totalWidth = BAR_COUNT * barWidth + (BAR_COUNT - 1) * barGap
         var left = (width - totalWidth) / 2f
-        val bottom = height.toFloat()
+        val centerY = height / 2f
         for (i in 0 until BAR_COUNT) {
             val barHeight = (heights[i] * height).coerceAtLeast(barRadius * 2)
-            barRect.set(left, bottom - barHeight, left + barWidth, bottom)
-            canvas.drawRoundRect(barRect, barRadius, barRadius, paint)
+            barRect.set(left, centerY - barHeight / 2, left + barWidth, centerY + barHeight / 2)
+            canvas.drawRoundRect(barRect, barRadius, barRadius, if (i % 2 == 0) paint else dimPaint)
             left += barWidth + barGap
         }
     }
@@ -125,5 +111,6 @@ class SpokenWaveformView @JvmOverloads constructor(
         private const val EDGE_FALLOFF = 0.3f
         private const val MIN_AMPLITUDE = 0.2f
         private const val SPRING_TENSION = 2f
+        private const val DIM_ALPHA = 140
     }
 }

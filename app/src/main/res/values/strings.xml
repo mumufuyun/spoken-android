@@ -32,6 +32,7 @@
     <string name="ai_model">AI model</string>
     <string name="ai_timeout_sec">AI timeout (seconds)</string>
     <string name="default_work_mode">Default scene mode</string>
+    <string name="work_mode_picker_title">Scene mode</string>
     <string name="setup_microphone_hint">Grant &lt;b>%1$s&lt;/b> microphone access for voice input</string>
     <string name="setup_voice_config">Configure voice input</string>
     <string name="setup_voice_config_hint">Pick a recognition engine and enter its credentials for voice input</string>
