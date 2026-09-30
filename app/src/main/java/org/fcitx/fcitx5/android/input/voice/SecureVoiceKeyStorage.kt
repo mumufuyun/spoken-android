@@ -55,14 +55,6 @@ class SecureVoiceKeyStorage(context: Context) {
         prefs.edit().remove(ciphertextKey(purpose)).remove(ivKey(purpose)).apply()
     }
 
-    fun hasApiKey(): Boolean = has(VoiceKeyPurpose.QWEN)
-
-    fun saveApiKey(value: String) = save(VoiceKeyPurpose.QWEN, value)
-
-    fun loadApiKey(): String? = load(VoiceKeyPurpose.QWEN)
-
-    fun clear() = clear(VoiceKeyPurpose.QWEN)
-
     private fun ciphertextKey(purpose: VoiceKeyPurpose): String = when (purpose) {
         // The Qwen slot keeps the original preference keys so existing installs stay valid.
         VoiceKeyPurpose.QWEN -> "api_key_ciphertext"
