@@ -125,73 +125,86 @@ object RimeConfigProvisioner {
     private fun schedulePoll(context: Context, attempt: Int) {
         executor.schedule(
             {
-                if (isReady(context)) {
-                    UpdateDownloader.cancelAutomatic(
-                        context,
-                        UpdateComponent.RIME_CONFIG,
-                        BuildConfig.RIME_CONFIG_BASELINE_VERSION
-                    )
-                    running.set(false)
-                    return@schedule
+                // Every terminal exit resets `running` exactly once; the reschedule path
+                // returns false and keeps the flag because the next poll owns it. Any
+                // escaping failure (e.g. IOException while hashing the completed archive)
+                // must not strand the flag, or this process loses self-healing.
+                val finished = try {
+                    pollOnce(context, attempt)
+                } catch (error: Throwable) {
+                    Timber.w(error, "Rime configuration provisioning poll failed")
+                    true
                 }
-                val archive = completedArchive(context)
-                if (archive != null) {
-                    UpdateDownloader.cancelAutomatic(
-                        context,
-                        UpdateComponent.RIME_CONFIG,
-                        BuildConfig.RIME_CONFIG_BASELINE_VERSION
-                    )
-                    val installed = RimeConfigInstaller.install(
-                        context,
-                        archive,
-                        BuildConfig.RIME_CONFIG_BASELINE_VERSION,
-                        BuildConfig.RIME_CONFIG_BASELINE_SHA256
-                    )
-                    if (installed.isSuccess) {
-                        running.set(false)
-                        return@schedule
-                    }
-                }
-
-                if (attempt < PollDelaysSeconds.lastIndex) {
-                    schedulePoll(context, attempt + 1)
-                    return@schedule
-                }
-
-                // The system downloader is the persistent primary path. A direct transfer is a
-                // bounded fallback for vendor DownloadManager implementations that never finish
-                // redirected release assets even though ordinary app networking still works.
-                val fallback = runCatching {
-                    val downloaded = RimeConfigProvisioningTransport.obtain(
-                        cacheDir = context.cacheDir,
-                        version = BuildConfig.RIME_CONFIG_BASELINE_VERSION,
-                        downloadUrl = BuildConfig.RIME_CONFIG_BASELINE_URL,
-                        expectedSha256 = BuildConfig.RIME_CONFIG_BASELINE_SHA256
-                    )
-                    RimeConfigInstaller.install(
-                        context,
-                        downloaded,
-                        BuildConfig.RIME_CONFIG_BASELINE_VERSION,
-                        BuildConfig.RIME_CONFIG_BASELINE_SHA256
-                    ).getOrThrow()
-                }
-                if (fallback.isSuccess) {
-                    UpdateDownloader.cancelAutomatic(
-                        context,
-                        UpdateComponent.RIME_CONFIG,
-                        BuildConfig.RIME_CONFIG_BASELINE_VERSION
-                    )
-                } else {
-                    Timber.w(
-                        fallback.exceptionOrNull(),
-                        "Rime configuration provisioning paused"
-                    )
-                }
-                running.set(false)
+                if (finished) running.set(false)
             },
             PollDelaysSeconds[attempt],
             TimeUnit.SECONDS
         )
+    }
+
+    /** Returns true when provisioning reaches a terminal state for this process. */
+    private fun pollOnce(context: Context, attempt: Int): Boolean {
+        if (isReady(context)) {
+            UpdateDownloader.cancelAutomatic(
+                context,
+                UpdateComponent.RIME_CONFIG,
+                BuildConfig.RIME_CONFIG_BASELINE_VERSION
+            )
+            return true
+        }
+        val archive = completedArchive(context)
+        if (archive != null) {
+            UpdateDownloader.cancelAutomatic(
+                context,
+                UpdateComponent.RIME_CONFIG,
+                BuildConfig.RIME_CONFIG_BASELINE_VERSION
+            )
+            val installed = RimeConfigInstaller.install(
+                context,
+                archive,
+                BuildConfig.RIME_CONFIG_BASELINE_VERSION,
+                BuildConfig.RIME_CONFIG_BASELINE_SHA256
+            )
+            if (installed.isSuccess) {
+                return true
+            }
+        }
+
+        if (attempt < PollDelaysSeconds.lastIndex) {
+            schedulePoll(context, attempt + 1)
+            return false
+        }
+
+        // The system downloader is the persistent primary path. A direct transfer is a
+        // bounded fallback for vendor DownloadManager implementations that never finish
+        // redirected release assets even though ordinary app networking still works.
+        val fallback = runCatching {
+            val downloaded = RimeConfigProvisioningTransport.obtain(
+                cacheDir = context.cacheDir,
+                version = BuildConfig.RIME_CONFIG_BASELINE_VERSION,
+                downloadUrl = BuildConfig.RIME_CONFIG_BASELINE_URL,
+                expectedSha256 = BuildConfig.RIME_CONFIG_BASELINE_SHA256
+            )
+            RimeConfigInstaller.install(
+                context,
+                downloaded,
+                BuildConfig.RIME_CONFIG_BASELINE_VERSION,
+                BuildConfig.RIME_CONFIG_BASELINE_SHA256
+            ).getOrThrow()
+        }
+        if (fallback.isSuccess) {
+            UpdateDownloader.cancelAutomatic(
+                context,
+                UpdateComponent.RIME_CONFIG,
+                BuildConfig.RIME_CONFIG_BASELINE_VERSION
+            )
+        } else {
+            Timber.w(
+                fallback.exceptionOrNull(),
+                "Rime configuration provisioning paused"
+            )
+        }
+        return true
     }
 
     private fun completedArchive(context: Context): java.io.File? {
