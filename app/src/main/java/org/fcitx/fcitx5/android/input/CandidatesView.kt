@@ -630,11 +630,11 @@ class CandidatesView(
     /** Second compact row: pinyin filter chips. */
     private val pinyinBarRowHeightPx: Int get() = compactTopRowHeightPx
 
-    /** Touch candidates use more of their row instead of leaving most of the hit area blank. */
-    private val candidateFontSizeSp: Float get() = (fontSize + 4).toFloat().coerceAtLeast(1f)
+    /** Flat Pop compact dock (mockup 15): the default 18sp preference maps to 14.5sp. */
+    private val candidateFontSizeSp: Float get() = fontSize * (14.5f / 18f)
 
-    /** Keep pinyin clearly subordinate to Hanzi while making it legible in the compact dock. */
-    private val compactTopRowFontSizeSp: Float get() = candidateFontSizeSp * 0.64f
+    /** Pinyin chips stay subordinate at 12sp when candidates are at the 14.5sp default. */
+    private val compactTopRowFontSizeSp: Float get() = candidateFontSizeSp * (12f / 14.5f)
 
     private val pinyinToHanziGapPx: Int get() = dp(T9_PINYIN_TO_HANZI_GAP_DP)
 

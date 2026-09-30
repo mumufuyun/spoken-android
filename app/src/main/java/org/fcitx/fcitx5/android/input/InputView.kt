@@ -610,8 +610,10 @@ class InputView(
     }
 
     companion object {
-        private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 60
-        private const val TOUCH_T9_MAX_HEIGHT_PORTRAIT_PERCENT = 29
+        private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 50
+        // Flat Pop compact layout (mockup 15): keyboard plus ~50dp dock targets ~30% of the
+        // screen height, versus 44.5% before compression.
+        private const val TOUCH_T9_MAX_HEIGHT_PORTRAIT_PERCENT = 23
         private const val TOUCH_T9_MAX_HEIGHT_LANDSCAPE_PERCENT = 35
     }
 
