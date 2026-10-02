@@ -373,7 +373,9 @@ described below.
 The touch T9 shell reserves its right-center two rows for a persistent, tap-based
 voice target. It starts and stops the in-process Spoken pipeline without leaving
 the keyboard. While AI is processing, another tap commits the recognized text
-and cancels AI processing. Long-press opens the scene and output-language picker.
+and cancels AI processing. Long-press opens the scene and output-language picker,
+an explicit cancel action while active, and an optional action to insert the last
+original into the same editor.
 
 The in-process Spoken pipeline lives under `input/voice/`. `SpokenVoiceCoordinator`
 owns the session state machine. Each recording owns a separate `VoiceAudioSession`
@@ -381,16 +383,33 @@ and `AndroidVoiceAudioCapture`. Stopping cancels and joins microphone startup be
 releasing its resources; terminal cleanup survives IME scope cancellation and cannot
 stop a later recording. `SpokenAsrProvider`
 abstracts the recognition engine with Qwen realtime, Xunfei IAT, and Whisper-compatible
-batch implementations chosen via `AsrProviderFactory`. Final transcripts pass through
-`SpokenSpeechPostProcessor`, then optionally through `AiProcessor` (OpenAI-compatible
-chat completions), falling back to the raw transcript on any failure. Post-processing
-follows the two-dimension model from the MVP spec: a `WorkScene` (verbatim, chat, work,
-formal, minutes, share, AI prompt) combined with an `OutputLanguage` (original, English,
+batch implementations chosen via `AsrProviderFactory`. `SpokenTranscript`
+distinguishes a completed recognition from a partial preserved on
+finalization timeout or connection loss. Incomplete recognition commits the available
+original with a notice and bypasses AI. Completed originals are retained before processing;
+DIRECT/original bypasses local corrections as well as AI. Other scenes pass through
+`SpokenSpeechPostProcessor` (spaced-capital normalization only), then `AiProcessor`
+(OpenAI-compatible chat completions). Empty, truncated, failed, or suspicious AI output
+falls back to the exact original with a separate status notice. `AiOutputGuard` rejects
+known internal-reasoning/protocol markers; it is a conservative format check, not a
+semantic fidelity guarantee. AI requests have a whole-call deadline and a distinct
+request identity so cancelled results cannot affect a later request. Post-processing
+follows the two-dimension model from the MVP spec: a `WorkScene` (verbatim, smooth
+transcription, chat, work, formal, minutes, share, AI prompt) combined with an
+`OutputLanguage` (original, English,
 Japanese, Korean); DIRECT with the original language bypasses AI, and DIRECT with another
 language is pure translation. The voice-key long-press sheet picks both dimensions.
 Non-secret voice settings live in the `AppPrefs.voice` category and are snapshotted at
 session start; API keys live in `SecureVoiceKeyStorage` (AndroidKeyStore AES/GCM) keyed
 by `VoiceKeyPurpose`.
+
+`VoiceInputRecovery` retains one original in memory for at most two minutes (20,000
+characters maximum, never truncated). Recovery explicitly cancels current work and
+inserts the frozen original only if its entry identity and editor generation still match.
+Changing fields, hiding the keyboard, or destroying the IME clears it. No audio,
+clipboard history, cross-app recovery, or persistent transcript history is added.
+The platform adaptation decisions are in
+`docs/adr/0007-mobile-voice-desktop-adaptation.md`.
 
 The idle KawaiiBar is always expanded. Voice occupies the former leading toggle
 slot; temporary clipboard or inline-suggestion content changes that slot to a

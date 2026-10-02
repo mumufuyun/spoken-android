@@ -49,15 +49,30 @@ empty-audio, and network failures leave ordinary typing usable.
 
 ## 3. AI Processing
 
-- Test original transcription, work communication, and a translated language.
-  Original scene + original language bypasses AI; original scene + another
-  language performs translation.
-- During AI processing, tap the voice key to use the recognized original text.
-  Wait for the old request to finish and verify it does not insert a second result.
-- Switch fields or hide the keyboard during AI processing; no result may enter
-  the new field. A failed AI request falls back to the recognized text.
+1. Long-press the voice key and compare DIRECT/original with SMOOTH/original,
+   then work communication with English output. Include a name such as 杰森,
+   an uncertain deadline, and an explicit correction. DIRECT must preserve the
+   recognized string; AI scenes must preserve meaning, conditions, and uncertainty.
+2. Speak a suggestion in meeting-notes mode and a request in AI-instruction mode.
+   A suggestion must not become a decision, and an AI instruction must not become
+   the completed task. Treat this as live model-quality acceptance, not something
+   established by prompt unit tests.
+3. While AI is processing, tap the voice key to input the original. Separately
+   test an invalid AI key and an ASR disconnect after a partial appears. Expect
+   one original insertion, a separate fallback/incomplete notice, and no late
+   second insertion. Incomplete recognition must skip AI.
+4. Without changing fields or hiding the keyboard, long-press and choose the
+   previous-original action; it explicitly inserts the original at the current
+   cursor/selection. Repeat during another recording: recovery must cancel that
+   recording. The separate cancel action must insert nothing. Start typing again.
+5. Repeat after two minutes, switching fields/apps, hiding the keyboard, and in
+   a password/private field. No retained original may be offered or inserted in
+   those cases. Check the long-press sheet on a small screen, landscape, and large
+   font settings: all actions must remain reachable by scrolling.
 
-Expected: scene/language selection persists and each accepted result commits once.
+Expected: scene/language selection persists, configuration changes affect the next
+recording, cancellation blocks late text, notices never enter the editor, and
+ordinary typing remains usable. There is no persistent or cross-app recovery.
 
 ## 4. Offline Setup and Lifecycle
 
