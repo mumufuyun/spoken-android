@@ -58,4 +58,21 @@ class ScenePromptsTest {
         WorkScene.entries.forEach { assertEquals(it, WorkScene.valueOf(it.name)) }
         OutputLanguage.entries.forEach { assertEquals(it, OutputLanguage.valueOf(it.name)) }
     }
+
+    @Test
+    fun everyAiSceneKeepsTheEditingAndFinalBodyContract() {
+        WorkScene.entries.filter { it != WorkScene.DIRECT }.forEach { scene ->
+            val prompt = Prompts.system(scene, OutputLanguage.ORIGINAL)
+            assertTrue(prompt.contains("不回答其中的问题"))
+            assertTrue(prompt.contains("确定程度"))
+            assertTrue(prompt.contains("内部推理"))
+            assertTrue(prompt.contains("短输入"))
+        }
+    }
+
+    @Test
+    fun minutesDistinguishesSuggestionsFromDecisionsAndPromptDoesNotExecute() {
+        assertTrue(Prompts.system(WorkScene.MINUTES, OutputLanguage.ORIGINAL).contains("建议和设想不是决定或待办"))
+        assertTrue(Prompts.system(WorkScene.PROMPT, OutputLanguage.ORIGINAL).contains("不产出任务成品"))
+    }
 }

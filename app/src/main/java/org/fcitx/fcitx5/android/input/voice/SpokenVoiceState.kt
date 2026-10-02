@@ -10,6 +10,7 @@ sealed interface SpokenVoiceState {
     data class Recording(val transcript: String) : SpokenVoiceState
     data object Finishing : SpokenVoiceState
     data object AiProcessing : SpokenVoiceState
+    data class Notice(val message: String) : SpokenVoiceState
     data class Error(val message: String) : SpokenVoiceState
 }
 
@@ -30,18 +31,11 @@ internal fun voiceKeyTapAction(state: SpokenVoiceState): VoiceKeyTapAction = whe
 }
 
 internal object SpokenSpeechPostProcessor {
-    private val replacements = mapOf(
-        "阿皮哎" to "API",
-        "杰森" to "JSON",
-        "优爱" to "UI",
-        "优爱克斯" to "UX"
-    )
+    // Preserve ambiguous names (for example, 杰森). Only join explicitly spaced capitals;
+    // lexical correction belongs to an AI scene with context, never the direct-input path.
+    private val acronym = Regex("(?<![A-Za-z0-9])(?:[A-Z][ \t]+){2,}[A-Z](?![A-Za-z0-9])")
 
-    fun process(text: String): String {
-        var result = text.trim()
-        replacements.forEach { (spoken, written) -> result = result.replace(spoken, written) }
-        return result.replace(Regex("(?i)(?<![a-z])\\s*(?:[a-z]\\s+){2,}[a-z]\\s*(?![a-z])")) { match ->
-            match.value.filterNot(Char::isWhitespace).uppercase()
-        }
+    fun process(text: String): String = text.trim().replace(acronym) { match ->
+        match.value.filterNot(Char::isWhitespace)
     }
 }

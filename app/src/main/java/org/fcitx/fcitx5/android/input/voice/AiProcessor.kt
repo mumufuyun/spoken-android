@@ -7,27 +7,30 @@ package org.fcitx.fcitx5.android.input.voice
 import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 
+enum class AiFallbackReason { REQUEST_FAILED, EMPTY_RESPONSE, UNSAFE_OUTPUT }
+
+data class AiProcessingResult(val text: String, val fallback: AiFallbackReason? = null)
+
 class AiProcessor(
     private val enabled: Boolean,
     private val client: AiCompletionClient
 ) {
-    /**
-     * Applies the scene × language pair to [text]. DIRECT with the original language returns
-     * the transcript as-is; DIRECT with another language is pure translation; every other
-     * combination applies the scene prompt plus an optional output-language instruction.
-     * Any AI failure falls back to the transcript so callers never handle exceptions.
-     * Cancellation is never swallowed: [CancellationException] propagates so the session
-     * lifecycle can abandon in-flight work (e.g. the user tapped to skip AI).
-     */
-    suspend fun process(text: String, scene: WorkScene, language: OutputLanguage): String {
-        if (!enabled || text.isBlank()) return text
-        if (scene == WorkScene.DIRECT && language == OutputLanguage.ORIGINAL) return text
-        val result = runCatching {
+    /** Failure retains the transcript; cancellation abandons the request without delivery. */
+    suspend fun process(text: String, scene: WorkScene, language: OutputLanguage): AiProcessingResult {
+        if (!enabled || text.isBlank() ||
+            (scene == WorkScene.DIRECT && language == OutputLanguage.ORIGINAL)) {
+            return AiProcessingResult(text)
+        }
+        val result = try {
             client.complete(Prompts.system(scene, language), text)
-        }.onFailure {
-            if (it is CancellationException) throw it
-            Timber.w(it, "Spoken AI processing failed, falling back to transcript")
-        }.getOrNull()
-        return result?.takeIf(String::isNotBlank) ?: text
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            // Third-party exception messages can include URLs or response bodies.
+            Timber.w("Spoken AI processing failed: %s", error.javaClass.simpleName)
+            return AiProcessingResult(text, AiFallbackReason.REQUEST_FAILED)
+        }
+        if (result.isBlank()) return AiProcessingResult(text, AiFallbackReason.EMPTY_RESPONSE)
+        return AiOutputGuard.clean(result)?.let { AiProcessingResult(it) }
+            ?: AiProcessingResult(text, AiFallbackReason.UNSAFE_OUTPUT)
     }
 }

@@ -55,4 +55,38 @@ class AiClientJsonTest {
         assertNull(AiClient.parseContent("""{"choices":[]}"""))
         assertNull(AiClient.parseContent(""))
     }
+
+    @Test
+    fun rejectsExplicitTruncationRefusalAndToolCalls() {
+        listOf("length", "content_filter", "tool_calls", "function_call").forEach { reason ->
+            assertNull(AiClient.parseContent("""{"choices":[{"finish_reason":"$reason","message":{"content":"片段"}}]}"""))
+        }
+        assertNull(AiClient.parseContent("""{"choices":[{"message":{"content":"x","refusal":"denied"}}]}"""))
+        assertNull(AiClient.parseContent("""{"choices":[{"message":{"content":"x","tool_calls":[{}]}}]}"""))
+        assertNull(AiClient.parseContent("""{"choices":[{"message":{"content":"x","function_call":{}}}]}"""))
+    }
+
+    @Test
+    fun readsOnlyFinalTextAndNeverUsesSeparateReasoning() {
+        assertEquals("正文", AiClient.parseContent("""{"choices":[{"finish_reason":"stop","message":{"content":"正文","reasoning_content":"private"}}]}"""))
+        assertNull(AiClient.parseContent("""{"choices":[{"message":{"content":null,"reasoning_content":"private"}}]}"""))
+        assertEquals("第一段\n第二段", AiClient.parseContent("""{"choices":[{"message":{"content":[{"type":"thinking","text":"private"},{"type":"text","text":"第一段\n"},{"type":"output_text","text":"第二段"}]}}]}"""))
+        assertNull(AiClient.parseContent("""{"choices":[{"message":{"content":[{"type":"unknown","text":"x"}]}}]}"""))
+        assertNull(AiClient.parseContent("""{"choices":[{"message":{"content":123}}]}"""))
+    }
+
+    @Test
+    fun acceptsBaseOrCompleteEndpointWithoutDuplicatingPath() {
+        assertEquals("https://example.com/v1/chat/completions", AiClient.chatEndpoint(" https://example.com/v1/ "))
+        assertEquals("https://example.com/v1/chat/completions", AiClient.chatEndpoint("https://example.com/v1/chat/completions/"))
+        assertEquals("https://example.com:8443/v1/chat/completions", AiClient.chatEndpoint("https://example.com:8443/v1"))
+    }
+
+    @Test
+    fun rejectsCleartextCredentialsAndQueryParameters() {
+        listOf("http://example.com/v1", "http://127.0.0.1:8080/v1", "https://user:secret@example.com/v1",
+            "https://example.com/v1?key=secret", "https://example.com/v1#fragment", "not a URL").forEach {
+            assertNull(it, AiClient.chatEndpoint(it))
+        }
+    }
 }

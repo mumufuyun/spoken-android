@@ -92,7 +92,7 @@ class XunfeiAsrProvider(
             finishTimeout?.cancel()
             finishTimeout = scope.launch {
                 delay(FINISH_TIMEOUT_MS)
-                completeWithTranscript()
+                completeWithTranscript(isComplete = false)
             }
         }
     }
@@ -198,7 +198,7 @@ class XunfeiAsrProvider(
         socket = null
         open = false
         when (failureAction(finishing, reconnectAttempt)) {
-            FailureAction.COMPLETE -> completeWithTranscript()
+            FailureAction.COMPLETE -> completeWithTranscript(isComplete = false)
             FailureAction.RETRY -> {
                 val delayMs = RECONNECT_DELAYS_MS[reconnectAttempt++]
                 Timber.w("Spoken Xunfei ASR reconnect attempt=%d delayMs=%d", reconnectAttempt, delayMs)
@@ -221,13 +221,13 @@ class XunfeiAsrProvider(
             transcript.append(message.text)
             if (!message.isFinal) listener.onPartial(transcript.toString())
         }
-        if (message.isFinal) completeWithTranscript()
+        if (message.isFinal) completeWithTranscript(isComplete = true)
     }
 
-    private fun completeWithTranscript() {
+    private fun completeWithTranscript(isComplete: Boolean) {
         val result = transcript.toString()
         resetSession()
-        listener.onFinal(result)
+        listener.onFinal(SpokenTranscript(result, isComplete))
     }
 
     private fun fail(message: String) {

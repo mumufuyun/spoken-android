@@ -91,6 +91,7 @@ import org.fcitx.fcitx5.android.input.voice.SecureVoiceKeyStorage
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceConfig
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceCoordinator
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
+import org.fcitx.fcitx5.android.input.voice.SpokenWorkModePopup
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionCoordinator
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionLifecycle
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionTicket
@@ -533,6 +534,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         spokenVoiceCoordinator.toggle()
     }
 
+    fun showSpokenVoiceOptions(anchor: View, theme: Theme) {
+        SpokenWorkModePopup.show(
+            anchor, theme,
+            onCancel = if (spokenVoiceCoordinator.isActive) {
+                { spokenVoiceCoordinator.cancel(clearRecovery = false) }
+            } else null,
+            onRecover = spokenVoiceCoordinator.recoveryAction()
+        )
+    }
+
     private fun prepareEditorForSpokenVoice() {
         if (isHandwritingInputActive()) commitHandwritingCandidateBeforeAuxiliaryInput()
         if (!commitChineseT9CodePreview(expectedScheme = null)) {
@@ -557,6 +568,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             SpokenVoiceState.AiProcessing ->
                 candidatesView?.showSpokenVoiceStatus(state, "正在智能处理…（点击语音键直接上屏）")
             is SpokenVoiceState.Error -> candidatesView?.showSpokenVoiceStatus(state, state.message)
+            is SpokenVoiceState.Notice -> candidatesView?.showSpokenVoiceStatus(state, state.message)
         }
     }
 
@@ -3544,6 +3556,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
         spokenEditorGeneration++
         spokenVoiceCoordinator.cancel()
+        SpokenWorkModePopup.dismissCurrent()
         resetNumberModeIfInitialized()
         clearPasswordInputPreview()
         // update selection as soon as possible
@@ -3915,6 +3928,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         Timber.d("onFinishInputView: finishingInput=$finishingInput")
         spokenEditorGeneration++
         spokenVoiceCoordinator.cancel()
+        SpokenWorkModePopup.dismissCurrent()
         endHandwritingInput()
         resetNumberModeIfInitialized()
         updateSelectionBackCallback(false)
@@ -3942,6 +3956,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         Timber.d("onFinishInput")
         spokenEditorGeneration++
         spokenVoiceCoordinator.cancel()
+        SpokenWorkModePopup.dismissCurrent()
         fcitxInputFocusRequested = false
         endHandwritingInput()
         resetNumberModeIfInitialized()

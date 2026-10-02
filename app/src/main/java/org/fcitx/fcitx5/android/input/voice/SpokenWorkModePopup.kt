@@ -16,6 +16,7 @@ import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupWindow
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.annotation.DrawableRes
 import org.fcitx.fcitx5.android.R
@@ -41,7 +42,7 @@ object SpokenWorkModePopup {
 
     @DrawableRes
     private fun iconFor(scene: WorkScene): Int = when (scene) {
-        WorkScene.DIRECT -> R.drawable.ic_baseline_format_quote_24
+        WorkScene.DIRECT, WorkScene.SMOOTH -> R.drawable.ic_baseline_format_quote_24
         WorkScene.CHAT -> R.drawable.ic_baseline_send_24
         WorkScene.WORK -> R.drawable.ic_baseline_emoji_people_24
         WorkScene.FORMAL -> R.drawable.ic_baseline_library_books_24
@@ -50,7 +51,12 @@ object SpokenWorkModePopup {
         WorkScene.PROMPT -> R.drawable.ic_baseline_auto_awesome_24
     }
 
-    fun show(anchor: View, theme: Theme) {
+    fun show(
+        anchor: View,
+        theme: Theme,
+        onCancel: (() -> Unit)? = null,
+        onRecover: (() -> Unit)? = null
+    ) {
         val ctx = anchor.context
         fun Int.px() = ctx.dp(this)
         val dark = theme.isDark
@@ -59,6 +65,7 @@ object SpokenWorkModePopup {
         val languagePref = voicePrefs.outputLanguage
         val cells = mutableMapOf<WorkScene, FrameLayout>()
         val chips = mutableMapOf<OutputLanguage, TextView>()
+        val sheetWidth = minOf(320.px(), ctx.resources.displayMetrics.widthPixels - 24.px())
 
         val grid = GridLayout(ctx).apply {
             columnCount = 3
@@ -80,7 +87,7 @@ object SpokenWorkModePopup {
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = 8.px() })
             addView(chipRow, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = 8.px() })
             addView(grid)
@@ -98,6 +105,7 @@ object SpokenWorkModePopup {
         fun renderSelection() {
             cells.forEach { (scene, cell) ->
                 val selected = scene == scenePref.getValue()
+                cell.isSelected = selected
                 val tint = FlatPopTints.sceneTint(scene, dark)
                 cell.background = GradientDrawable().apply {
                     cornerRadius = 12.px().toFloat()
@@ -132,7 +140,8 @@ object SpokenWorkModePopup {
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 gravity = Gravity.CENTER
-                setPadding(12.px(), 4.px(), 12.px(), 4.px())
+                minimumHeight = 44.px()
+                setPadding(4.px(), 4.px(), 4.px(), 4.px())
                 setOnClickListener {
                     languagePref.setValue(language)
                     renderSelection()
@@ -140,9 +149,8 @@ object SpokenWorkModePopup {
             }
             chips[language] = chip
             chipRow.addView(chip, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = 8.px() })
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+            ).apply { marginEnd = 4.px() })
         }
 
         WorkScene.entries.forEach { scene ->
@@ -151,8 +159,9 @@ object SpokenWorkModePopup {
                 gravity = Gravity.CENTER
                 layoutParams = FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { gravity = Gravity.CENTER }
+                setPadding(4.px(), 8.px(), 4.px(), 8.px())
                 val icon = ImageView(ctx).apply {
                     setImageResource(iconFor(scene))
                     layoutParams = LinearLayout.LayoutParams(20.px(), 20.px())
@@ -181,7 +190,8 @@ object SpokenWorkModePopup {
                 visibility = View.GONE
             }
             val cell = FrameLayout(ctx).apply {
-                minimumHeight = 36.px()
+                contentDescription = "${scene.label}：${scene.description}"
+                minimumHeight = 64.px()
                 addView(content)
                 addView(check, FrameLayout.LayoutParams(18.px(), 18.px()).apply {
                     gravity = Gravity.TOP or Gravity.END
@@ -194,7 +204,7 @@ object SpokenWorkModePopup {
             }
             cells[scene] = cell
             grid.addView(cell, GridLayout.LayoutParams().apply {
-                width = 88.px()
+                width = (sheetWidth - 48.px()) / 3
                 height = ViewGroup.LayoutParams.WRAP_CONTENT
                 val margin = 4.px()
                 setMargins(margin, margin, margin, margin)
@@ -202,25 +212,50 @@ object SpokenWorkModePopup {
         }
         renderSelection()
 
+        fun addAction(label: String, action: () -> Unit) {
+            sheet.addView(TextView(ctx).apply {
+                text = label
+                gravity = Gravity.CENTER
+                minimumHeight = 44.px()
+                setTextColor(theme.keyTextColor)
+                background = pill(false)
+                setOnClickListener {
+                    popup.dismiss()
+                    action()
+                }
+            }, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 8.px() })
+        }
+        onCancel?.let { addAction("取消本次语音", it) }
+        onRecover?.let { addAction("插入上次原文（当前输入框 · 2 分钟内）", it) }
+        sheet.addView(TextView(ctx).apply {
+            text = if (onCancel != null) "场景和语言更改从下次录音生效" else
+                "原样转写直接输入；流畅转写和其他场景需要 AI"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            setTextColor(theme.candidateCommentColor)
+            setPadding(0, 8.px(), 0, 0)
+        })
+
         sheet.background = GradientDrawable().apply {
             cornerRadius = 16.px().toFloat()
             setColor(theme.popupBackgroundColor)
             setStroke(1.px(), theme.dividerColor)
         }
-        popup = PopupWindow(
-            sheet,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        ).apply {
+        val scroll = ScrollView(ctx).apply { addView(sheet) }
+        val maxHeight = ctx.resources.displayMetrics.heightPixels / 2
+        scroll.measure(
+            View.MeasureSpec.makeMeasureSpec(sheetWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(maxHeight, View.MeasureSpec.AT_MOST)
+        )
+        popup = PopupWindow(scroll, sheetWidth, scroll.measuredHeight, true).apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            elevation = 8.px().toFloat()
+            elevation = 0f
         }
 
         dismissCurrent()
-        sheet.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
-        val x = (anchor.width - sheet.measuredWidth) / 2
-        val y = -(anchor.height + sheet.measuredHeight)
+        val x = (anchor.width - sheetWidth) / 2
+        val y = -(anchor.height + scroll.measuredHeight)
         popup.showAsDropDown(anchor, x, y, Gravity.START)
         current = popup
         popup.setOnDismissListener { if (current === popup) current = null }

@@ -39,7 +39,7 @@ import timber.log.Timber
  *
  * Behavior contract: streaming partials while recording; bounded reconnect (300ms, 800ms)
  * with audio replay on mid-session loss; once finishing, the latest transcript completes
- * the session.
+ * the session with an explicit completeness flag.
  */
 class QwenRealtimeAsrProvider(
     private val apiKey: String,
@@ -87,7 +87,7 @@ class QwenRealtimeAsrProvider(
             finishTimeout?.cancel()
             finishTimeout = scope.launch {
                 delay(FINISH_TIMEOUT_MS)
-                completeWithLatest()
+                completeWithLatest(isComplete = false)
             }
         }
     }
@@ -135,7 +135,7 @@ class QwenRealtimeAsrProvider(
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) =
                 dispatch(webSocket, id) {
-                    if (!finishing) handleConnectionFailure(webSocket, id, "语音连接已断开")
+                    handleConnectionFailure(webSocket, id, "语音连接已断开")
                 }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) =
@@ -180,7 +180,7 @@ class QwenRealtimeAsrProvider(
                 if (finishing) sendEvent("session.finish")
             }
             "session.finished" -> {
-                completeWithLatest()
+                completeWithLatest(isComplete = true)
             }
             "error" -> {
                 val message = event["error"]?.jsonObject?.string("message")
@@ -252,24 +252,24 @@ class QwenRealtimeAsrProvider(
         if (sessionId != id || socket !== webSocket) return
         webSocket.cancel()
         ready = false
-        if (reconnectAttempt < RECONNECT_DELAYS_MS.size) {
+        if (finishing) {
+            completeWithLatest(isComplete = false)
+        } else if (reconnectAttempt < RECONNECT_DELAYS_MS.size) {
             val delayMs = RECONNECT_DELAYS_MS[reconnectAttempt++]
             Timber.w("Spoken ASR reconnect attempt=%d delayMs=%d", reconnectAttempt, delayMs)
             scope.launch {
                 delay(delayMs)
                 if (sessionId == id) connect(id)
             }
-        } else if (finishing && latestTranscript.isNotBlank()) {
-            completeWithLatest()
         } else {
             fail(message)
         }
     }
 
-    private fun completeWithLatest() {
+    private fun completeWithLatest(isComplete: Boolean) {
         val result = latestTranscript
         resetSession()
-        listener.onFinal(result)
+        listener.onFinal(SpokenTranscript(result, isComplete))
     }
 
     private fun fail(message: String) {

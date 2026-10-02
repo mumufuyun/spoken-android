@@ -30,6 +30,7 @@ object SpokenVoiceVisuals {
             is SpokenVoiceState.Recording -> readyColor(dark)
             SpokenVoiceState.Finishing, SpokenVoiceState.AiProcessing -> accentColor
             is SpokenVoiceState.Error -> COLOR_ERROR
+            is SpokenVoiceState.Notice -> COLOR_WARNING
             SpokenVoiceState.Idle -> accentColor
         }
 
@@ -39,6 +40,7 @@ object SpokenVoiceVisuals {
         is SpokenVoiceState.Recording -> accentColor
         SpokenVoiceState.Finishing -> COLOR_RECOGNIZING
         SpokenVoiceState.AiProcessing -> COLOR_AI_PROCESSING
-        SpokenVoiceState.Idle, is SpokenVoiceState.Starting, is SpokenVoiceState.Error -> null
+        SpokenVoiceState.Idle, is SpokenVoiceState.Starting, is SpokenVoiceState.Error,
+        is SpokenVoiceState.Notice -> null
     }
 }
