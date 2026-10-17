@@ -389,7 +389,19 @@ finalization timeout or connection loss. Incomplete recognition commits the avai
 original with a notice and bypasses AI. Completed originals are retained before processing;
 DIRECT/original bypasses local corrections as well as AI. Other scenes pass through
 `SpokenSpeechPostProcessor` (spaced-capital normalization only), then `AiProcessor`
-(OpenAI-compatible chat completions). Empty, truncated, failed, or suspicious AI output
+(OpenAI-compatible chat completions). The seven built-in tasks and their language
+suffixes match Spoken Desktop 2.4.9 configuration v8 without personal context,
+including the content-sharing and AI-instruction wrapper exceptions. Golden
+fingerprints cover all 28 scene/language combinations. The mobile-only DIRECT
+mode remains independent of these editing tasks.
+`AiRequestPolicy` matches known provider/model pairs before applying vendor
+parameters. Qwen 3.8 Flash uses temperature zero and enables thinking only for
+meeting notes of at least 800 Unicode code points; that path buffers SSE final
+content until both a stop reason and DONE marker arrive. Other built-ins use
+non-streaming responses. Output budgets follow the desktop length policy, while
+the user's existing 3–120 second whole-call deadline remains authoritative.
+No reasoning deltas or partial streaming results are committed to the editor.
+Empty, truncated, failed, or suspicious AI output
 falls back to the exact original with a separate status notice. `AiOutputGuard` rejects
 known internal-reasoning/protocol markers; it is a conservative format check, not a
 semantic fidelity guarantee. AI requests have a whole-call deadline and a distinct
