@@ -102,6 +102,9 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     private val keyActionListener = KeyActionListener { it, source ->
+        if (it !is KeyAction.SpokenVoiceAction && it !is KeyAction.SpokenVoiceModeAction) {
+            service.interruptSpokenVoiceForEditing()
+        }
         when (it) {
             is KeyAction.LayoutSwitchAction -> {
                 if (

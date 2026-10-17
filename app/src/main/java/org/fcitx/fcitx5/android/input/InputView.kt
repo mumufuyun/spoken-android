@@ -62,6 +62,9 @@ import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.picker.symbolPicker
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import org.fcitx.fcitx5.android.input.preedit.PreeditComponent
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceDockView
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
+import org.fcitx.fcitx5.android.input.voice.isActive
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
 import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.utils.unset
@@ -215,6 +218,16 @@ class InputView(
     private val windowManager = InputWindowManager()
     private val kawaiiBar = KawaiiBarComponent()
     private var touchT9CandidatesVisible = false
+    private var spokenVoiceState: SpokenVoiceState = SpokenVoiceState.Idle
+    private var spokenFallbackPreview = ""
+    @Keep
+    private val voiceSceneListener = ManagedPreference.OnChangeListener<org.fcitx.fcitx5.android.input.voice.WorkScene> { _, _ ->
+        voiceDock.render(spokenVoiceState, spokenFallbackPreview)
+    }
+    private val voiceDock = SpokenVoiceDockView(themedContext, theme,
+        onCancel = { service.cancelSpokenVoiceInput() },
+        onOptions = { service.showSpokenVoiceOptions(it, theme) }
+    )
     private val touchT9SettingsButton = ToolButton(
         themedContext,
         R.drawable.ic_baseline_settings_24,
@@ -279,11 +292,11 @@ class InputView(
             val percent = when (resources.configuration.orientation) {
                 Configuration.ORIENTATION_LANDSCAPE ->
                     if (isT9KeyboardActive) {
-                        t9KeyboardHeightPercentLandscape.getValue().coerceAtMost(TOUCH_T9_MAX_HEIGHT_LANDSCAPE_PERCENT)
+                        t9KeyboardHeightPercentLandscape.getValue().coerceIn(20, 40)
                     } else 45
                 else ->
                     if (isT9KeyboardActive) {
-                        t9KeyboardHeightPercent.getValue().coerceAtMost(TOUCH_T9_MAX_HEIGHT_PORTRAIT_PERCENT)
+                        t9KeyboardHeightPercent.getValue().coerceIn(20, 40)
                     } else 40
             }
             return resources.displayMetrics.heightPixels * percent / 100
@@ -413,8 +426,13 @@ class InputView(
                     topOfParent()
                     centerHorizontally()
                 })
+                add(voiceDock, lParams(0, dp(50)) {
+                    topOfParent()
+                    startOfParent()
+                    endToStartOf(touchT9SettingsButton)
+                })
                 add(touchT9SettingsButton, lParams(dp(48), dp(48)) {
-                    topOfParent(dp(6))
+                    topOfParent(dp(1))
                     endOfParent(dp(12))
                 })
                 add(leftPaddingSpace, lParams {
@@ -467,6 +485,7 @@ class InputView(
         }
 
         keyboardPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
+        AppPrefs.getInstance().voice.defaultScene.registerOnChangeListener(voiceSceneListener)
         ThemeManager.prefs.inputPanelTopRadius.registerOnChangeListener(inputPanelTopRadiusChangeListener)
     }
 
@@ -527,12 +546,14 @@ class InputView(
         touchT9SettingsButton.visibility = if (
             isT9KeyboardActive &&
             !keyboardWindow.isPasswordPeekMode() &&
-            !touchT9CandidatesVisible
+            (!touchT9CandidatesVisible || spokenVoiceState.isActive) &&
+            !service.isTouchT9CandidatesExpanded()
         ) {
             VISIBLE
         } else {
             GONE
         }
+        voiceDock.visibility = touchT9SettingsButton.visibility
     }
 
     fun setTouchT9CandidatesVisible(visible: Boolean) {
@@ -586,8 +607,12 @@ class InputView(
     fun isTouchT9KeyboardActive(): Boolean =
         isT9KeyboardActive && windowManager.isAttached(keyboardWindow)
 
-    fun updateSpokenVoiceState(state: org.fcitx.fcitx5.android.input.voice.SpokenVoiceState) {
+    fun updateSpokenVoiceState(state: SpokenVoiceState, fallback: String = "") {
+        spokenVoiceState = state
+        spokenFallbackPreview = fallback
+        voiceDock.render(state, fallback)
         keyboardWindow.updateSpokenVoiceState(state)
+        updateTopBarVisibility()
     }
 
     fun showExpandedTouchT9Candidates() {
@@ -611,10 +636,6 @@ class InputView(
 
     companion object {
         private const val TOUCH_T9_CANDIDATE_BAR_HEIGHT_DP = 50
-        // Flat Pop compact layout (mockup 15): keyboard plus ~50dp dock targets ~30% of the
-        // screen height, versus 44.5% before compression.
-        private const val TOUCH_T9_MAX_HEIGHT_PORTRAIT_PERCENT = 23
-        private const val TOUCH_T9_MAX_HEIGHT_LANDSCAPE_PERCENT = 35
     }
 
     fun isTemporaryPasswordInputSessionActive(): Boolean {
@@ -770,6 +791,7 @@ class InputView(
         keyboardWindow.onHeightChanged = null
         windowManager.onActiveWindowChanged = null
         keyboardPrefs.unregisterOnChangeListener(onKeyboardSizeChangeListener)
+        AppPrefs.getInstance().voice.defaultScene.unregisterOnChangeListener(voiceSceneListener)
         ThemeManager.prefs.inputPanelTopRadius.unregisterOnChangeListener(inputPanelTopRadiusChangeListener)
         scope.clear()
         super.onDetachedFromWindow()

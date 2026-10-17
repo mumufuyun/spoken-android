@@ -1,0 +1,26 @@
+<resources>
+    <item name="spoken_settings_test_input" type="id" />
+    <string name="spoken_settings_tagline">Make every word feel effortless</string>
+    <string name="spoken_keyboard_appearance">Keyboard &amp; appearance</string>
+    <string name="spoken_keyboard_appearance_summary">Height, theme and key feedback</string>
+    <string name="spoken_input_habits">Input preferences</string>
+    <string name="spoken_input_habits_summary">Chinese T9, predictions and personal dictionaries</string>
+    <string name="spoken_privacy_advanced">Privacy &amp; advanced</string>
+    <string name="spoken_privacy_summary">Clipboard, data management and advanced options</string>
+    <string name="spoken_try_keyboard">Try your keyboard</string>
+    <string name="spoken_try_hint">Tap here to type or speak…</string>
+    <string name="spoken_choose_keyboard">Choose input method</string>
+    <string name="spoken_height_hint">A little more room for every tap</string>
+    <string name="spoken_height_compact">Compact</string>
+    <string name="spoken_height_comfortable">Comfortable</string>
+    <string name="spoken_height_spacious">Spacious</string>
+    <string name="spoken_height_value">Portrait · %1$d%%</string>
+    <string name="spoken_voice_hint">Speak naturally. Finish with one tap.</string>
+    <string name="spoken_connection_edit">Edit connection</string>
+    <string name="spoken_connection_asr">Recognition connection</string>
+    <string name="spoken_connection_ai">AI connection</string>
+    <string name="spoken_connection_missing">Needs configuration</string>
+    <string name="spoken_connection_saved">Configured</string>
+    <string name="spoken_preferences">Preferences</string>
+    <string name="spoken_ai_off">AI is off · keep the original</string>
+</resources>

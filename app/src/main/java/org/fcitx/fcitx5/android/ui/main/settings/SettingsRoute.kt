@@ -67,6 +67,12 @@ sealed class SettingsRoute : Parcelable {
     @Serializable
     data object AdvancedHub : SettingsRoute()
 
+    @Serializable
+    data object KeyboardAppearance : SettingsRoute()
+
+    @Serializable
+    data class VoiceConnection(val ai: Boolean = false) : SettingsRoute()
+
     /* ========== Fcitx ========== */
 
     @Serializable
@@ -208,13 +214,19 @@ sealed class SettingsRoute : Parcelable {
             /* ========== Index ========== */
 
             fragment<MainFragment, Index> {
-                label = ctx.getString(R.string.app_name)
+                label = ctx.getString(R.string.settings)
             }
             fragment<InputOptionsSettingsFragment, InputOptions> {
                 label = ctx.getString(R.string.input_options)
             }
             fragment<KeyboardSettingsFragment, KeysAndToolbar> {
                 label = ctx.getString(R.string.keys_and_toolbar)
+            }
+            fragment<KeyboardAppearanceFragment, KeyboardAppearance> {
+                label = ctx.getString(R.string.spoken_keyboard_appearance)
+            }
+            fragment<VoiceConnectionSettingsFragment, VoiceConnection> {
+                label = ctx.getString(R.string.spoken_connection_edit)
             }
             fragment<VoiceSettingsFragment, VoiceAi> {
                 label = ctx.getString(R.string.voice_and_ai)

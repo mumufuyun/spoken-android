@@ -13,16 +13,14 @@ import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
-import androidx.preference.SwitchPreferenceCompat
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
-import org.fcitx.fcitx5.android.input.voice.OutputLanguage
 import org.fcitx.fcitx5.android.input.voice.SecureVoiceKeyStorage
 import org.fcitx.fcitx5.android.input.voice.SpokenAsrProviderKind
 import org.fcitx.fcitx5.android.input.voice.VoiceKeyPurpose
-import org.fcitx.fcitx5.android.input.voice.WorkScene
 import org.fcitx.fcitx5.android.ui.common.PaddingPreferenceFragment
+import org.fcitx.fcitx5.android.utils.lazyRoute
 import org.fcitx.fcitx5.android.utils.addCategory
 
 internal enum class VoiceCredentialField {
@@ -55,7 +53,7 @@ internal object VoiceSettingsPolicy {
         raw.trim().toIntOrNull()?.takeIf { it in 3..120 }
 }
 
-class VoiceSettingsFragment : PaddingPreferenceFragment() {
+class VoiceConnectionSettingsFragment : PaddingPreferenceFragment() {
 
     private data class SecureKeyUi(
         val purpose: VoiceKeyPurpose,
@@ -63,6 +61,7 @@ class VoiceSettingsFragment : PaddingPreferenceFragment() {
         val clear: Preference
     )
 
+    private val route by lazyRoute<SettingsRoute.VoiceConnection>()
     private val prefs = AppPrefs.getInstance()
     private lateinit var keyStorage: SecureVoiceKeyStorage
     private val secureKeys = mutableMapOf<VoiceCredentialField, SecureKeyUi>()
@@ -73,7 +72,7 @@ class VoiceSettingsFragment : PaddingPreferenceFragment() {
         val ctx = requireContext()
         keyStorage = SecureVoiceKeyStorage(ctx)
         preferenceScreen = preferenceManager.createPreferenceScreen(ctx).apply {
-            addCategory(R.string.voice_recognition) {
+            if (!route.ai) addCategory(R.string.voice_recognition) {
                 addPreference(buildEnginePreference(ctx))
                 addSecureKeyPreference(
                     VoiceCredentialField.QWEN_API_KEY,
@@ -115,14 +114,11 @@ class VoiceSettingsFragment : PaddingPreferenceFragment() {
                     VoiceCredentialField.CUSTOM_MODEL
                 )
             }
-            addCategory(R.string.ai_post_processing) {
-                addPreference(buildAiEnabledSwitch(ctx))
+            if (route.ai) addCategory(R.string.ai_post_processing) {
                 addAppPrefsTextPreference(R.string.ai_base_url, prefs.voice.aiBaseUrl)
                 addSecureKeyPreference(null, VoiceKeyPurpose.AI_KEY, R.string.ai_api_key, R.string.ai_api_key)
                 addAppPrefsTextPreference(R.string.ai_model, prefs.voice.aiModel)
                 addPreference(buildTimeoutPreference(ctx))
-                addPreference(buildScenePreference(ctx))
-                addPreference(buildLanguagePreference(ctx))
             }
         }
         applyEngineVisibility(prefs.voice.asrProvider.getValue())
@@ -155,18 +151,6 @@ class VoiceSettingsFragment : PaddingPreferenceFragment() {
         }
     }
 
-    private fun buildAiEnabledSwitch(ctx: Context) = SwitchPreferenceCompat(ctx).apply {
-        key = "voice_ai_enabled_ui"
-        setTitle(R.string.ai_enabled)
-        isPersistent = false
-        isIconSpaceReserved = false
-        isChecked = prefs.voice.aiEnabled.getValue()
-        setOnPreferenceChangeListener { _, newValue ->
-            prefs.voice.aiEnabled.setValue(newValue == true)
-            true
-        }
-    }
-
     private fun buildTimeoutPreference(ctx: Context) = EditTextPreference(ctx).apply {
         key = "voice_ai_timeout_ui"
         setTitle(R.string.ai_timeout_sec)
@@ -186,48 +170,6 @@ class VoiceSettingsFragment : PaddingPreferenceFragment() {
                 preference.summary = seconds.toString()
             }
             false
-        }
-    }
-
-    private fun buildScenePreference(ctx: Context): ListPreference {
-        val scenes = WorkScene.entries
-        return ListPreference(ctx).apply {
-            key = "voice_scene_ui"
-            setTitle(R.string.default_scene)
-            entries = scenes.map { it.label }.toTypedArray()
-            entryValues = scenes.map { it.name }.toTypedArray()
-            isPersistent = false
-            isIconSpaceReserved = false
-            val current = prefs.voice.defaultScene.getValue()
-            value = current.name
-            summary = current.description
-            setOnPreferenceChangeListener { preference, newValue ->
-                val scene = WorkScene.valueOf(newValue as String)
-                prefs.voice.defaultScene.setValue(scene)
-                preference.summary = scene.description
-                false
-            }
-        }
-    }
-
-    private fun buildLanguagePreference(ctx: Context): ListPreference {
-        val languages = OutputLanguage.entries
-        return ListPreference(ctx).apply {
-            key = "voice_output_language_ui"
-            setTitle(R.string.output_language)
-            entries = languages.map { it.label }.toTypedArray()
-            entryValues = languages.map { it.name }.toTypedArray()
-            isPersistent = false
-            isIconSpaceReserved = false
-            val current = prefs.voice.outputLanguage.getValue()
-            value = current.name
-            summary = current.label
-            setOnPreferenceChangeListener { preference, newValue ->
-                val language = OutputLanguage.valueOf(newValue as String)
-                prefs.voice.outputLanguage.setValue(language)
-                preference.summary = language.label
-                false
-            }
         }
     }
 

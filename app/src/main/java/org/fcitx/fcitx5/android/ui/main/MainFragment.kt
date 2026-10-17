@@ -1,86 +1,41 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2021-2025 Fcitx5 for Android Contributors
+ * SPDX-FileCopyrightText: Copyright 2021-2026 Fcitx5 for Android Contributors
  */
 package org.fcitx.fcitx5.android.ui.main
 
-import android.os.Bundle
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
 import androidx.fragment.app.activityViewModels
-import androidx.preference.PreferenceCategory
 import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.ui.common.PaddingPreferenceFragment
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.ui.main.settings.SettingsRoute
-import org.fcitx.fcitx5.android.utils.addCategory
-import org.fcitx.fcitx5.android.utils.addPreference
+import org.fcitx.fcitx5.android.ui.main.settings.SpokenSettingsPage
 import org.fcitx.fcitx5.android.utils.navigateWithAnim
 
-class MainFragment : PaddingPreferenceFragment() {
-
+class MainFragment : SpokenSettingsPage() {
     private val viewModel: MainViewModel by activityViewModels()
 
-    override fun onStart() {
-        super.onStart()
-        viewModel.enableAboutButton()
-    }
+    override fun onStart() { super.onStart(); viewModel.enableAboutButton() }
+    override fun onStop() { viewModel.disableAboutButton(); super.onStop() }
 
-    override fun onStop() {
-        viewModel.disableAboutButton()
-        super.onStop()
-    }
-
-    private fun PreferenceCategory.addDestinationPreference(
-        @StringRes title: Int,
-        @DrawableRes icon: Int,
-        route: SettingsRoute
-    ) {
-        addPreference(title, icon = icon) {
-            navigateWithAnim(route)
-        }
-    }
-
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).apply {
-            addCategory(R.string.settings) {
-                addDestinationPreference(
-                    R.string.input_options,
-                    R.drawable.ic_baseline_language_24,
-                    SettingsRoute.InputOptions()
-                )
-                addDestinationPreference(
-                    R.string.voice_and_ai,
-                    R.drawable.ic_baseline_keyboard_voice_24,
-                    SettingsRoute.VoiceAi
-                )
-                addDestinationPreference(
-                    R.string.appearance_and_candidates,
-                    R.drawable.ic_baseline_palette_24,
-                    SettingsRoute.AppearanceAndCandidates
-                )
-                addDestinationPreference(
-                    R.string.keys_and_toolbar,
-                    R.drawable.ic_baseline_keyboard_24,
-                    SettingsRoute.KeysAndToolbar
-                )
-                addDestinationPreference(
-                    R.string.clipboard_and_symbols,
-                    R.drawable.ic_baseline_content_paste_24,
-                    SettingsRoute.ClipboardAndSymbols
-                )
-                addDestinationPreference(
-                    R.string.advanced,
-                    R.drawable.ic_baseline_more_horiz_24,
-                    SettingsRoute.AdvancedHub
-                )
+    override fun buildPage() {
+        val voice = AppPrefs.getInstance().voice
+        heading("spoken", getString(R.string.spoken_settings_tagline))
+        card().apply {
+            row(getString(R.string.voice_and_ai), "${voice.asrProvider.getValue()} · ${voice.defaultScene.getValue().label}", R.drawable.ic_baseline_keyboard_voice_24) {
+                navigateWithAnim(SettingsRoute.VoiceAi)
             }
-            addCategory(R.string.app_information) {
-                addDestinationPreference(
-                    R.string.about,
-                    R.drawable.ic_baseline_info_24,
-                    SettingsRoute.About
-                )
+            row(getString(R.string.spoken_keyboard_appearance), getString(R.string.spoken_keyboard_appearance_summary), R.drawable.ic_baseline_palette_24) {
+                navigateWithAnim(SettingsRoute.KeyboardAppearance)
+            }
+            row(getString(R.string.spoken_input_habits), getString(R.string.spoken_input_habits_summary), R.drawable.ic_baseline_tune_24) {
+                navigateWithAnim(SettingsRoute.InputOptions())
             }
         }
+        card().apply {
+            row(getString(R.string.spoken_privacy_advanced), getString(R.string.spoken_privacy_summary), R.drawable.ic_baseline_more_horiz_24) {
+                navigateWithAnim(SettingsRoute.AdvancedHub)
+            }
+        }
+        inputPlayground()
     }
 }
