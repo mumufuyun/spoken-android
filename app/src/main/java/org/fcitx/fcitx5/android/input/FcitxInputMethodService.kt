@@ -1547,8 +1547,26 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var lastSelectionReplacementKeyUptime = 0L
     private var deletingCollapsedSelection = false
 
+    // Touch T9 also uses InputDeviceManager's physical engine path. Its virtual-keyboard
+    // flag therefore cannot decide whether Back belongs to a real hardware keyboard.
+    private val hasPhysicalKeyboard: Boolean
+        get() = resources.configuration.keyboard.let {
+            it == Configuration.KEYBOARD_12KEY || it == Configuration.KEYBOARD_QWERTY
+        }
+
+    private fun isSystemBackEvent(event: KeyEvent): Boolean {
+        if (event.keyCode != KeyEvent.KEYCODE_BACK) return false
+        return !hasPhysicalKeyboard ||
+            event.flags and (KeyEvent.FLAG_VIRTUAL_HARD_KEY or KeyEvent.FLAG_SOFT_KEYBOARD) != 0 ||
+            event.device?.isVirtual != false
+    }
+
     fun handlePreImeKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode != KeyEvent.KEYCODE_BACK) return false
+        if (isSystemBackEvent(event)) {
+            selectionPreImeBackConsumed = false
+            return false
+        }
         if (event.action == KeyEvent.ACTION_UP && selectionPreImeBackConsumed) {
             selectionPreImeBackConsumed = false
             return true
@@ -1577,7 +1595,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         val shouldRegister = SelectionBackCallbackPolicy.shouldRegister(
             hasSelection = hasSelection,
             imeWindowVisible = imeWindowVisible,
-            isVirtualKeyboard = inputDeviceMgr.isVirtualKeyboard
+            isVirtualKeyboard = inputDeviceMgr.isVirtualKeyboard,
+            hasPhysicalKeyboard = hasPhysicalKeyboard
         )
         if (shouldRegister && !selectionBackCallbackRegistered) {
             dispatcher.registerOnBackInvokedCallback(
@@ -1599,7 +1618,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     ): Boolean {
         if (deletingCollapsedSelection) return false
         if (physicalSelectionMode || physicalSelectionRangeActive) return false
-        if (inputDeviceMgr.isVirtualKeyboard) return false
+        if (inputDeviceMgr.isVirtualKeyboard || !hasPhysicalKeyboard) return false
         if (oldSelStart == oldSelEnd || newSelStart != newSelEnd) return false
 
         val now = SystemClock.uptimeMillis()
@@ -1897,6 +1916,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             super.onConfigurationChanged(newConfig)
         }
         lastKnownConfig = newConfig
+        updateSelectionBackCallback(selection.latest.isNotEmpty())
     }
 
     override fun onWindowShown() {
@@ -2013,9 +2033,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 val edgeGestureLaunchStrip = if (gestureNavigation) dp(18) else 0
                 val leftEdge = edgeGestureLaunchStrip
                 val rightEdge = edgeGestureLaunchStrip
-                if (isTouchT9KeyboardActive() && (leftEdge > 0 || rightEdge > 0)) {
+                if ((!hasPhysicalKeyboard || isTouchT9KeyboardActive()) &&
+                    (leftEdge > 0 || rightEdge > 0)
+                ) {
                     // Some gesture-navigation ROMs let a flush IME key win the initial edge touch.
-                    // Leaving the system gesture strips outside our touch region keeps Back reliable.
+                    // Yield from the first frame, including voice, symbols and expanded candidates;
+                    // the touch composition session starts only after the first digit tap.
                     touchableRegion.set(
                         leftEdge,
                         inputViewLocation[1],
@@ -3479,6 +3502,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             .takeIf { handled }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (isSystemBackEvent(event)) {
+            physicalInputRouter.reset()
+            return super.onKeyDown(keyCode, event)
+        }
         if (keyCode != KeyEvent.KEYCODE_VOLUME_UP && keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) {
             interruptSpokenVoiceForEditing()
         }
@@ -3498,6 +3525,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (isSystemBackEvent(event)) {
+            physicalInputRouter.reset()
+            return super.onKeyUp(keyCode, event)
+        }
         if (inputDeviceMgr.shouldPassThroughHardwareKeys) {
             physicalInputRouter.reset()
             return super.onKeyUp(keyCode, event)

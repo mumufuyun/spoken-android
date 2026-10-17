@@ -9,6 +9,7 @@ internal object SelectionBackCallbackPolicy {
     fun shouldRegister(
         hasSelection: Boolean,
         imeWindowVisible: Boolean,
-        isVirtualKeyboard: Boolean
-    ): Boolean = hasSelection && imeWindowVisible && !isVirtualKeyboard
+        isVirtualKeyboard: Boolean,
+        hasPhysicalKeyboard: Boolean
+    ): Boolean = hasSelection && imeWindowVisible && !isVirtualKeyboard && hasPhysicalKeyboard
 }
