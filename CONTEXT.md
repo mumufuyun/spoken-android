@@ -29,7 +29,9 @@ full-width two-row strip: pinyin disambiguation above Hanzi candidates. Candidat
 pages are packed by measured text width and minimum tap width. Once a page is
 chosen, its items share the remaining horizontal space equally instead of
 scaling hit targets by character count. Each visible item retains a minimum
-34 dp minimum tap height, with enlarged text centered in each allocated hit area. Touch candidates
+34 dp tap height, with 22 sp Hanzi and 16 sp pinyin at the default candidate font
+preference. The two rows have no extra inter-row gap; enlarged text uses the
+existing hit area, and width-based paging measures the same font sizes. Touch candidates
 show only candidate text; numeric shortcut labels remain exclusive to
 physical-key operation. It suppresses the redundant
 floating preedit bubble.
