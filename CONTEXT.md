@@ -8,8 +8,12 @@ touch T9 spike that exposes the same short-press semantics through a full-height
 3-by-3 keypad; candidates, settings, symbols, and password entry remain shared UI.
 The accepted touch shell uses one four-row grid: a wide punctuation rail on the
 left, the 3-by-3 digit surface in the center, and Delete, a two-row voice target,
-and Return on the right. The voice target uses the nine-bar Spoken waveform while idle, then adds a
-Finish, Recognizing, or Use original label during a voice session. The bottom row contains Symbols, Numbers, Space, and the
+and Return on the right. The voice target uses seven rounded waveform bars, then adds a
+Finish, Recognizing, or Use original label during a voice session. Connecting and
+recording animate the bar heights with one continuous animator; transcript updates
+do not restart it. Finishing, cancellation, and hiding stop the motion. This is a
+recording indicator, not an audio-level meter; system animation disabling is respected.
+The bottom row contains Symbols, Numbers, Space, and the
 Chinese/English mode key. Columns and rows must share constraint boundaries so
 the side controls stay aligned with the central keys.
 This shell forces visible key surfaces instead of inheriting the global
