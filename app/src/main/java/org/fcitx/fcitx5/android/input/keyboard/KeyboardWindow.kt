@@ -569,6 +569,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             else -> T9Keyboard.Name
         }
         switchLayout(targetLayout, remember = false)
+        if (!restarting) (currentKeyboard as? T9Keyboard)?.startEditor()
     }
 
     override fun onImeUpdate(ime: InputMethodEntry) {

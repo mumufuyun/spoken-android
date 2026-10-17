@@ -1411,6 +1411,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     }
 
+    /** Reuse the editor's delete, cursor and action contracts without routing through Rime. */
+    fun handleTouchEditorKey(keyCode: Int) {
+        if (currentInputConnection == null) return
+        when (keyCode) {
+            KeyEvent.KEYCODE_DEL -> handleBackspaceKey()
+            KeyEvent.KEYCODE_ENTER -> handleReturnKey()
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> handleArrowKey(keyCode)
+        }
+    }
+
     fun commitText(text: String, cursor: Int = -1) {
         commitTextInternal(text, cursor, preserveChineseT9Composition = false)
     }
@@ -2954,6 +2964,15 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     fun switchToNextT9Mode() {
         updateTouchT9ReadingOptions(emptyList())
         t9ModeCoordinator.switchToNextMode()
+    }
+
+    fun switchTouchT9Mode() {
+        // Switching language abandons unfinished pinyin, never implicitly selects a Hanzi.
+        // Physical T9 already performs this cleanup in its command pipeline.
+        discardChineseCompositionForModeSwitch()
+        touchT9SessionActive = true
+        switchToNextT9Mode()
+        requestImeInsetsRefresh()
     }
 
     private fun commitLiteralT9Star(chineseState: ChineseT9CompositionLifecycle.InputState) {

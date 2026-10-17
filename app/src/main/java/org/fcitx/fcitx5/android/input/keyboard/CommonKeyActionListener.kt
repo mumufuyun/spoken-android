@@ -89,6 +89,8 @@ class CommonKeyActionListener :
                 service.interruptSpokenVoiceForEditing()
             }
             when (action) {
+                is KeyAction.EditorTextAction -> service.commitText(action.text)
+                is KeyAction.EditorKeyAction -> service.handleTouchEditorKey(action.keyCode)
                 is FcitxKeyAction -> service.postFcitxJob {
                     sendKey(action.act, action.states.states, action.code)
                 }
@@ -110,7 +112,7 @@ class CommonKeyActionListener :
                     commitAndReset()
                     triggerUnicode()
                 }
-                is LangSwitchAction -> service.switchToNextT9Mode()
+                is LangSwitchAction -> service.switchTouchT9Mode()
                 is KeyAction.T9ReadingSlotAction -> service.commitTouchT9ReadingSlot(action.slot)
                 is ShowInputMethodPickerAction -> showInputMethodPicker()
                 is MoveSelectionAction -> {
