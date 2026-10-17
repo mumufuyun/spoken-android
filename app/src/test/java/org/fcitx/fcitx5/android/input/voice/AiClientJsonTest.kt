@@ -17,7 +17,8 @@ class AiClientJsonTest {
         val body = AiClient.buildRequestBody(
             model = "gpt-4o-mini",
             systemPrompt = "输出\"JSON\"\\格式",
-            userText = "第一行\n第二行 \"嵌套\" 引号"
+            userText = "第一行\n第二行 \"嵌套\" 引号",
+            policy = AiRequestPolicy.forInput("https://example.invalid/v1", "gpt-4o-mini", WorkScene.WORK, "原文")
         )
         val root = kotlinx.serialization.json.Json.parseToJsonElement(body).jsonObject
         assertEquals("gpt-4o-mini", root["model"]!!.jsonPrimitive.content)
@@ -30,7 +31,8 @@ class AiClientJsonTest {
 
     @Test
     fun requestBodyOmitsBlankSystemPrompt() {
-        val body = AiClient.buildRequestBody("m", "", "hello")
+        val body = AiClient.buildRequestBody("m", "", "hello",
+            AiRequestPolicy.forInput("https://example.invalid/v1", "m", WorkScene.WORK, "hello"))
         val root = kotlinx.serialization.json.Json.parseToJsonElement(body).jsonObject
         val messages = root["messages"]!!.jsonArray
         assertEquals(1, messages.size)

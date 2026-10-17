@@ -24,6 +24,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import okio.BufferedSource
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
@@ -38,22 +39,24 @@ data class AiConfig(
 
 /** Abstraction seam so [AiProcessor] can be tested with a fake client. */
 interface AiCompletionClient {
-    suspend fun complete(systemPrompt: String, userText: String): String
+    suspend fun complete(systemPrompt: String, userText: String, scene: WorkScene): String
 }
 
-/** Non-streaming OpenAI-compatible /chat/completions client. */
+/** OpenAI-compatible client; streaming requests still deliver only one complete final body. */
 class AiClient(
     private val config: AiConfig,
     private val client: OkHttpClient = defaultClient(config.timeoutSec)
 ) : AiCompletionClient {
 
-    override suspend fun complete(systemPrompt: String, userText: String): String {
+    override suspend fun complete(systemPrompt: String, userText: String, scene: WorkScene): String {
         val url = chatEndpoint(config.baseUrl) ?: throw IOException("Invalid AI endpoint")
+        val policy = AiRequestPolicy.forInput(config.baseUrl, config.model, scene, userText)
         val request = Request.Builder()
             .url(url)
             .header("Authorization", "Bearer ${config.apiKey}")
+            .apply { if (policy.streaming) header("Accept", "text/event-stream") }
             .post(
-                buildRequestBody(config.model, systemPrompt, userText)
+                buildRequestBody(config.model, systemPrompt, userText, policy)
                     .toRequestBody("application/json".toMediaType())
             )
             .build()
@@ -73,7 +76,8 @@ class AiClient(
                                 continuation.resumeWithException(IOException("AI HTTP ${it.code}"))
                             else -> {
                                 val result = runCatching {
-                                    parseContent(it.body?.string().orEmpty())
+                                    val body = it.body ?: throw IOException("AI response is empty")
+                                    (if (policy.streaming) parseStreamContent(body.source()) else parseContent(body.string()))
                                         ?: throw IOException("AI response is empty or incomplete")
                                 }
                                 if (continuation.isActive) result.fold(
@@ -101,11 +105,16 @@ class AiClient(
             ).build().toString()
         }
 
-        fun buildRequestBody(model: String, systemPrompt: String, userText: String): String =
+        fun buildRequestBody(
+            model: String,
+            systemPrompt: String,
+            userText: String,
+            policy: AiRequestPolicy
+        ): String =
             buildJsonObject {
                 put("model", model)
-                put("stream", false)
-                put("temperature", 0.3)
+                put("stream", policy.streaming)
+                policy.parameters.forEach { (key, value) -> put(key, value) }
                 put("messages", buildJsonArray {
                     if (systemPrompt.isNotBlank()) add(buildJsonObject {
                         put("role", "system")
@@ -117,6 +126,59 @@ class AiClient(
                     })
                 })
             }.toString()
+
+        fun parseStreamContent(source: BufferedSource): String? {
+            val result = StringBuilder()
+            val data = StringBuilder()
+            var stopped = false
+            var done = false
+            var received = 0L
+            fun consumeEvent(): Boolean {
+                if (data.isEmpty()) return true
+                val event = data.toString()
+                data.setLength(0)
+                if (event == "[DONE]") {
+                    done = true
+                    return stopped
+                }
+                val root = json.parseToJsonElement(event).jsonObject
+                if (root["error"] != null) return false
+                val choices = root["choices"] as? JsonArray ?: return false
+                if (choices.isEmpty()) return true // Usage-only trailer.
+                val choice = choices.first().jsonObject
+                val reason = (choice["finish_reason"] as? JsonPrimitive)?.contentOrNull
+                if (reason != null && reason != "stop") return false
+                val delta = choice["delta"] as? JsonObject ?: return false
+                if ((delta["tool_calls"] as? JsonArray)?.isNotEmpty() == true ||
+                    delta["function_call"]?.let { it != JsonNull } == true ||
+                    (delta["refusal"] as? JsonPrimitive)?.contentOrNull?.isNotBlank() == true) return false
+                val content = delta["content"]
+                if (content != null && content != JsonNull) {
+                    if (content !is JsonPrimitive || !content.isString) return false
+                    if (stopped && content.content.isNotEmpty()) return false
+                    result.append(content.content)
+                }
+                // Separate reasoning fields never enter the result, even before the first
+                // final-content delta. EOF without both stop and DONE is an incomplete edit.
+                if (reason == "stop") stopped = true
+                return true
+            }
+            while (!source.exhausted()) {
+                val line = source.readUtf8LineStrict(1_048_576)
+                received += line.length
+                if (received > 1_048_576) return null
+                if (line.isEmpty()) {
+                    if (!consumeEvent()) return null
+                    if (done) return result.toString().takeIf { it.isNotBlank() }
+                } else if (line.startsWith("data:")) {
+                    if (data.isNotEmpty()) data.append('\n')
+                    data.append(line.substring(5).removePrefix(" "))
+                }
+            }
+            // Some compatible servers end immediately after the DONE line.
+            if (!consumeEvent()) return null
+            return result.toString().takeIf { done && stopped && it.isNotBlank() }
+        }
 
         fun parseContent(raw: String): String? = runCatching {
             val choice = json.parseToJsonElement(raw).jsonObject["choices"]

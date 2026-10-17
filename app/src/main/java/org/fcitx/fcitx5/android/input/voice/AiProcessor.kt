@@ -22,7 +22,7 @@ class AiProcessor(
             return AiProcessingResult(text)
         }
         val result = try {
-            client.complete(Prompts.system(scene, language), text)
+            client.complete(Prompts.system(scene, language), text, scene)
         } catch (error: Exception) {
             if (error is CancellationException) throw error
             // Third-party exception messages can include URLs or response bodies.

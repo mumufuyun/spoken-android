@@ -17,10 +17,12 @@ class AiProcessorTest {
     ) : AiCompletionClient {
         var calls = 0
         var lastSystemPrompt: String? = null
+        var lastScene: WorkScene? = null
 
-        override suspend fun complete(systemPrompt: String, userText: String): String {
+        override suspend fun complete(systemPrompt: String, userText: String, scene: WorkScene): String {
             calls++
             lastSystemPrompt = systemPrompt
+            lastScene = scene
             failure?.let { throw it }
             return result
         }
@@ -36,6 +38,7 @@ class AiProcessorTest {
         )
         assertEquals(1, client.calls)
         assertEquals(Prompts.system(WorkScene.WORK, OutputLanguage.ORIGINAL), client.lastSystemPrompt)
+        assertEquals(WorkScene.WORK, client.lastScene)
     }
 
     @Test
