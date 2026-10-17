@@ -42,14 +42,20 @@ floating preedit bubble.
 When that reserved area is idle, it exposes the scene picker and settings entry.
 During voice input it shows session status and an explicit Cancel action; the
 transcript belongs to the host editor. These controls yield to text candidates. In gesture-navigation
-mode, the touch T9 input window also yields a narrow 18 dp launch strip on the left
-and right so an edge Back gesture cannot lose its initial touch to a flush keycap.
+mode, phones without a hardware keyboard yield a narrow 18 dp launch strip on the left
+and right from the first visible keyboard frame, including voice, symbol, and expanded
+candidate surfaces, so an edge Back gesture cannot lose its initial touch to a flush keycap.
 The strip is intentionally capped instead of using the full system-reported side
 inset because HyperOS can report an area wide enough to consume the T9 reading rail.
 The editor-selection predictive-Back callback is restricted to a visible physical
 keyboard session. A touch keyboard, or an IME window that has already been hidden,
 must never register the overlay-priority callback because it would intercept the
-host application's navigation even when no keyboard is on screen.
+host application's navigation even when no keyboard is on screen. Hardware presence
+comes from Android's keyboard configuration, not `InputDeviceManager.isVirtualKeyboard`:
+touch T9 intentionally shares that manager's physical engine path. System-generated
+Back key events bypass physical key routing and pre-IME selection deletion, leaving
+keyboard dismissal and subsequent page navigation to Android. Selection-collapse
+deletion is also restricted to phones with a hardware keyboard.
 Touch digit keycaps show letters only; number entry remains available from the
 dedicated `123` panel. English uses a full-width three-row QWERTY surface instead
 of touch T9 while retaining the fixed right-side Delete, voice, and Return rail.

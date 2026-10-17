@@ -38,6 +38,10 @@ compatibility with every messaging app. Remove temporary test hosts afterward.
   Password fields must not start voice input or learn typed content.
 - Hide/reopen the keyboard and switch apps; old composition must not leak into a
   different editor. For physical keys, use [the dedicated notes](t9-debugging.md).
+- On a gesture-navigation phone, swipe inward from either screen edge immediately
+  after opening the keyboard, before typing. The first Back should dismiss the
+  keyboard and the next should navigate the host page. Repeat with selected editor
+  text, symbols, and expanded candidates; Back must never delete editor text.
 
 Expected: no lost/duplicate text, stale candidates, crash, or incorrect editor action.
 
