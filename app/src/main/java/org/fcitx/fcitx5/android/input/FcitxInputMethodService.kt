@@ -536,7 +536,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     fun showSpokenVoiceOptions(anchor: View, theme: Theme) {
         SpokenWorkModePopup.show(
-            anchor, theme,
+            anchor, inputView ?: anchor, theme,
             onCancel = if (spokenVoiceCoordinator.isActive) {
                 { spokenVoiceCoordinator.cancel(clearRecovery = false) }
             } else null,
