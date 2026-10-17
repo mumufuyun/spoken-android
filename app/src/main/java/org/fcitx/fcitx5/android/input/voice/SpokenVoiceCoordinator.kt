@@ -26,6 +26,8 @@ class SpokenVoiceCoordinator(
     private val editorGeneration: () -> Long,
     private val editorAllowsVoice: () -> Boolean,
     private val prepareEditor: () -> Unit,
+    private val previewIfCurrent: (Long, String) -> Unit,
+    private val discardPreview: () -> Unit,
     private val commitIfCurrent: (Long, String) -> Unit,
     private val onState: (SpokenVoiceState) -> Unit
 ) {
@@ -88,6 +90,8 @@ class SpokenVoiceCoordinator(
 
             override fun onPartial(text: String) = onSession(sessionId) {
                 it.latestPartial = text
+                previewIfCurrent(it.editorGeneration, text)
+                if (session?.id != it.id) return@onSession
                 if (state !is SpokenVoiceState.Finishing) setState(SpokenVoiceState.Recording(text))
             }
 
@@ -178,6 +182,7 @@ class SpokenVoiceCoordinator(
             recoveryExpiryJob?.cancel()
             recovery.clear()
         }
+        discardPreview()
         setState(SpokenVoiceState.Idle)
     }
 
@@ -223,6 +228,8 @@ class SpokenVoiceCoordinator(
             showError("未检测到语音")
             return
         }
+        previewIfCurrent(generation, transcript.text)
+        if (generation != editorGeneration()) return
         recoveryExpiryJob?.cancel()
         recovery.capture(generation, transcript)?.let { entry ->
             recoveryExpiryJob = scope.launch {
@@ -295,6 +302,7 @@ class SpokenVoiceCoordinator(
     }
 
     private fun showError(message: String) {
+        discardPreview()
         setState(SpokenVoiceState.Error(message))
         resetJob?.cancel()
         resetJob = scope.launch {

@@ -85,6 +85,9 @@ class CommonKeyActionListener :
 
     val listener by lazy {
         KeyActionListener { action, _ ->
+            if (action !is KeyAction.SpokenVoiceAction && action !is KeyAction.SpokenVoiceModeAction) {
+                service.interruptSpokenVoiceForEditing()
+            }
             when (action) {
                 is FcitxKeyAction -> service.postFcitxJob {
                     sendKey(action.act, action.states.states, action.code)

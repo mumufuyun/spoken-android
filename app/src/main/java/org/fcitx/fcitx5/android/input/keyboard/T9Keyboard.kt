@@ -10,6 +10,7 @@ import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.view.KeyEvent
 import android.view.View
+import androidx.core.view.updateLayoutParams
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.children
 import androidx.core.view.descendants
@@ -81,7 +82,9 @@ private class TouchT9ModeKey : KeyDef(
 )
 
 private class TouchT9VoiceKey : KeyDef(
-    Appearance.Image(
+    Appearance.ImageText(
+        displayText = "",
+        textSize = 13f,
         src = R.drawable.ic_spoken_waveform_36,
         // Flat Pop keeps the voice key on the solid coral accent; recording shows breathing.
         variant = Variant.Accent,
@@ -187,8 +190,8 @@ class T9Keyboard(
         const val Name = "T9"
         private const val TOUCH_KEY_GAP_DP = 2
         private const val TOUCH_BOTTOM_KEY_VERTICAL_INSET_DP = 2
-        // Flat Pop compact metrics (mockup 15): bottom function row 38dp.
-        private const val TOUCH_BOTTOM_ROW_HEIGHT_DP = 38
+        // Keep auxiliary actions at a full touch target height.
+        private const val TOUCH_BOTTOM_ROW_HEIGHT_DP = 48
     }
 
     /** Macaron tints apply only while a Flat Pop preset is active. */
@@ -501,7 +504,17 @@ class T9Keyboard(
     )
 
     private val backspace = createTouchKeyView(BackspaceKey(border = Border.On, margin = false))
-    private val voice = createTouchKeyView(TouchT9VoiceKey()).apply { id = R.id.button_voice }
+    private val voice = (createTouchKeyView(TouchT9VoiceKey()) as ImageTextKeyView).apply {
+        id = R.id.button_voice
+        contentDescription = "开始语音输入"
+        img.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = dp(36)
+            height = dp(36)
+            topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+            bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+            topMargin = 0
+        }
+    }
 
     /** Anchor for the work-mode popup shown on voice-key long press. */
     val voiceKeyView: KeyView get() = voice
@@ -721,6 +734,16 @@ class T9Keyboard(
     }
 
     fun updateSpokenVoiceState(state: SpokenVoiceState) {
+        voice.mainText.text = when (state) {
+            is SpokenVoiceState.Starting, is SpokenVoiceState.Recording -> "完成"
+            SpokenVoiceState.Finishing -> "识别中"
+            SpokenVoiceState.AiProcessing -> "用原文"
+            else -> ""
+        }
+        voice.contentDescription = voice.mainText.text.ifBlank { "开始语音输入" }
+        voice.img.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            verticalBias = if (voice.mainText.text.isEmpty()) .5f else .35f
+        }
         voice.animate().cancel()
         if (state is SpokenVoiceState.Recording) {
             startVoiceBreathing()
