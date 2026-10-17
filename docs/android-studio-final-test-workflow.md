@@ -32,8 +32,9 @@ compatibility with every messaging app. Remove temporary test hosts afterward.
 
 - Enter a Chinese sentence, disambiguate pinyin, expand candidates, select a word,
   delete remaining composition, and then delete committed text.
-- Switch among Chinese, English QWERTY, numbers, and both symbol pages. The voice
-  entry and side controls must remain aligned.
+- Switch among Chinese, English QWERTY, numbers, and both symbol pages. Chinese
+  and auxiliary panels keep their side controls aligned; English puts Delete in
+  the third letter row and voice/Return in the bottom row.
 - Check chat/send, browser/search, URL/email, phone/number, and password fields.
   Password fields must not start voice input or learn typed content.
 - Hide/reopen the keyboard and switch apps; old composition must not leak into a
@@ -47,6 +48,33 @@ compatibility with every messaging app. Remove temporary test hosts afterward.
   Continue Back through each visible layer and verify the editor text is unchanged.
 
 Expected: no lost/duplicate text, stale candidates, crash, or incorrect editor action.
+
+### Touch English Regression
+
+- Tap all 26 letters, including the centers of Q/A/P, and type repeated-letter
+  words such as `bookkeeper mississippi`. Test overlapping two-finger taps as well
+  as sequential taps. Text must appear literally in the editor without Chinese
+  candidates, missing letters, or duplicate commits.
+- Test single Shift, double-tap/long-press Caps Lock, unlocking, and changing
+  editors while locked. A single Shift affects one letter; a new editor starts
+  without a stale lock or symbol panel.
+- Enter `hello, world.`, use both symbol pages for apostrophes, quotes, `@`, `_`,
+  and `/`, enter digits, and return to letters. English punctuation must remain
+  ASCII; returning to Chinese must restore its punctuation and T9 candidates.
+- Replace a selected range, delete a selected range, hold Delete, insert in the
+  middle, and swipe Space at both text boundaries. Preserve surrounding content
+  and keep the cursor within the editor's text.
+- Check multiline Return and single-line Search, Send, Next, Go, and Done.
+  Inspect the host action callback, not just the resulting text or key icon. A
+  test host that changes `inputType`/`imeOptions` at runtime must restart its input
+  connection after setting both, or it can advertise the preceding action.
+- Repeat input/replacement in native EditText, WebView textarea, and
+  contenteditable. Switch fields, hide/reopen, abandon pending Chinese pinyin for
+  English, and switch back to Chinese. Check portrait and landscape key bounds,
+  the visible voice key's long-press popup, and Back from both edges.
+- Some OEM password fields substitute a system secure keyboard. Record the
+  active IME before attributing password results to Spoken; preserve that security
+  setting and verify Spoken returns in ordinary fields.
 
 ## 2. Voice Start, Stop, and Cancellation
 

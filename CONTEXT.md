@@ -6,7 +6,7 @@ This repository adapts Fcitx5 for Android to physical T9-key smart/feature
 phones. The primary experience is physical-key input. The repository also carries a
 touch T9 spike that exposes the same short-press semantics through a full-height
 3-by-3 keypad; candidates, settings, symbols, and password entry remain shared UI.
-The accepted touch shell uses one four-row grid: a wide punctuation rail on the
+The Chinese touch shell uses one four-row grid: a wide punctuation rail on the
 left, the 3-by-3 digit surface in the center, and Delete, a two-row voice target,
 and Return on the right. The voice target uses seven rounded waveform bars, then adds a
 Finish, Recognizing, or Use original label during a voice session. Connecting and
@@ -57,11 +57,25 @@ Back key events bypass physical key routing and pre-IME selection deletion, leav
 keyboard dismissal and subsequent page navigation to Android. Selection-collapse
 deletion is also restricted to phones with a hardware keyboard.
 Touch digit keycaps show letters only; number entry remains available from the
-dedicated `123` panel. English uses a full-width three-row QWERTY surface instead
-of touch T9 while retaining the fixed right-side Delete, voice, and Return rail.
-Number and two-page symbol panels stay inside the same compact shell so their
-grid boundaries and persistent voice entry do not jump between windows. The
-language key switches only between Chinese and English. While Chinese pinyin is composing, the left punctuation rail mirrors
+dedicated `123` panel. English uses a full-width three-row QWERTY surface with
+18 dp side gutters, keeping the outer letters clear of the Back launch strips.
+The second letter row is staggered, and Shift/Delete flank the third row. Its
+48 dp bottom row contains numbers, a compact voice key, comma, Space, period,
+the language key, and Return. The voice popup anchors to the visible voice key;
+both layouts retain the same recording-state labels and waveform behavior.
+Number and two-page symbol panels stay inside the keyboard window with the
+right-side action rail. The primary symbol page uses ASCII punctuation in English
+and Chinese punctuation in Chinese mode. The language key switches only between
+Chinese and English.
+Touch English letters, spaces, symbols, deletion, cursor movement, and Return go
+directly to the Android editor contract; they must not pass through active Rime
+composition or silently select a Chinese candidate. Physical T9 retains its
+separate multi-tap and Smart English pipeline. A touch language switch discards
+unfinished Chinese composition before entering the next mode. Shift affects one
+letter, double-tap/long-press locks capitals, and a fresh editor or language change
+resets Shift and returns to the text panel. An engine status refresh for the same
+mode preserves the user's current panel and Shift state.
+While Chinese pinyin is composing, the left punctuation rail mirrors
 up to four selectable pinyin readings and returns to punctuation when the
 composition clears. The complete pinyin sequence remains visible in the top
 candidate row. Both pinyin and Hanzi candidate text use a heavier foreground.
