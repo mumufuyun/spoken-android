@@ -22,6 +22,7 @@ import org.fcitx.fcitx5.android.data.theme.ThemePreset
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceKeyDrawable
 import org.fcitx.fcitx5.android.input.voice.SpokenWorkModePopup
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
@@ -86,7 +87,7 @@ private class TouchT9VoiceKey : KeyDef(
         displayText = "",
         textSize = 13f,
         src = R.drawable.ic_spoken_waveform_36,
-        // Flat Pop keeps the voice key on the solid coral accent; recording shows breathing.
+        // The waveform animates inside the stable solid accent key.
         variant = Variant.Accent,
         border = Border.On,
         margin = false
@@ -175,8 +176,7 @@ private class TouchCommitKey(
  *
  * Punctuation and digits occupy the first three rows. Bottom controls occupy row four. Delete
  * aligns with digit row one, the voice target spans digit rows two and three, and Return aligns
- * with the bottom controls. The waveform key stays presentation-only until the in-process Spoken
- * voice pipeline replaces the legacy external-IME handoff.
+ * with the bottom controls. The waveform key controls the in-process Spoken voice pipeline.
  */
 @SuppressLint("ViewConstructor")
 class T9Keyboard(
@@ -504,12 +504,14 @@ class T9Keyboard(
     )
 
     private val backspace = createTouchKeyView(BackspaceKey(border = Border.On, margin = false))
+    private val voiceWaveform = SpokenVoiceKeyDrawable(theme.accentKeyTextColor)
     private val voice = (createTouchKeyView(TouchT9VoiceKey()) as ImageTextKeyView).apply {
         id = R.id.button_voice
         contentDescription = "开始语音输入"
+        img.setImageDrawable(voiceWaveform)
         img.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            width = dp(36)
-            height = dp(36)
+            width = dp(44)
+            height = dp(40)
             topToTop = ConstraintLayout.LayoutParams.PARENT_ID
             bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
             topMargin = 0
@@ -744,38 +746,15 @@ class T9Keyboard(
         voice.img.updateLayoutParams<ConstraintLayout.LayoutParams> {
             verticalBias = if (voice.mainText.text.isEmpty()) .5f else .35f
         }
-        voice.animate().cancel()
-        if (state is SpokenVoiceState.Recording) {
-            startVoiceBreathing()
-        } else {
-            voiceBreathing = false
-            voice.alpha = 1f
-        }
+        voiceWaveform.setRecording(
+            state is SpokenVoiceState.Starting || state is SpokenVoiceState.Recording
+        )
     }
-
-    /** Flat Pop recording feedback: opacity breathing on the solid accent voice key. */
-    private var voiceBreathing = false
 
     override fun onDetach() {
         // The work-mode popup anchors to this view; it must not outlive the window token.
         SpokenWorkModePopup.dismissCurrent()
-        voice.animate().cancel()
-        voiceBreathing = false
-        voice.alpha = 1f
+        voiceWaveform.setRecording(false)
         super.onDetach()
-    }
-
-    private fun startVoiceBreathing() {
-        if (voiceBreathing) return
-        voiceBreathing = true
-        fun phase(target: Float) {
-            if (!voiceBreathing || !voice.isAttachedToWindow) return
-            voice.animate()
-                .alpha(target)
-                .setDuration(800L)
-                .withEndAction { phase(if (target < 1f) 1f else 0.72f) }
-                .start()
-        }
-        phase(0.72f)
     }
 }
