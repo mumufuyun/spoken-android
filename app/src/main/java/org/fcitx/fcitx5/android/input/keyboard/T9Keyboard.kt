@@ -529,6 +529,13 @@ class T9Keyboard(
         })
     }
 
+    private val mode: TextKeyView by lazy { findViewById(R.id.button_lang) }
+    private val returnView: ImageKeyView by lazy { findViewById(R.id.button_return) }
+    private val capsView: ImageKeyView by lazy { findViewById(R.id.button_caps) }
+    private var capsState = CapsState.NONE
+    private var currentModeLabel = "中"
+    private var currentPanel = TouchPanel.TEXT
+
     init {
         add(leftRailSurface, lParams {
             leftOfParent()
@@ -621,13 +628,6 @@ class T9Keyboard(
         backspace.tint(FlatPopTints.peach(dark))
         returnView.img.imageTintList = ColorStateList.valueOf(theme.keyTextColor)
     }
-
-    private val mode: TextKeyView by lazy { findViewById(R.id.button_lang) }
-    private val returnView: ImageKeyView by lazy { findViewById(R.id.button_return) }
-    private val capsView: ImageKeyView by lazy { findViewById(R.id.button_caps) }
-    private var capsState = CapsState.NONE
-    private var currentModeLabel = "中"
-    private var currentPanel = TouchPanel.TEXT
 
     override fun onAction(action: KeyAction, source: KeyActionListener.Source) {
         var transformed = action
