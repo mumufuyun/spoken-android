@@ -23,10 +23,11 @@ symbol Picker is still upstream UI and remains a separate productization task.
 The touch grid defaults to 28 percent portrait height (35 percent landscape),
 with an effective 20–40 percent setting and compact/comfortable/spacious presets
 at 23/28/31 percent. There is no separate hidden touch-height cap. Settings schema
-3 migrates formerly capped portrait values to the comfortable default. Keycaps
-use a 2 dp inset on each edge; the complete cell remains tappable. The bottom
-control row keeps a 48 dp hit area while its visible keycaps use the same 2 dp edge gap as the rows
-above.
+3 migrates formerly capped portrait values to the comfortable default. The central
+Chinese T9 keycaps use 20 dp letter labels and a 4 dp inset on each edge to reduce
+their visual weight; other keycaps keep a 2 dp inset. The complete cell remains
+tappable, and the keyboard height is independent of this visual inset. The bottom
+control row keeps a 48 dp hit area with a 2 dp visible keycap inset.
 After the first on-screen T9 digit tap, its composition surface docks inside a
 50 dp reserved area immediately above the keys and replaces the idle toolbar. The touch surface is a
 full-width two-row strip: pinyin disambiguation above Hanzi candidates. Candidate
