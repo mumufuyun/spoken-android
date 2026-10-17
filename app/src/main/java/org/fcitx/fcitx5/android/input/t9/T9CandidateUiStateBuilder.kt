@@ -22,6 +22,7 @@ data class T9CandidateUiInputSnapshot(
     val chineseSnapshot: ChineseT9InputSnapshot?,
     val smartEnglishSnapshot: SmartEnglishUiSnapshot?,
     val chineseEnglishCandidatesEnabled: Boolean = true,
+    val learnedChinesePredictions: List<String> = emptyList(),
     val chinesePredictionPhase: ChinesePredictionCandidateSession.Phase =
         ChinesePredictionCandidateSession.Phase.OFF,
     val pendingPunctuationRawPaged: FcitxEvent.PagedCandidateEvent.Data?,
@@ -58,6 +59,7 @@ class T9CandidateUiStateBuilder(
     )
 
     interface Pipeline {
+        fun mergeChinesePredictions(engine: T9PagedCandidates, learned: List<String>): T9PagedCandidates = engine
         fun buildSmartEnglishPaged(snapshot: SmartEnglishUiSnapshot): T9PagedCandidates?
         fun buildT9PendingPunctuationPaged(data: FcitxEvent.PagedCandidateEvent.Data): T9PagedCandidates
         fun filterT9StrokeCandidates(data: FcitxEvent.PagedCandidateEvent.Data): T9PagedCandidates
@@ -180,7 +182,7 @@ class T9CandidateUiStateBuilder(
                 T9CandidateSourceControlPlanner.Input(
                     surface = surface,
                     loadingState = input.loadingState,
-                    rawCandidatesEmpty = input.rawPaged.candidates.isEmpty(),
+                    rawCandidatesEmpty = input.rawPaged.candidates.isEmpty() && input.learnedChinesePredictions.isEmpty(),
                     pendingPunctuationActive = pendingPunctuationPaged != null,
                     compositionKeyCount = compositionKeyCount,
                     pendingPinyinSelection = pendingT9PinyinSelection,
@@ -209,7 +211,9 @@ class T9CandidateUiStateBuilder(
             } else {
                 T9PagedCandidates.passthrough(input.rawPaged)
             }
-            val chineseSourcePaged = pipeline.mergeChineseCustomCandidates(
+            val chineseSourcePaged = if (input.chinesePredictionPhase == ChinesePredictionCandidateSession.Phase.VISIBLE) {
+                pipeline.mergeChinesePredictions(chineseEnginePaged, input.learnedChinesePredictions)
+            } else pipeline.mergeChineseCustomCandidates(
                 engine = chineseEnginePaged,
                 custom = chineseCustomPaged,
                 englishCandidatesEnabled = input.chineseEnglishCandidatesEnabled

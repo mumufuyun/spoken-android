@@ -37,6 +37,7 @@ import org.fcitx.fcitx5.android.input.candidates.floating.PagedCandidatesUi
 import org.fcitx.fcitx5.android.input.candidates.floating.T9ShortcutCandidatesUi
 import org.fcitx.fcitx5.android.input.preedit.PreeditUi
 import org.fcitx.fcitx5.android.input.t9.ChinesePredictionCandidateSession
+import org.fcitx.fcitx5.android.input.t9.T9PagedCandidates
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CandidateLoadingState
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionTicket
 import org.fcitx.fcitx5.android.input.t9.ChineseT9EngineOperation
@@ -282,6 +283,11 @@ class CandidatesView(
                 onSelected: (() -> Unit)?
             ): Boolean =
                 service.commitChineseT9DirectText(text, onSelected)
+
+            override fun commitChineseDirectCandidate(
+                candidate: FcitxEvent.Candidate,
+                onSelected: (() -> Unit)?
+            ): Boolean = service.commitChineseT9DirectText(candidate.text, onSelected, candidate)
 
             override fun selectChineseCandidate(
                 originalIndex: Int,
@@ -925,13 +931,15 @@ class CandidatesView(
 
     fun dismissChinesePredictionCandidates(): Boolean {
         if (!hasChinesePredictionCandidateRow()) return false
+        service.hideChinesePersonalPredictions()
         chinesePredictionCandidateSession.dismiss()
         hideT9CandidateUiImmediately()
         return true
     }
 
     fun resetChinesePredictionCandidates() {
-        val ownedSurface = chinesePredictionCandidateSession.ownsIdleSurface
+        service.hideChinesePersonalPredictions()
+        val ownedSurface = chinesePredictionCandidateSession.ownsIdleSurface || hasChinesePredictionCandidateRow()
         chinesePredictionCandidateSession.reset()
         if (ownedSurface) hideT9CandidateUiImmediately()
     }
@@ -1036,12 +1044,22 @@ class CandidatesView(
             chinesePredictionCandidateSession.reset()
             ChinesePredictionCandidateSession.Phase.OFF
         }
+        val learnedPredictions = if (chineseSnapshot != null) {
+            service.chinesePersonalPredictions(
+                hasComposition = chineseSnapshot.rawSequence.isNotEmpty() || inputPanel.preedit.isNotEmpty()
+            )
+        } else emptyList()
+        // Only a fresh Rime prediction frame may join the learned list. An idle composition
+        // page left over from the previous selection must never become a prediction.
+        val predictionPaged = if (learnedPredictions.isNotEmpty() &&
+            chinesePredictionPhase != ChinesePredictionCandidateSession.Phase.VISIBLE
+        ) T9PagedCandidates.Empty.data else paged
         // Product decision: collect volatile service/view state once per frame so the snapshot
         // pipeline decides from a stable picture instead of interleaving getters with UI rules.
         return t9CandidateUiSnapshotPipeline.build(
             T9CandidateUiInputSnapshot(
                 inputPanel = inputPanel,
-                rawPaged = paged,
+                rawPaged = predictionPaged,
                 orientation = orientation,
                 currentlyVisible = visibility == VISIBLE,
                 loadingState = chineseT9CandidateLoadingState,
@@ -1052,7 +1070,10 @@ class CandidatesView(
                 smartEnglishSnapshot = smartEnglishSnapshot,
                 chineseEnglishCandidatesEnabled =
                     service.isChineseEnglishCandidatesEnabled(),
-                chinesePredictionPhase = chinesePredictionPhase,
+                learnedChinesePredictions = learnedPredictions,
+                chinesePredictionPhase = if (learnedPredictions.isNotEmpty()) {
+                    ChinesePredictionCandidateSession.Phase.VISIBLE
+                } else chinesePredictionPhase,
                 pendingPunctuationRawPaged = if (chineseT9Active || smartEnglishActive) {
                     service.getPendingT9PunctuationPaged()
                 } else {

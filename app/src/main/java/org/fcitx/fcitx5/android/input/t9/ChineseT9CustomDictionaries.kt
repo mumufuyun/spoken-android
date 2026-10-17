@@ -16,7 +16,9 @@ import java.util.Locale
 @Serializable
 data class ChineseT9CustomPhrase(
     val text: String,
-    val pinyin: String
+    val pinyin: String,
+    val useCount: Int = 0,
+    val lastUsed: Long = 0
 ) {
     companion object {
         fun create(rawText: String, rawPinyin: String): ChineseT9CustomPhrase? {
@@ -49,7 +51,8 @@ data class ChineseT9CustomPhrase(
 }
 
 class ChineseT9CustomPhraseDictionary internal constructor(
-    private val persistence: T9DictionaryPersistence<List<ChineseT9CustomPhrase>>
+    private val persistence: T9DictionaryPersistence<List<ChineseT9CustomPhrase>>,
+    private val onTextsRemoved: (Set<String>) -> Unit = {}
 ) {
     constructor() : this(
         T9DictionaryPersistence(
@@ -57,7 +60,8 @@ class ChineseT9CustomPhraseDictionary internal constructor(
             defaultValue = emptyList(),
             decode = ::decodePhrases,
             encode = PhraseJson::encodeToString
-        )
+        ),
+        onTextsRemoved = { ChinesePersonalDictionary.Shared.forgetTexts(it) }
     )
 
     private var entries = normalizeEntries(persistence.snapshot())
@@ -78,9 +82,31 @@ class ChineseT9CustomPhraseDictionary internal constructor(
 
     @Synchronized
     fun replaceEntries(rawEntries: Iterable<ChineseT9CustomPhrase>) {
-        val normalized = normalizeEntries(rawEntries)
+        val existing = entries.associateBy { it.text to it.pinyin }
+        val normalized = normalizeEntries(rawEntries).map { entry ->
+            existing[entry.text to entry.pinyin] ?: entry.copy(useCount = 0, lastUsed = 0)
+        }
         if (normalized == entries) return
+        val removedTexts = entries.mapTo(HashSet()) { it.text } - normalized.map { it.text }.toSet()
         entries = normalized
+        index = PhraseIndex.build(entries)
+        dictionaryGeneration += 1
+        persistence.replace(entries)
+        if (removedTexts.isNotEmpty()) onTextsRemoved(removedTexts)
+    }
+
+    @Synchronized
+    fun recordSelection(text: String, pinyin: String, allowed: Boolean) {
+        if (!allowed) return
+        val normalizedPinyin = ChineseT9CustomPhrase.normalizePinyin(pinyin) ?: return
+        val selected = entries.indexOfFirst { it.text == text && it.pinyin == normalizedPinyin }
+        if (selected < 0) return
+        entries = entries.mapIndexed { i, entry ->
+            if (i == selected) entry.copy(
+                useCount = (entry.useCount + 1).coerceAtMost(10000),
+                lastUsed = System.currentTimeMillis()
+            ) else entry
+        }
         index = PhraseIndex.build(entries)
         dictionaryGeneration += 1
         persistence.replace(entries)
@@ -108,7 +134,10 @@ class ChineseT9CustomPhraseDictionary internal constructor(
             fun build(entries: List<ChineseT9CustomPhrase>): PhraseIndex {
                 val exact = linkedMapOf<String, MutableList<ChineseT9CustomPhrase>>()
                 val prefixes = linkedMapOf<String, MutableList<ChineseT9CustomPhrase>>()
-                entries.forEach { entry ->
+                entries.sortedWith(
+                    compareByDescending<ChineseT9CustomPhrase> { it.useCount }
+                        .thenByDescending { it.lastUsed }
+                ).forEach { entry ->
                     val letters = entry.pinyin.filter { it in 'a'..'z' }
                     val digits = T9EnglishDictionary.t9DigitsForLetters(letters) ?: return@forEach
                     exact.getOrPut(digits) { mutableListOf() } += entry
@@ -140,7 +169,12 @@ class ChineseT9CustomPhraseDictionary internal constructor(
             rawEntries: Iterable<ChineseT9CustomPhrase>
         ): List<ChineseT9CustomPhrase> =
             rawEntries
-                .mapNotNull { ChineseT9CustomPhrase.create(it.text, it.pinyin) }
+                .mapNotNull { entry ->
+                    ChineseT9CustomPhrase.create(entry.text, entry.pinyin)?.copy(
+                        useCount = entry.useCount.coerceIn(0, 10000),
+                        lastUsed = entry.lastUsed.coerceAtLeast(0)
+                    )
+                }
                 .distinctBy { it.text to it.pinyin }
                 .sortedWith(compareBy(ChineseT9CustomPhrase::pinyin, ChineseT9CustomPhrase::text))
     }

@@ -99,6 +99,8 @@ import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionLifecycle
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionTicket
 import org.fcitx.fcitx5.android.input.t9.ChineseEnglishAutoLearningSession
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CustomPhraseDictionary
+import org.fcitx.fcitx5.android.input.t9.ChinesePersonalDictionary
+import org.fcitx.fcitx5.android.input.t9.ChinesePersonalLearningSession
 import org.fcitx.fcitx5.android.input.t9.ChineseT9EngineOperation
 import org.fcitx.fcitx5.android.input.t9.ChineseT9EngineStatusPolicy
 import org.fcitx.fcitx5.android.input.t9.ChineseT9InputReceipt
@@ -177,6 +179,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var activeFcitxCapabilityFlags = CapabilityFlags.DefaultFlags
 
     private val cachedKeyEvents = LruCache<Int, KeyEvent>(78)
+    private val chinesePersonalLearning = ChinesePersonalLearningSession()
     private var cachedKeyEventIndex = 0
 
     /**
@@ -586,6 +589,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun prepareEditorForSpokenVoice() {
+        chinesePersonalLearning.reset()
         if (isHandwritingInputActive()) commitHandwritingCandidateBeforeAuxiliaryInput()
         if (!commitChineseT9CodePreview(expectedScheme = null)) {
             finishComposing()
@@ -656,6 +660,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
      * shrink-unresolved-suffix path (caller still forwards the backspace to fcitx/Rime).
      */
     suspend fun handleVirtualT9Backspace(fcitx: FcitxAPI): Boolean {
+        chinesePersonalLearning.reset()
         if (currentT9Mode != T9InputMode.CHINESE) return false
         if (candidatesView?.dismissChinesePredictionCandidates() == true) {
             fcitx.reset()
@@ -836,6 +841,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private val chineseT9OutputScriptChangeListener =
         ManagedPreference.OnChangeListener<ChineseT9OutputScript> { key, value ->
             if (key == prefs.chineseT9.outputScriptPreference(activeChineseT9Scheme).key) {
+                chinesePersonalLearning.reset()
                 chineseT9OutputScriptSession.reapplyActiveScheme(activeChineseT9Scheme, value)
                     ?.let(::enqueueChineseT9OutputScript)
             }
@@ -1061,6 +1067,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             // Custom dictionaries are tiny but disk-backed. Construct them before the first
             // Chinese key so candidate lookup never turns a cold file read into input latency.
             ChineseT9CustomPhraseDictionary.Shared.entries()
+            ChinesePersonalDictionary.Shared
             ChineseT9EnglishDictionary.Shared.words()
             EnglishCustomDictionaryCoordinator.Shared.smartEnglishGeneration()
         }
@@ -1079,7 +1086,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         when (event) {
             is FcitxEvent.CommitStringEvent -> {
                 clearT9CompositionState()
-                commitText(event.data.text, event.data.cursor)
+                commitTextInternal(
+                    event.data.text, event.data.cursor, preserveChineseT9Composition = false,
+                    learnChinese = currentT9Mode == T9InputMode.CHINESE
+                )
             }
             is FcitxEvent.KeyEvent -> event.data.let event@{
                 if (it.states.virtual) {
@@ -1197,6 +1207,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleBackspaceKey() {
+        chinesePersonalLearning.reset()
         invalidateNumberExpressionForInput()
         if (currentT9Mode == T9InputMode.CHINESE) {
             chineseT9Composition.backspaceFromVirtualKey()
@@ -1315,11 +1326,17 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     fun commitChineseT9DirectText(
         text: String,
-        onSelected: (() -> Unit)? = null
+        onSelected: (() -> Unit)? = null,
+        candidate: FcitxEvent.Candidate? = null
     ): Boolean {
         if (currentT9Mode != T9InputMode.CHINESE || text.isEmpty()) return false
         candidatesView?.resetChinesePredictionCandidates()
-        commitText(text)
+        if (!commitTextInternal(
+                text, -1, preserveChineseT9Composition = false,
+                learnChinese = candidate != null,
+                customCandidate = candidate
+            )
+        ) return false
         clearT9CompositionState()
         clearTransientInputUiState()
         currentInputConnection?.finishComposingText()
@@ -1355,6 +1372,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleReturnKey() {
+        chinesePersonalLearning.reset()
         if (commitT9PreviewPinyinFromReturn()) return
         if (isPasswordInputPreviewActive()) {
             clearPasswordInputPreview()
@@ -1393,6 +1411,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleArrowKey(keyCode: Int) {
+        chinesePersonalLearning.reset()
         if (currentInputEditorInfo.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL) {
             sendDownUpKeyEvents(keyCode)
             return
@@ -1426,16 +1445,34 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun commitTextPreservingChineseT9Composition(text: String) {
-        commitTextInternal(text, cursor = -1, preserveChineseT9Composition = true)
+        commitTextInternal(text, cursor = -1, preserveChineseT9Composition = true, learnChinese = true)
     }
 
     private fun commitTextInternal(
         text: String,
         cursor: Int,
-        preserveChineseT9Composition: Boolean
-    ) {
+        preserveChineseT9Composition: Boolean,
+        learnChinese: Boolean = false,
+        customCandidate: FcitxEvent.Candidate? = null
+    ): Boolean {
         invalidateNumberExpressionForInput()
-        val ic = currentInputConnection ?: return
+        val ic = currentInputConnection ?: return false.also { chinesePersonalLearning.reset() }
+        val start = if (composing.isEmpty()) selection.latest.start else composing.start
+        val learningAllowed = learnChinese && currentT9Mode == T9InputMode.CHINESE &&
+            shouldLearnEnglishWords() && selection.latest.start == selection.latest.end
+        fun recordAcceptedCommit(accepted: Boolean) {
+            if (!accepted || !learningAllowed) {
+                chinesePersonalLearning.reset()
+                return
+            }
+            chinesePersonalLearning.committed(
+                text, start, start + if (cursor == -1) text.length else cursor,
+                chinesePersonalLearningScope(), allowed = true
+            )
+            customCandidate?.let {
+                ChineseT9CustomPhraseDictionary.Shared.recordSelection(it.text, it.comment, allowed = true)
+            }
+        }
         if (physicalSelectionMode) {
             exitPhysicalSelectionMode(showBadge = true)
         }
@@ -1444,32 +1481,37 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             val c = if (cursor == -1) text.length else cursor
             val target = composing.start + c
             resetComposingStateForCommit(preserveChineseT9Composition)
+            var accepted = false
             ic.withBatchEdit {
                 if (selection.current.start != target) {
                     selection.predict(target)
                     ic.setSelection(target, target)
                 }
-                ic.finishComposingText()
+                accepted = ic.finishComposingText()
             }
-            return
+            recordAcceptedCommit(accepted)
+            return accepted
         }
         // committed text should replace composing (if any), replace selected range (if any),
         // or simply prepend before cursor
-        val start = if (composing.isEmpty()) selection.latest.start else composing.start
         resetComposingStateForCommit(preserveChineseT9Composition)
+        var accepted: Boolean
         if (cursor == -1) {
             selection.predict(start + text.length)
-            ic.commitText(text, 1)
+            accepted = ic.commitText(text, 1)
             recordPasswordInputPreviewCommit(text)
         } else {
             val target = start + cursor
             selection.predict(target)
+            accepted = false
             ic.withBatchEdit {
-                commitText(text, 1)
+                accepted = commitText(text, 1)
                 setSelection(target, target)
             }
             recordPasswordInputPreviewCommit(text)
         }
+        recordAcceptedCommit(accepted)
+        return accepted
     }
 
     private fun resetComposingStateForCommit(preserveChineseT9Composition: Boolean) {
@@ -2106,6 +2148,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private val t9ModeCoordinator: T9ModeCoordinator by lazy {
         T9ModeCoordinator(
             beforeModeChange = {
+                chinesePersonalLearning.reset()
                 resetNumberModeIfInitialized()
                 resetMultiTapState()
                 smartEnglishCoordinator.reset()
@@ -2216,6 +2259,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             initialEnabled = prefs.chineseT9.prediction.getValue(),
             setPreference = { enabled -> prefs.chineseT9.prediction.setValue(enabled) },
             onEnabledChanged = { enabled ->
+                chinesePersonalLearning.reset()
                 candidatesView?.resetChinesePredictionCandidates()
                 if (handwritingCoordinatorDelegate.isInitialized()) {
                     handwritingCoordinator.onChinesePredictionEnabledChanged(enabled)
@@ -2675,6 +2719,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun cycleChineseT9Scheme(): Boolean {
+        chinesePersonalLearning.reset()
         val target = chineseT9SchemeCycle.requestNext(
             active = activeChineseT9Scheme,
             enabled = prefs.chineseT9.enabledSchemes()
@@ -2807,6 +2852,25 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     fun isChinesePredictionEnabled(): Boolean = chinesePredictionModeController.enabled
 
+    private fun chinesePersonalLearningScope(): String =
+        "${activeChineseT9Scheme.name}:${prefs.chineseT9.outputScript(activeChineseT9Scheme).name}"
+
+    fun hideChinesePersonalPredictions() {
+        chinesePersonalLearning.hidePredictions()
+    }
+
+    fun chinesePersonalPredictions(hasComposition: Boolean): List<String> {
+        // A frame may still contain the old preedit just after its commit was accepted.
+        // Suppress that frame without dismissing the new prediction context.
+        if (hasComposition) return emptyList()
+        return chinesePersonalLearning.predictions(
+            scope = chinesePersonalLearningScope(),
+            cursor = selection.latest.start,
+            enabled = isChinesePredictionEnabled() && currentT9Mode == T9InputMode.CHINESE,
+            allowed = shouldLearnEnglishWords() && selection.latest.start == selection.latest.end
+        )
+    }
+
     fun isChineseEnglishCandidatesEnabled(): Boolean =
         chineseEnglishCandidatesEnabled
 
@@ -2815,6 +2879,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun dismissChinesePrediction(): Boolean {
+        chinesePersonalLearning.reset()
         val dismissed = candidatesView?.dismissChinesePredictionCandidates() == true
         if (dismissed) {
             postFcitxJob { reset() }
@@ -3641,6 +3706,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
+        chinesePersonalLearning.reset()
         detachSpokenVoiceEditor(finish = false)
         SpokenWorkModePopup.dismissCurrent()
         resetNumberModeIfInitialized()
@@ -3833,6 +3899,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             return // do nothing if prediction matches
         } else {
             // cursor update can't match any prediction: it's treated as a user input
+            chinesePersonalLearning.reset()
             selection.resetTo(newSelStart, newSelEnd)
         }
         // skip selection range update, we only care about selection cursor (zero width) here
@@ -4050,6 +4117,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onFinishInput() {
+        chinesePersonalLearning.reset()
         Timber.d("onFinishInput")
         detachSpokenVoiceEditor(finish = false)
         SpokenWorkModePopup.dismissCurrent()

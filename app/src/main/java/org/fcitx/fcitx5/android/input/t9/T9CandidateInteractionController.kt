@@ -20,6 +20,8 @@ class T9CandidateInteractionController(
         fun refreshT9Ui()
         fun offsetEngineCandidatePage(delta: Int): Boolean
         fun commitChineseDirectText(text: String, onSelected: (() -> Unit)? = null): Boolean
+        fun commitChineseDirectCandidate(candidate: FcitxEvent.Candidate, onSelected: (() -> Unit)? = null): Boolean =
+            commitChineseDirectText(candidate.text, onSelected)
         fun selectChineseCandidate(
             originalIndex: Int,
             selectedCandidate: FcitxEvent.Candidate,
@@ -100,7 +102,7 @@ class T9CandidateInteractionController(
             is T9CandidateUiSnapshotPipeline.CommitBottomCandidate.PendingPunctuation ->
                 host.commitPendingPunctuationCandidate(result.originalIndex)
             is T9CandidateUiSnapshotPipeline.CommitBottomCandidate.DirectChineseText ->
-                host.commitChineseDirectText(result.text)
+                host.commitChineseDirectCandidate(result.candidate)
             is T9CandidateUiSnapshotPipeline.CommitBottomCandidate.Chinese ->
                 host.selectChineseCandidate(
                     result.originalIndex,
@@ -115,7 +117,7 @@ class T9CandidateInteractionController(
     fun commitCurrentChineseCandidate(onSelected: () -> Unit): Boolean? {
         return when (val result = pipeline.commitCurrentBottomCandidate()) {
             is T9CandidateUiSnapshotPipeline.CommitBottomCandidate.DirectChineseText ->
-                host.commitChineseDirectText(result.text, onSelected)
+                host.commitChineseDirectCandidate(result.candidate, onSelected)
             is T9CandidateUiSnapshotPipeline.CommitBottomCandidate.Chinese ->
                 host.selectChineseCandidate(
                     result.originalIndex,

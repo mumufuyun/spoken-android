@@ -10,11 +10,11 @@ import org.fcitx.fcitx5.android.core.FcitxEvent
 class T9CandidateSourceSessions(
     private val characterBudget: () -> Int,
     private val widthBudget: () -> T9CandidateWidthBudget?,
-    candidateMatchesPrefix: (candidate: FcitxEvent.Candidate, prefix: String) -> Boolean
+    candidateMatchesPrefix: (candidate: FcitxEvent.Candidate, prefix: String) -> Boolean,
+    private val chineseCustomCandidateSource: ChineseT9CustomCandidateSource = ChineseT9CustomCandidateSource()
 ) {
     private val smartEnglishPageCache = T9SmartEnglishPageCache(characterBudget, widthBudget)
     private val pendingPunctuationPager = T9CandidatePager()
-    private val chineseCustomCandidateSource = ChineseT9CustomCandidateSource()
     private val chineseCandidatePipeline = ChineseT9CandidatePipeline(
         characterBudget = characterBudget,
         widthBudget = widthBudget,
@@ -94,6 +94,18 @@ class T9CandidateSourceSessions(
             custom = custom,
             englishCandidatesEnabled = englishCandidatesEnabled
         )
+
+    fun mergeChinesePredictions(engine: T9PagedCandidates, learned: List<String>): T9PagedCandidates =
+        chineseCustomCandidateSource.mergePredictions(engine, learned)
+
+    private fun selectableIndex(shown: T9CandidateUiSnapshotPipeline.ShownSnapshot, offset: Int): Int? {
+        val index = shown.originalIndexAt(offset) ?: return null
+        if (index >= 0) return index
+        val candidate = shown.paged.candidates.getOrNull(offset) ?: return null
+        return index.takeIf {
+            chineseCustomCandidateSource.directCommitText(index, candidate.text) != null
+        }
+    }
 
     fun invalidateShownInteraction() {
         currentShown = null
@@ -331,7 +343,7 @@ class T9CandidateSourceSessions(
         if (shownIndex !in shown.paged.candidates.indices) return null
         // A retained page with -1 mappings is presentation-only while its replacement is loading.
         // Treating its row index as an engine index can select unrelated text or erase the surface.
-        val originalIndex = shown.selectableOriginalIndexAt(shownIndex) ?: return null
+        val originalIndex = selectableIndex(shown, shownIndex) ?: return null
         return when (shown.source) {
             T9CandidateUiSnapshotPipeline.ShownSource.SMART_ENGLISH ->
                 T9CandidateUiSnapshotPipeline.CommitBottomCandidate.SmartEnglish(originalIndex)
@@ -371,7 +383,7 @@ class T9CandidateSourceSessions(
         shown: T9CandidateUiSnapshotPipeline.ShownSnapshot,
         next: Int
     ): T9CandidateUiSnapshotPipeline.MoveBottomCandidate? {
-        val originalIndex = shown.selectableOriginalIndexAt(next) ?: return null
+        val originalIndex = selectableIndex(shown, next) ?: return null
         return when (shown.source) {
             T9CandidateUiSnapshotPipeline.ShownSource.SMART_ENGLISH -> {
                 currentShown = shown.copy(paged = shown.paged.copy(cursorIndex = next))

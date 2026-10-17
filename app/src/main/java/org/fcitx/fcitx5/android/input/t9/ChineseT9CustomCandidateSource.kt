@@ -109,6 +109,25 @@ class ChineseT9CustomCandidateSource(
     fun directCommitText(originalIndex: Int, candidateText: String): String? =
         directCommitTextByIndex[originalIndex]?.takeIf { it == candidateText }
 
+    fun mergePredictions(engine: T9PagedCandidates, learned: List<String>): T9PagedCandidates {
+        if (learned.isEmpty()) return engine
+        val engineIndexed = engine.indexedCandidates()
+        val byText = engineIndexed.associateBy { it.value.text }
+        val personal = learned.distinct().take(CandidateLimit).mapIndexed { offset, text ->
+            byText[text] ?: run {
+                val index = DirectCommitIndexStart + offset
+                directCommitTextByIndex[index] = text
+                IndexedValue(index, FcitxEvent.Candidate("", text, ""))
+            }
+        }
+        val personalTexts = personal.mapTo(HashSet()) { it.value.text }
+        val merged = personal + engineIndexed.filter { it.value.text !in personalTexts }
+        return T9PagedCandidates(
+            engine.data.copy(candidates = merged.map { it.value }.toTypedArray(), cursorIndex = 0),
+            merged.map { it.index }.toIntArray()
+        )
+    }
+
     fun isDirectCommitIndex(originalIndex: Int): Boolean =
         originalIndex in DirectCommitIndexStart..DirectCommitIndexEnd
 

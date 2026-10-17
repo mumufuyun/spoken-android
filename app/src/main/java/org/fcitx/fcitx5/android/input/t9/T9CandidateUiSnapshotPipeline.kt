@@ -106,6 +106,9 @@ class T9CandidateUiSnapshotPipeline(
     private var lastInput: T9CandidateUiInputSnapshot? = null
     private var currentUiSnapshot: T9CandidateUiSnapshot? = null
     private val stateBuilder = T9CandidateUiStateBuilder(object : T9CandidateUiStateBuilder.Pipeline {
+        override fun mergeChinesePredictions(engine: T9PagedCandidates, learned: List<String>): T9PagedCandidates =
+            sourceSessions.mergeChinesePredictions(engine, learned)
+
         override fun buildSmartEnglishPaged(snapshot: SmartEnglishUiSnapshot): T9PagedCandidates? =
             sourceSessions.buildSmartEnglishPaged(snapshot)
 
