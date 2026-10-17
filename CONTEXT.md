@@ -40,7 +40,10 @@ existing hit area, and width-based paging measures the same font sizes. Touch ca
 show only candidate text; numeric shortcut labels remain exclusive to
 physical-key operation. It suppresses the redundant
 floating preedit bubble.
-When that reserved area is idle, it exposes the scene picker and settings entry.
+When that reserved area is idle, it exposes the scene picker on the left and
+settings plus a hide-keyboard action on the right, without a persistent wordmark.
+The complete 50 dp row shares one solid theme background, including the transparent
+action buttons and their edges. The hide action uses Android's IME dismissal contract.
 During voice input it shows session status and an explicit Cancel action; the
 transcript belongs to the host editor. These controls yield to text candidates. In gesture-navigation
 mode, phones without a hardware keyboard yield a narrow 18 dp launch strip on the left
