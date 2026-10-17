@@ -45,7 +45,7 @@ private class TouchT9DigitKey(
 ) : KeyDef(
     Appearance.Text(
         displayText = letters,
-        textSize = 25f,
+        textSize = 20f,
         percentWidth = 0.333f,
         border = Border.On,
         margin = false
@@ -187,6 +187,7 @@ class T9Keyboard(
     companion object {
         const val Name = "T9"
         private const val TOUCH_KEY_GAP_DP = 2
+        private const val TOUCH_T9_DIGIT_INSET_DP = 4
         // Match the system Back launch strip; no letter target may sit underneath it.
         private const val ENGLISH_EDGE_GUTTER_DP = 18
         private const val TOUCH_BOTTOM_KEY_VERTICAL_INSET_DP = 2
@@ -199,8 +200,8 @@ class T9Keyboard(
         theme.name == ThemePreset.FlatPopLight.name || theme.name == ThemePreset.FlatPopDark.name
 
     private fun createTouchKeyView(def: KeyDef): KeyView = createKeyView(def).apply {
-        // Keep the whole cell tappable while reducing the visible gap between adjacent keycaps.
-        padding = dp(TOUCH_KEY_GAP_DP)
+        // Lighten the large T9 keycaps without shrinking their full-cell touch targets.
+        padding = dp(if (def is TouchT9DigitKey) TOUCH_T9_DIGIT_INSET_DP else TOUCH_KEY_GAP_DP)
     }
 
     private fun createCompactBottomKeyView(def: KeyDef): KeyView = createKeyView(def).apply {
