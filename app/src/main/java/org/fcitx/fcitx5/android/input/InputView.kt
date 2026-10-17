@@ -43,7 +43,6 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
-import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcaster
 import org.fcitx.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fcitx.fcitx5.android.input.broadcast.PunctuationComponent
@@ -226,17 +225,10 @@ class InputView(
     }
     private val voiceDock = SpokenVoiceDockView(themedContext, theme,
         onCancel = { service.cancelSpokenVoiceInput() },
-        onOptions = { service.showSpokenVoiceOptions(it, theme) }
+        onOptions = { service.showSpokenVoiceOptions(it, theme) },
+        onSettings = { AppUtil.launchMain(context) },
+        onHideKeyboard = { service.requestHideSelf(0) }
     )
-    private val touchT9SettingsButton = ToolButton(
-        themedContext,
-        R.drawable.ic_baseline_settings_24,
-        theme
-    ).apply {
-        contentDescription = context.getString(R.string.settings)
-        setOnClickListener { AppUtil.launchMain(context) }
-        visibility = GONE
-    }
     private val horizontalCandidate = HorizontalCandidateComponent()
     private val keyboardWindow = KeyboardWindow()
     private val componentsCreated = StartupPerformanceTrace.endStage(componentsCreateStage)
@@ -429,11 +421,7 @@ class InputView(
                 add(voiceDock, lParams(0, dp(50)) {
                     topOfParent()
                     startOfParent()
-                    endToStartOf(touchT9SettingsButton)
-                })
-                add(touchT9SettingsButton, lParams(dp(48), dp(48)) {
-                    topOfParent(dp(1))
-                    endOfParent(dp(12))
+                    endOfParent()
                 })
                 add(leftPaddingSpace, lParams {
                     below(kawaiiBar.view)
@@ -543,7 +531,7 @@ class InputView(
             isT9KeyboardActive -> INVISIBLE
             else -> VISIBLE
         }
-        touchT9SettingsButton.visibility = if (
+        voiceDock.visibility = if (
             isT9KeyboardActive &&
             !keyboardWindow.isPasswordPeekMode() &&
             (!touchT9CandidatesVisible || spokenVoiceState.isActive) &&
@@ -553,7 +541,6 @@ class InputView(
         } else {
             GONE
         }
-        voiceDock.visibility = touchT9SettingsButton.visibility
     }
 
     fun setTouchT9CandidatesVisible(visible: Boolean) {
