@@ -52,8 +52,9 @@ no desktop source files, third-party algorithms, schemas, or evaluation samples.
   editor; it is not undo or an automatic replacement of previously inserted text.
   Only user activation inserts it. Cancelled/empty recordings do not replace the
   retained original; an oversized new original clears it rather than truncating.
-- Recovery does not resend text, save audio, read surrounding text, or access the
-  system clipboard. No new permissions, dependencies, or cloud calls are added
+- Recovery does not resend text, save audio, or access the system clipboard.
+  Inline voice editing now uses a bounded local editor snapshot for ownership
+  checks; surrounding text is never sent to providers (see ADR 0008). No new permissions, dependencies, or cloud calls are added
   beyond a user-selected AI scene. No background sync is introduced.
 - Full APK compilation and device acceptance remain separate from focused JVM
   checks. Use the [device workflow](../android-studio-final-test-workflow.md) for

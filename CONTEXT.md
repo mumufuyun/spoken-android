@@ -8,17 +8,20 @@ touch T9 spike that exposes the same short-press semantics through a full-height
 3-by-3 keypad; candidates, settings, symbols, and password entry remain shared UI.
 The accepted touch shell uses one four-row grid: a wide punctuation rail on the
 left, the 3-by-3 digit surface in the center, and Delete, a two-row voice target,
-and Return on the right. The voice target uses the nine-bar Spoken waveform with
-no instructional text. The bottom row contains Symbols, Numbers, Space, and the
+and Return on the right. The voice target uses the nine-bar Spoken waveform while idle, then adds a
+Finish, Recognizing, or Use original label during a voice session. The bottom row contains Symbols, Numbers, Space, and the
 Chinese/English mode key. Columns and rows must share constraint boundaries so
 the side controls stay aligned with the central keys.
 This shell forces visible key surfaces instead of inheriting the global
 borderless-key preference: center keys are normal surfaces, side actions are
 alternative surfaces, and voice/Return use the accent treatment. The generic
 symbol Picker is still upstream UI and remains a separate productization task.
-The touch grid caps portrait height at 23 percent and uses a 2 dp inset on each
-keycap edge; the complete cell remains tappable. The bottom control row keeps a
-38 dp hit area while its visible keycaps use the same 2 dp edge gap as the rows
+The touch grid defaults to 28 percent portrait height (35 percent landscape),
+with an effective 20–40 percent setting and compact/comfortable/spacious presets
+at 23/28/31 percent. There is no separate hidden touch-height cap. Settings schema
+3 migrates formerly capped portrait values to the comfortable default. Keycaps
+use a 2 dp inset on each edge; the complete cell remains tappable. The bottom
+control row keeps a 48 dp hit area while its visible keycaps use the same 2 dp edge gap as the rows
 above.
 After the first on-screen T9 digit tap, its composition surface docks inside a
 50 dp reserved area immediately above the keys and replaces the idle toolbar. The touch surface is a
@@ -30,8 +33,9 @@ scaling hit targets by character count. Each visible item retains a minimum
 show only candidate text; numeric shortcut labels remain exclusive to
 physical-key operation. It suppresses the redundant
 floating preedit bubble.
-When that reserved area is idle, it exposes a single settings entry at the right;
-the entry disappears whenever the candidate surface is visible. In gesture-navigation
+When that reserved area is idle, it exposes the scene picker and settings entry.
+During voice input it shows session status and an explicit Cancel action; the
+transcript belongs to the host editor. These controls yield to text candidates. In gesture-navigation
 mode, the touch T9 input window also yields a narrow 18 dp launch strip on the left
 and right so an edge Back gesture cannot lose its initial touch to a flush keycap.
 The strip is intentionally capped instead of using the full system-reported side
@@ -377,6 +381,20 @@ and cancels AI processing. Long-press opens the scene and output-language picker
 an explicit cancel action while active, and an optional action to insert the last
 original into the same editor.
 
+`VoiceComposition` owns a recording's temporary editor range independently of
+Rime. `AndroidVoiceEditor` streams underlined composing text through the captured
+InputConnection; the final ASR text stays visible while AI runs, and one final
+commit replaces that composing range. Clicking Finish stops capture and starts
+automatic finalization; no second confirmation step is required. Explicit Cancel
+restores the replaced selection only while the editor still matches the locally
+held snapshot. Manual typing, cursor movement, composition loss, hiding, or field
+switching revoke ownership and cancel delayed work, preserving visible text.
+Snapshot comparison is local, bounded to 32,768 characters, and never sent to ASR
+or AI. Editors without extraction/composing support use the fixed keyboard dock
+for preview; loss of an already-owned composition stops automatic rewriting.
+The decisions and host-editor validation boundaries are in
+`docs/adr/0008-inline-voice-composition-and-mobile-settings.md`.
+
 The in-process Spoken pipeline lives under `input/voice/`. `SpokenVoiceCoordinator`
 owns the session state machine. Each recording owns a separate `VoiceAudioSession`
 and `AndroidVoiceAudioCapture`. Stopping cancels and joins microphone startup before
@@ -423,6 +441,19 @@ selection prefers declared voice subtypes and conservative voice-service
 identity hints. Target resolution happens when invoked, and unavailable targets
 show feedback instead of failing silently. The full contract is recorded in
 `docs/adr/0002-voice-input-and-toolbar-contract.md`.
+
+## Settings
+
+The Flat Pop settings home uses four entry points: Voice and AI, Keyboard and
+appearance, Input preferences, and Privacy and advanced. `SpokenSettingsPage`
+owns their card surfaces and the local keyboard playground. Voice settings keep
+scene/language and AI enablement on the overview; recognition and AI credentials
+have separate connection pages using the existing secure storage. Appearance
+includes effective height presets, a slider, and a real editor for preview, with
+links to themes, key feedback, and candidate options. Existing preference detail
+pages reuse rounded surfaces; app bars use neutral backgrounds without shadows.
+Configuration summaries indicate stored configuration, not a successful live
+provider connectivity test. No settings migration changes voice credentials.
 
 ## Handwriting
 
