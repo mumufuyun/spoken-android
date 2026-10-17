@@ -11,7 +11,7 @@ import org.fcitx.fcitx5.android.input.voice.WorkModeMigration
 
 object SettingsPreferenceMigration {
     private const val VersionKey = "product_settings_schema_version"
-    private const val CurrentVersion = 2
+    private const val CurrentVersion = 3
 
     // These controls were removed rather than hidden: product behavior now has one owner in code,
     // so retaining their values would make backups and Direct Boot storage imply false support.
@@ -59,6 +59,8 @@ object SettingsPreferenceMigration {
         if (version >= CurrentVersion) return
         // Read before entering the editor; Editor has no getters.
         val legacyWorkMode = preferences.getString("spoken_default_work_mode", null)
+        val height = preferences.getInt("t9_keyboard_height_percent", 40)
+        val landscape = preferences.getInt("t9_keyboard_height_percent_landscape", 45)
         preferences.edit {
             if (version < 1) {
                 version1RemovedKeys.forEach(::remove)
@@ -72,6 +74,11 @@ object SettingsPreferenceMigration {
                     }
                 }
                 remove("spoken_default_work_mode")
+            }
+            if (version < 3) {
+                // Previously all values >= 23 rendered at the same hidden cap.
+                putInt("t9_keyboard_height_percent", if (height >= 23) 28 else height.coerceAtLeast(20))
+                putInt("t9_keyboard_height_percent_landscape", landscape.coerceIn(20, 35))
             }
             putInt(VersionKey, CurrentVersion)
         }

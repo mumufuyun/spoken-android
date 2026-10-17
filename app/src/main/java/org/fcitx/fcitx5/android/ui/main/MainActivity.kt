@@ -17,13 +17,15 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.forEach
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
-import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.fragment.NavHostFragment
 import org.fcitx.fcitx5.android.BuildConfig
 import org.fcitx.fcitx5.android.R
@@ -58,21 +60,35 @@ class MainActivity : AppCompatActivity() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
             val statusBars = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars())
             val navBars = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
             binding.root.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 leftMargin = navBars.left
                 rightMargin = navBars.right
+                bottomMargin = ime.bottom
             }
             binding.toolbar.topPadding = statusBars.top
             windowInsets
         }
         setContentView(binding.root)
+        val lightSurface = ColorUtils.calculateLuminance(
+            ContextCompat.getColor(this, R.color.spoken_background)
+        ) > .5
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = lightSurface
+            isAppearanceLightNavigationBars = lightSurface
+        }
         // always show toolbar back arrow icon
         // https://android.googlesource.com/platform/frameworks/support/+/32e643112d0217619237a0d7101b50919c6caf51/navigation/navigation-ui/src/main/java/androidx/navigation/ui/AbstractAppBarOnDestinationChangedListener.kt#80
-        binding.toolbar.navigationIcon = DrawerArrowDrawable(this).apply { progress = 1f }
+        binding.toolbar.navigationIcon = DrawerArrowDrawable(this).apply {
+            progress = 1f
+            color = ContextCompat.getColor(this@MainActivity, R.color.spoken_on_surface)
+        }
         // show menu icon and other action icons on toolbar
         // don't use `setSupportActionBar(binding.toolbar)` here,
         // because navController would change toolbar title, we need to control it by ourselves
         setupToolbarMenu(binding.toolbar.menu)
+        binding.toolbar.overflowIcon?.setTint(ContextCompat.getColor(this, R.color.spoken_on_surface))
+        binding.toolbar.menu.forEach { it.icon?.setTint(ContextCompat.getColor(this, R.color.spoken_on_surface)) }
         navController = binding.navHostFragment.getFragment<NavHostFragment>().navController
         navController.graph = SettingsRoute.createGraph(navController)
         binding.toolbar.setNavigationOnClickListener {
@@ -92,11 +108,7 @@ class MainActivity : AppCompatActivity() {
         }
         navController.addOnDestinationChangedListener { _, dest, _ ->
             dest.label?.let { viewModel.setToolbarTitle(it.toString()) }
-            if (dest.hasRoute<SettingsRoute.Theme>()) {
-                viewModel.disableToolbarShadow()
-            } else {
-                viewModel.enableToolbarShadow()
-            }
+            viewModel.disableToolbarShadow()
         }
         processIntent(intent)
         checkNotificationPermission()

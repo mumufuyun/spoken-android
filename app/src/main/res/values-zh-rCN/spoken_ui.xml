@@ -1,0 +1,25 @@
+<resources>
+    <string name="spoken_settings_tagline">让输入，更顺手</string>
+    <string name="spoken_keyboard_appearance">键盘与外观</string>
+    <string name="spoken_keyboard_appearance_summary">键盘高度、主题与按键反馈</string>
+    <string name="spoken_input_habits">输入习惯</string>
+    <string name="spoken_input_habits_summary">中文九键、联想与个人词库</string>
+    <string name="spoken_privacy_advanced">隐私与高级</string>
+    <string name="spoken_privacy_summary">剪贴板、数据管理与高级选项</string>
+    <string name="spoken_try_keyboard">试试你的键盘</string>
+    <string name="spoken_try_hint">点这里打字，或试试语音输入…</string>
+    <string name="spoken_choose_keyboard">选择输入法</string>
+    <string name="spoken_height_hint">给每一次点按，多一点空间</string>
+    <string name="spoken_height_compact">紧凑</string>
+    <string name="spoken_height_comfortable">舒适</string>
+    <string name="spoken_height_spacious">宽松</string>
+    <string name="spoken_height_value">竖屏 · %1$d%%</string>
+    <string name="spoken_voice_hint">自然地说，点一次完成即可定稿</string>
+    <string name="spoken_connection_edit">编辑连接</string>
+    <string name="spoken_connection_asr">语音识别连接</string>
+    <string name="spoken_connection_ai">AI 处理连接</string>
+    <string name="spoken_connection_missing">待配置</string>
+    <string name="spoken_connection_saved">已配置</string>
+    <string name="spoken_preferences">输入偏好</string>
+    <string name="spoken_ai_off">AI 已关闭 · 保留原文</string>
+</resources>
