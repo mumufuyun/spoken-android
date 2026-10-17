@@ -194,7 +194,7 @@ class CandidatesView(
         setPadding(h, v, h, v)
     }
 
-    /** Hanzi candidates add a small optical boost over the configured base size. */
+    /** Larger candidate text fills the existing touch targets without shrinking their hit area. */
     private val setupTextViewCandidates: TextView.() -> Unit = {
         textSize = candidateFontSizeSp
         InputUiFont.applyTo(this)
@@ -630,11 +630,11 @@ class CandidatesView(
     /** Second compact row: pinyin filter chips. */
     private val pinyinBarRowHeightPx: Int get() = compactTopRowHeightPx
 
-    /** Flat Pop compact dock (mockup 15): the default 18sp preference maps to 14.5sp. */
-    private val candidateFontSizeSp: Float get() = fontSize * (14.5f / 18f)
+    /** The default 18sp preference maps to a readable 22sp candidate line. */
+    private val candidateFontSizeSp: Float get() = fontSize * (22f / 18f)
 
-    /** Pinyin chips stay subordinate at 12sp when candidates are at the 14.5sp default. */
-    private val compactTopRowFontSizeSp: Float get() = candidateFontSizeSp * (12f / 14.5f)
+    /** Pinyin remains secondary at 16sp while using more of the available row height. */
+    private val compactTopRowFontSizeSp: Float get() = candidateFontSizeSp * (16f / 22f)
 
     private val pinyinToHanziGapPx: Int get() = dp(T9_PINYIN_TO_HANZI_GAP_DP)
 
@@ -1550,7 +1550,7 @@ class CandidatesView(
     companion object {
         private const val T9_BULK_FILTER_LIMIT = 80
         private const val TOUCH_T9_CANDIDATE_MIN_WIDTH_DP = 48
-        private const val T9_PINYIN_TO_HANZI_GAP_DP = 2
+        private const val T9_PINYIN_TO_HANZI_GAP_DP = 0
         private const val T9_PINYIN_ROW_MIN_VISIBLE_CHIPS = 4
         private const val T9_PINYIN_ROW_OVERFLOW_HINT_MIN_WIDTH_DP = 10
         private const val T9_PINYIN_ROW_FOLDED_EDGE_SAFETY_DP = 2

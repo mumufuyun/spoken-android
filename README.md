@@ -1,73 +1,34 @@
-<p align="center">
-  <img src="./assets/readme/hero.svg" width="100%" alt="fcitx5-android-t9-phone：面向物理九键安卓手机的 Fcitx5 输入法，图示数字 426 解析为 hao 并给出中文候选。">
-</p>
+# Spoken Android
 
-<p align="center">
-  <a href="https://github.com/Rizumu85/fcitx5-android-t9-phone/releases/latest">下载最新版</a> ·
-  <a href="#下载与安装">安装教程</a> ·
-  <a href="#九键按键规则">按键规则</a> ·
-  <a href="#开发构建">开发构建</a>
-</p>
+Spoken 是一款将中文拼音九键、语音输入和 AI 文本处理放在同一键盘中的 Android 输入法，基于 Fcitx5 for Android 与 Rime 开发。
 
-面向物理九键安卓智能机和功能机的 Fcitx5 Android 输入法。它把实体数字键、方向键和确认键作为主要交互，提供拼音、笔画、注音、联想英文、手写和数字输入。
+当前源码版本为 **1.0.0**。源码中已有功能不等于已完成真机验收；发布包及版本说明以[本仓库 Releases](https://github.com/mumufuyun/spoken-android/releases)为准。早期底座测试记录见 `docs/spoken/OPEN_SOURCE_BASELINE_REPORT.md`，不能作为当前版本的测试结果。
 
-> [!NOTE]
-> 项目主要维护物理九键体验。触摸全键盘及其他输入方式不是当前重点，可能存在兼容问题。
+## 核心功能
 
-## 实际界面
+- 触屏中文拼音九键、拼音消歧、候选展开、本地词库与联想。
+- 英文 QWERTY、数字、符号及输入框对应的回车动作。
+- 键盘内点击开始、点击停止的语音输入；支持 Qwen 实时、讯飞听写和自定义 Whisper 兼容接口。
+- 原样转写直接输出识别原文；另有流畅转写、日常聊天、工作沟通、正式材料、会议记录、内容分享、AI 指令 7 个 AI 整理场景。
+- 场景与输出语言独立选择：原语言、英文、日文、韩文。AI 失败或识别不完整时保留原文并提示，处理中可点击语音键跳过 AI。
+- Rime 引擎和基础词库内置于同一个 APK，首次中文输入不需要联网。
 
-<p align="center">
-  <img src="./assets/readme/latest-input-ui.png" width="420" alt="最新版实际输入界面截图：浅色记事应用中通过物理九键输入 hao，悬浮候选气泡显示拼音筛选和十个带数字序号的汉字候选，底部显示可配置工具栏、输入方案与退格回车按钮。">
-</p>
-
-## 核心能力
-
-- **中文九键**：拼音、笔画、注音三种方案，可分别设置默认简繁，并支持连续联想下一段文字。
-- **英文九键**：普通 multi-tap 与联想英文 T9，支持下一词预测、本地词库学习和学习词管理。
-- **中英文手写**：中文内置离线识别，也可下载 ML Kit 增强模型；英文模型下载后可完全离线使用。
-- **物理键优先**：方向键选择候选、长按数字快捷选词；游戏和 Java 模拟器等非文本场景会透传键位。
-- **小屏适配**：候选气泡、密码键盘、输入预览、文本选区、语音入口和可调整工具栏。
-- **个性化**：自定义字体、主题，以及屏幕键和实体键按键音包。
-- **无感词库部署**：安装输入法与 Rime 插件后自动下载、校验并启用匹配的九键配置；
-- **统一更新**：在应用内分别检查输入法本体、Rime 插件和九键 Rime 配置更新。
+保留底座的实体九键、笔画、注音、手写和工具栏能力；实体按键规则见下文。触屏英文使用 QWERTY，实体英文九键使用 multi-tap 或 T9 联想。
 
 ## 下载与安装
 
-### 1. 下载对应文件
+1. 在[本仓库 Releases](https://github.com/mumufuyun/spoken-android/releases)选择已发布的签名 APK。没有发布包时，需要从源码构建。
+2. 按设备架构选择 `com.spoken.android-版本-arm64-v8a-release.apk` 或 `com.spoken.android-版本-armeabi-v7a-release.apk`，每台设备只安装其中一个。无需另装 Rime 插件或手动复制词库。
+3. 打开 Spoken，按引导启用并选择输入法。首次打开文本框时，等待内置中文词库完成准备。
+4. 需要语音时，在「语音与 AI」中配置服务及凭据，并允许麦克风权限。语音配置不影响离线文字输入。
 
-从本项目的 [Releases](https://github.com/Rizumu85/fcitx5-android-t9-phone/releases) 下载与手机架构对应的两个 APK：
+语音识别与 AI 处理会访问所配置的服务。API 密钥通过 AndroidKeyStore 加密保存，并从系统备份中排除。切换输入框或隐藏键盘会取消当前语音会话。
 
-- 输入法本体：`org.fcitx.fcitx5.android-版本-架构-release.apk`
-- Rime 插件：`org.fcitx.fcitx5.android.plugin.rime-版本-架构-release.apk`
+长按触屏语音键可选择场景与语言、取消本次语音，或插入上次识别原文。找回仅限当前输入框、2 分钟内，切换输入框或收起键盘即清除，不保存输入历史。自定义 Whisper 兼容服务在停止录音后上传音频，不提供实时转写。
 
-32 位手机选择 `armeabi-v7a`，64 位手机选择 `arm64-v8a`。两个 APK 都需要安装。
+应用更新指向本仓库；词库配置更新仍来自 [rime-ice-t9-phone](https://github.com/Rizumu85/rime-ice-t9-phone)。Debug 包为 `com.spoken.android.debug`，与正式包独立安装。
 
-### 2. 启用输入法
-
-安装两个 APK，打开输入法本体并按引导启用。输入法会在后台下载、校验并部署当前版本匹配的九键 Rime 配置；完成后会自动加载。
-
-升级时，已经可用且版本匹配的配置会直接复用，不会重复部署。网络暂时不可用也不会破坏已有配置或反复弹错；首次安装尚未下载完成时，中文词库会显示正在准备。
-
-<details>
-<summary>仅在自动恢复持续失败时手动导入</summary>
-
-从 [rime-ice-t9-phone Releases](https://github.com/Rizumu85/rime-ice-t9-phone/releases) 下载当前版本对应的 `rime-ice-t9-phone-main.zip`，解压后把其中所有文件和文件夹复制到：
-
-```text
-Android/data/org.fcitx.fcitx5.android/files/data/rime
-```
-
-然后在【词库切换】中点一次【重新部署】。配置部署与用户数据同步是两件事，恢复配置不需要点【同步】。
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/5763a980-c058-4f96-9ece-ff0492fd5059" width="640" alt="Rime 配置导入动图：在电脑上同时打开手机的 Rime 数据目录和解压后的 rime-ice-t9-phone 配置文件夹，将配置文件复制到手机目录。">
-</p>
-
-</details>
-
-可在【关于】->【检查更新】统一管理三类更新。打开设置时每天最多自动检查一次；网络不可用时不会反复弹出错误。
-
-## 九键按键规则
+## 实体九键按键规则
 
 ### 中文：拼音、笔画与注音
 
@@ -163,25 +124,15 @@ Android/data/org.fcitx.fcitx5.android/files/data/rime
 - 按键音支持内置声音和手动导入百度输入法 Android `.bds` 皮肤里的按键音；导入后可预览、改名、切换和删除。
 - 在【按键与工具栏】中启用【完整物理按键音】后，文本框外的返回、菜单、接听和挂断键也会播放所选音效；轻量无障碍服务只观察这些按键，不读取屏幕内容。
 
-## 开发构建
+## 开发
 
-当前工具链版本以 [Versions.kt](build-logic/convention/src/main/kotlin/Versions.kt) 为准：Android SDK/Build Tools 36、NDK 28.0.13004108、CMake 3.31.6。Gradle 建议使用 Android Studio 自带的 JBR；原生构建还需要 `extra-cmake-modules` 和 GNU Gettext。
+- [本地环境与定向检查](docs/development.md)
+- [当前架构与模块边界](CONTEXT.md)
+- [真机回归流程](docs/android-studio-final-test-workflow.md)
+- [Rime 全新安装验证](docs/rime-clean-install-validation.md)
+- [实体按键调试](docs/t9-debugging.md)
+- [签名与发布流程](docs/release-runbook.md)
 
-```shell
-git clone --recurse-submodules https://github.com/Rizumu85/fcitx5-android-t9-phone.git
-cd fcitx5-android-t9-phone
+## 来源与许可证
 
-./gradlew :app:assembleDebug :plugin:rime:assembleDebug \
-  -PbuildABI=arm64-v8a
-
-./gradlew :app:testDebugUnitTest \
-  -PbuildABI=arm64-v8a
-```
-
-- 实机 Debug、物理按键和 Rime 调试：[docs/t9-debugging.md](docs/t9-debugging.md)
-- 最终冒烟测试：[docs/android-studio-final-test-workflow.md](docs/android-studio-final-test-workflow.md)
-- 签名发布流程：[docs/release-runbook.md](docs/release-runbook.md)
-
-## 许可证
-
-本项目使用 [LGPL-2.1-or-later](LICENSE) 许可证。第三方组件及词库的许可信息可在应用【关于】->【开源许可证】中查看。
+本项目改造自 [fcitx5-android-t9-phone](https://github.com/Rizumu85/fcitx5-android-t9-phone)，保留上游版权声明，采用 [LGPL-2.1-or-later](LICENSE)。第三方组件、词库及各自许可证见 [THIRD_PARTY.md](docs/THIRD_PARTY.md) 和应用「关于」。

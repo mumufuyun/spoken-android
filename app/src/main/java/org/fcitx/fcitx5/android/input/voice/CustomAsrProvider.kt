@@ -98,7 +98,7 @@ class CustomAsrProvider(
             active = false
             try {
                 val wav = WavEncoder.pcmToWav(pcmBuffer.toByteArray())
-                listener.onFinal(upload(wav))
+                listener.onFinal(SpokenTranscript(upload(wav)))
             } catch (e: Exception) {
                 Timber.e(e, "Spoken custom ASR failed")
                 listener.onError(e.message ?: "语音识别失败")

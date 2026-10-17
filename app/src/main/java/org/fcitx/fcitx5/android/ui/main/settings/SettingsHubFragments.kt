@@ -489,6 +489,10 @@ class AdvancedSettingsHubFragment : GroupedManagedPreferenceFragment() {
     )
 
     override fun onGroupedPreferenceUiCreated(screen: PreferenceScreen) {
+        screen.addCategory(R.string.spoken_privacy_advanced) {
+            addDestination(R.string.clipboard_and_symbols, R.drawable.ic_baseline_content_paste_24, SettingsRoute.ClipboardAndSymbols)
+            addDestination(R.string.about, R.drawable.ic_baseline_info_24, SettingsRoute.About)
+        }
         val extensionsCategory = PreferenceCategory(screen.context).apply {
             setTitle(R.string.extensions_and_fcitx)
             isIconSpaceReserved = false

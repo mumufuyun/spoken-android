@@ -30,6 +30,9 @@ class SpokenVoiceVisualsTest {
     @Test
     fun waveformHiddenOtherwise() {
         assertNull(SpokenVoiceVisuals.waveformColor(SpokenVoiceState.Idle, accent))
+        assertNull(SpokenVoiceVisuals.waveformColor(SpokenVoiceState.Notice("原文已输入"), accent))
+        assertEquals(SpokenVoiceVisuals.COLOR_WARNING,
+            SpokenVoiceVisuals.statusDotColor(SpokenVoiceState.Notice("原文已输入"), accent, false))
         assertNull(SpokenVoiceVisuals.waveformColor(SpokenVoiceState.Starting("…"), accent))
         assertNull(SpokenVoiceVisuals.waveformColor(SpokenVoiceState.Error("x"), accent))
     }

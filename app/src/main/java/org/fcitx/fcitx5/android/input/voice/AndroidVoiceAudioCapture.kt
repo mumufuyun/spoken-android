@@ -8,27 +8,32 @@ import android.annotation.SuppressLint
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
-class AndroidVoiceAudioCapture {
+class AndroidVoiceAudioCapture : VoiceAudioCapture {
     private var recorder: AudioRecord? = null
     private var readJob: Job? = null
     private val acceptingAudio = AtomicBoolean(false)
 
     @SuppressLint("MissingPermission")
-    suspend fun start(scope: CoroutineScope, onFrame: (ByteArray) -> Unit): Result<Unit> =
+    override suspend fun start(scope: CoroutineScope, onFrame: (ByteArray) -> Unit): Result<Unit> =
         withContext(Dispatchers.IO) {
             stop()
             var lastError: Throwable? = null
             repeat(START_DELAYS_MS.size) { attempt ->
                 if (attempt > 0) delay(START_DELAYS_MS[attempt])
+                currentCoroutineContext().ensureActive()
                 var created: AudioRecord? = null
                 val candidate = runCatching {
                     val minBuffer = AudioRecord.getMinBufferSize(
@@ -44,13 +49,13 @@ class AndroidVoiceAudioCapture {
                         AudioFormat.ENCODING_PCM_16BIT,
                         maxOf(minBuffer * 2, FRAME_BYTES * 4)
                     ).also {
+                        created = it
                         check(it.state == AudioRecord.STATE_INITIALIZED) { "Microphone initialization failed" }
                         it.startRecording()
                         check(it.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                             "Microphone did not enter recording state"
                         }
                     }
-                    created = recorder
                     recorder
                 }
                 candidate.onSuccess { active ->
@@ -65,21 +70,24 @@ class AndroidVoiceAudioCapture {
                     }
                     return@withContext Result.success(Unit)
                 }.onFailure {
-                    lastError = it
                     runCatching { created?.release() }
+                    if (it is CancellationException) throw it
+                    lastError = it
                 }
             }
             Result.failure(lastError ?: IllegalStateException("Microphone start failed"))
         }
 
-    suspend fun stop() = withContext(Dispatchers.IO) {
+    override suspend fun stop() = withContext(Dispatchers.IO) {
         acceptingAudio.set(false)
         val active = recorder
         recorder = null
         runCatching { active?.stop() }
-        readJob?.cancel()
+        val reading = readJob
         readJob = null
+        reading?.cancelAndJoin()
         runCatching { active?.release() }
+        Unit
     }
 
     companion object {

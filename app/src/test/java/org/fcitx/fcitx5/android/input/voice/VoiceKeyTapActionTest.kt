@@ -9,8 +9,9 @@ import org.junit.Test
 
 class VoiceKeyTapActionTest {
     @Test
-    fun idleAndErrorStart() {
+    fun idleErrorAndNoticeStart() {
         assertEquals(VoiceKeyTapAction.START, voiceKeyTapAction(SpokenVoiceState.Idle))
+        assertEquals(VoiceKeyTapAction.START, voiceKeyTapAction(SpokenVoiceState.Notice("原文已输入")))
         assertEquals(VoiceKeyTapAction.START, voiceKeyTapAction(SpokenVoiceState.Error("x")))
     }
 

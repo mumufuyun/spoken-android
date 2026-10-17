@@ -6,46 +6,77 @@ This repository adapts Fcitx5 for Android to physical T9-key smart/feature
 phones. The primary experience is physical-key input. The repository also carries a
 touch T9 spike that exposes the same short-press semantics through a full-height
 3-by-3 keypad; candidates, settings, symbols, and password entry remain shared UI.
-The accepted touch shell uses one four-row grid: a wide punctuation rail on the
+The Chinese touch shell uses one four-row grid: a wide punctuation rail on the
 left, the 3-by-3 digit surface in the center, and Delete, a two-row voice target,
-and Return on the right. The voice target uses the nine-bar Spoken waveform with
-no instructional text. The bottom row contains Symbols, Numbers, Space, and the
+and Return on the right. The voice target uses seven rounded waveform bars, then adds a
+Finish, Recognizing, or Use original label during a voice session. Connecting and
+recording animate the bar heights with one continuous animator; transcript updates
+do not restart it. Finishing, cancellation, and hiding stop the motion. This is a
+recording indicator, not an audio-level meter; system animation disabling is respected.
+The bottom row contains Symbols, Numbers, Space, and the
 Chinese/English mode key. Columns and rows must share constraint boundaries so
 the side controls stay aligned with the central keys.
 This shell forces visible key surfaces instead of inheriting the global
 borderless-key preference: center keys are normal surfaces, side actions are
 alternative surfaces, and voice/Return use the accent treatment. The generic
 symbol Picker is still upstream UI and remains a separate productization task.
-The touch grid caps portrait height at 23 percent and uses a 2 dp inset on each
-keycap edge; the complete cell remains tappable. The bottom control row keeps a
-38 dp hit area while its visible keycaps use the same 2 dp edge gap as the rows
-above.
+The touch grid defaults to 28 percent portrait height (35 percent landscape),
+with an effective 20–40 percent setting and compact/comfortable/spacious presets
+at 23/28/31 percent. There is no separate hidden touch-height cap. Settings schema
+3 migrates formerly capped portrait values to the comfortable default. The central
+Chinese T9 keycaps use 20 dp letter labels and a 4 dp inset on each edge to reduce
+their visual weight; other keycaps keep a 2 dp inset. The complete cell remains
+tappable, and the keyboard height is independent of this visual inset. The bottom
+control row keeps a 48 dp hit area with a 2 dp visible keycap inset.
 After the first on-screen T9 digit tap, its composition surface docks inside a
 50 dp reserved area immediately above the keys and replaces the idle toolbar. The touch surface is a
 full-width two-row strip: pinyin disambiguation above Hanzi candidates. Candidate
 pages are packed by measured text width and minimum tap width. Once a page is
 chosen, its items share the remaining horizontal space equally instead of
 scaling hit targets by character count. Each visible item retains a minimum
-34 dp minimum tap height, with enlarged text centered in each allocated hit area. Touch candidates
+34 dp tap height, with 22 sp Hanzi and 16 sp pinyin at the default candidate font
+preference. The two rows have no extra inter-row gap; enlarged text uses the
+existing hit area, and width-based paging measures the same font sizes. Touch candidates
 show only candidate text; numeric shortcut labels remain exclusive to
 physical-key operation. It suppresses the redundant
 floating preedit bubble.
-When that reserved area is idle, it exposes a single settings entry at the right;
-the entry disappears whenever the candidate surface is visible. In gesture-navigation
-mode, the touch T9 input window also yields a narrow 18 dp launch strip on the left
-and right so an edge Back gesture cannot lose its initial touch to a flush keycap.
+When that reserved area is idle, it exposes the scene picker and settings entry.
+During voice input it shows session status and an explicit Cancel action; the
+transcript belongs to the host editor. These controls yield to text candidates. In gesture-navigation
+mode, phones without a hardware keyboard yield a narrow 18 dp launch strip on the left
+and right from the first visible keyboard frame, including voice, symbol, and expanded
+candidate surfaces, so an edge Back gesture cannot lose its initial touch to a flush keycap.
 The strip is intentionally capped instead of using the full system-reported side
 inset because HyperOS can report an area wide enough to consume the T9 reading rail.
 The editor-selection predictive-Back callback is restricted to a visible physical
 keyboard session. A touch keyboard, or an IME window that has already been hidden,
 must never register the overlay-priority callback because it would intercept the
-host application's navigation even when no keyboard is on screen.
+host application's navigation even when no keyboard is on screen. Hardware presence
+comes from Android's keyboard configuration, not `InputDeviceManager.isVirtualKeyboard`:
+touch T9 intentionally shares that manager's physical engine path. System-generated
+Back key events bypass physical key routing and pre-IME selection deletion, leaving
+keyboard dismissal and subsequent page navigation to Android. Selection-collapse
+deletion is also restricted to phones with a hardware keyboard.
 Touch digit keycaps show letters only; number entry remains available from the
-dedicated `123` panel. English uses a full-width three-row QWERTY surface instead
-of touch T9 while retaining the fixed right-side Delete, voice, and Return rail.
-Number and two-page symbol panels stay inside the same compact shell so their
-grid boundaries and persistent voice entry do not jump between windows. The
-language key switches only between Chinese and English. While Chinese pinyin is composing, the left punctuation rail mirrors
+dedicated `123` panel. English uses a full-width three-row QWERTY surface with
+18 dp side gutters, keeping the outer letters clear of the Back launch strips.
+The second letter row is staggered, and Shift/Delete flank the third row. Its
+48 dp bottom row contains numbers, a compact voice key, comma, Space, period,
+the language key, and Return. The voice popup anchors to the visible voice key;
+both layouts retain the same recording-state labels and waveform behavior.
+Number and two-page symbol panels stay inside the keyboard window with the
+right-side action rail. The primary symbol page uses ASCII punctuation in English
+and Chinese punctuation in Chinese mode. The language key switches only between
+Chinese and English.
+Touch English letters, spaces, symbols, deletion, cursor movement, and Return go
+directly to the Android editor contract; they must not pass through active Rime
+composition or silently select a Chinese candidate. Physical T9 retains its
+separate multi-tap and Smart English pipeline. A touch language switch discards
+unfinished Chinese composition before entering the next mode. Shift affects one
+letter, double-tap/long-press locks capitals, and a fresh editor or language change
+resets Shift and returns to the text panel. An engine status refresh for the same
+mode preserves the user's current panel and Shift state.
+While Chinese pinyin is composing, the left punctuation rail mirrors
 up to four selectable pinyin readings and returns to punctuation when the
 composition clears. The complete pinyin sequence remains visible in the top
 candidate row. Both pinyin and Hanzi candidate text use a heavier foreground.
@@ -371,25 +402,75 @@ described below.
 ## Voice And Toolbar
 
 The touch T9 shell reserves its right-center two rows for a persistent, tap-based
-voice target. It is presentation-only during the keyboard UI milestone. It must
-not switch to an external voice IME or use a hold-to-talk interaction; the action
-will be enabled only when an in-process Spoken recording and transcription
-pipeline can own tap-to-start and tap-to-finish states without leaving the
-keyboard.
+voice target. It starts and stops the in-process Spoken pipeline without leaving
+the keyboard. While AI is processing, another tap commits the recognized text
+and cancels AI processing. Long-press opens the scene and output-language picker,
+an explicit cancel action while active, and an optional action to insert the last
+original into the same editor.
+
+`VoiceComposition` owns a recording's temporary editor range independently of
+Rime. `AndroidVoiceEditor` streams underlined composing text through the captured
+InputConnection; the final ASR text stays visible while AI runs, and one final
+commit replaces that composing range. Clicking Finish stops capture and starts
+automatic finalization; no second confirmation step is required. Explicit Cancel
+restores the replaced selection only while the editor still matches the locally
+held snapshot. Manual typing, cursor movement, composition loss, hiding, or field
+switching revoke ownership and cancel delayed work, preserving visible text.
+Snapshot comparison is local, bounded to 32,768 characters, and never sent to ASR
+or AI. Editors without extraction/composing support use the fixed keyboard dock
+for preview; loss of an already-owned composition stops automatic rewriting.
+The decisions and host-editor validation boundaries are in
+`docs/adr/0008-inline-voice-composition-and-mobile-settings.md`.
 
 The in-process Spoken pipeline lives under `input/voice/`. `SpokenVoiceCoordinator`
-owns the session state machine and `AndroidVoiceAudioCapture`; `SpokenAsrProvider`
+owns the session state machine. Each recording owns a separate `VoiceAudioSession`
+and `AndroidVoiceAudioCapture`. Stopping cancels and joins microphone startup before
+releasing its resources; terminal cleanup survives IME scope cancellation and cannot
+stop a later recording. `SpokenAsrProvider`
 abstracts the recognition engine with Qwen realtime, Xunfei IAT, and Whisper-compatible
-batch implementations chosen via `AsrProviderFactory`. Final transcripts pass through
-`SpokenSpeechPostProcessor`, then optionally through `AiProcessor` (OpenAI-compatible
-chat completions), falling back to the raw transcript on any failure. Post-processing
-follows the two-dimension model from the MVP spec: a `WorkScene` (verbatim, chat, work,
-formal, minutes, share, AI prompt) combined with an `OutputLanguage` (original, English,
+batch implementations chosen via `AsrProviderFactory`. `SpokenTranscript`
+distinguishes a completed recognition from a partial preserved on
+finalization timeout or connection loss. Incomplete recognition commits the available
+original with a notice and bypasses AI. Completed originals are retained before processing;
+DIRECT/original bypasses local corrections as well as AI. Other scenes pass through
+`SpokenSpeechPostProcessor` (spaced-capital normalization only), then `AiProcessor`
+(OpenAI-compatible chat completions). The seven built-in tasks and their language
+suffixes match Spoken Desktop 2.4.9 configuration v8 without personal context,
+including the content-sharing and AI-instruction wrapper exceptions. Golden
+fingerprints cover all 28 scene/language combinations. The mobile-only DIRECT
+mode remains independent of these editing tasks.
+`AiRequestPolicy` matches known provider/model pairs before applying vendor
+parameters. Qwen 3.8 Flash uses temperature zero and enables thinking only for
+meeting notes of at least 800 Unicode code points; that path buffers SSE final
+content until both a stop reason and DONE marker arrive. Other built-ins use
+non-streaming responses. Output budgets follow the desktop length policy, while
+the user's existing 3–120 second whole-call deadline remains authoritative.
+No reasoning deltas or partial streaming results are committed to the editor.
+Empty, truncated, failed, or suspicious AI output
+falls back to the exact original with a separate status notice. `AiOutputGuard` rejects
+known internal-reasoning/protocol markers; it is a conservative format check, not a
+semantic fidelity guarantee. AI requests have a whole-call deadline and a distinct
+request identity so cancelled results cannot affect a later request. Post-processing
+follows the two-dimension model from the MVP spec: a `WorkScene` (verbatim, smooth
+transcription, chat, work, formal, minutes, share, AI prompt) combined with an
+`OutputLanguage` (original, English,
 Japanese, Korean); DIRECT with the original language bypasses AI, and DIRECT with another
-language is pure translation. The voice-key long-press sheet picks both dimensions.
+language is pure translation. The scene/language picker aligns to the bottom and
+horizontal bounds of the input panel, independent of its opener. It uses a two-column
+scene list with short descriptions and a separate language row; selecting a scene
+returns to the keyboard. The header remains visible while the body scrolls in small
+windows or at large font sizes. Keyboard resizing/hiding dismisses the picker.
 Non-secret voice settings live in the `AppPrefs.voice` category and are snapshotted at
 session start; API keys live in `SecureVoiceKeyStorage` (AndroidKeyStore AES/GCM) keyed
 by `VoiceKeyPurpose`.
+
+`VoiceInputRecovery` retains one original in memory for at most two minutes (20,000
+characters maximum, never truncated). Recovery explicitly cancels current work and
+inserts the frozen original only if its entry identity and editor generation still match.
+Changing fields, hiding the keyboard, or destroying the IME clears it. No audio,
+clipboard history, cross-app recovery, or persistent transcript history is added.
+The platform adaptation decisions are in
+`docs/adr/0007-mobile-voice-desktop-adaptation.md`.
 
 The idle KawaiiBar is always expanded. Voice occupies the former leading toggle
 slot; temporary clipboard or inline-suggestion content changes that slot to a
@@ -397,12 +478,25 @@ Back action so the toolbar remains reachable. Voice, undo, redo, text editing,
 clipboard, and hide-keyboard actions are independently configurable. Quick
 Settings is fixed and cannot be removed.
 
-Voice selection is an enabled IME target with an optional subtype. Explicit
-preferences support standalone voice IMEs without subtype metadata; automatic
+The legacy physical-key/toolbar voice action is an enabled IME target with an
+optional subtype. Explicit preferences support standalone voice IMEs without subtype metadata; automatic
 selection prefers declared voice subtypes and conservative voice-service
 identity hints. Target resolution happens when invoked, and unavailable targets
 show feedback instead of failing silently. The full contract is recorded in
 `docs/adr/0002-voice-input-and-toolbar-contract.md`.
+
+## Settings
+
+The Flat Pop settings home uses four entry points: Voice and AI, Keyboard and
+appearance, Input preferences, and Privacy and advanced. `SpokenSettingsPage`
+owns their card surfaces and the local keyboard playground. Voice settings keep
+scene/language and AI enablement on the overview; recognition and AI credentials
+have separate connection pages using the existing secure storage. Appearance
+includes effective height presets, a slider, and a real editor for preview, with
+links to themes, key feedback, and candidate options. Existing preference detail
+pages reuse rounded surfaces; app bars use neutral backgrounds without shadows.
+Configuration summaries indicate stored configuration, not a successful live
+provider connectivity test. No settings migration changes voice credentials.
 
 ## Handwriting
 
@@ -494,7 +588,9 @@ Quick Settings renders from `FcitxCachedState.statusAreaActions` before attach;
 opening the window never waits for a new serialized engine query.
 
 Settings entry uses a persisted 24-hour gate before querying the latest GitHub
-releases. Automatic network failures are silent and still consume the gate;
+releases. App releases come from `mumufuyun/spoken-android`; Rime configuration
+releases remain owned by `Rizumu85/rime-ice-t9-phone`. Automatic network failures
+are silent and still consume the gate;
 manual checks bypass it and report failures. The update catalog treats the app
 and the architecture-independent `rime-ice-t9-phone` configuration as
 independently versioned artifacts; the rime engine itself ships inside the app

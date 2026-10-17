@@ -57,7 +57,7 @@ class UpdateChecker(
 
     companion object {
         private const val AppReleasesUrl =
-            "https://api.github.com/repos/Rizumu85/fcitx5-android-t9-phone/releases?per_page=100"
+            "https://api.github.com/repos/mumufuyun/spoken-android/releases?per_page=100"
         private const val RimeConfigReleasesUrl =
             "https://api.github.com/repos/Rizumu85/rime-ice-t9-phone/releases?per_page=100"
 
@@ -67,7 +67,7 @@ class UpdateChecker(
                 connection.connectTimeout = 5_000
                 connection.readTimeout = 8_000
                 connection.setRequestProperty("Accept", "application/vnd.github+json")
-                connection.setRequestProperty("User-Agent", "Fcitx5-Android-T9-Updater")
+                connection.setRequestProperty("User-Agent", "Spoken-Android-Updater")
                 connection.inputStream.bufferedReader().use { it.readText() }
             } finally {
                 connection.disconnect()

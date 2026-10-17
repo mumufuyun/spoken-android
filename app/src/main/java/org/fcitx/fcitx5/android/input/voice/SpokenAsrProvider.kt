@@ -18,7 +18,13 @@ interface SpokenAsrProvider {
     interface Listener {
         fun onReady()
         fun onPartial(text: String)
-        fun onFinal(text: String)
+        fun onFinal(transcript: SpokenTranscript)
         fun onError(message: String)
     }
+}
+
+/** A timeout or broken connection must not promote a partial transcript to a finished one. */
+data class SpokenTranscript(val text: String, val isComplete: Boolean = true) {
+    fun allowsAi(scene: WorkScene, language: OutputLanguage): Boolean =
+        isComplete && (scene != WorkScene.DIRECT || language != OutputLanguage.ORIGINAL)
 }

@@ -31,6 +31,6 @@ object FlatPopTints {
         WorkScene.MINUTES -> mint(dark)
         WorkScene.SHARE -> peach(dark)
         WorkScene.PROMPT -> lemon(dark)
-        WorkScene.DIRECT -> null
+        WorkScene.DIRECT, WorkScene.SMOOTH -> null
     }
 }

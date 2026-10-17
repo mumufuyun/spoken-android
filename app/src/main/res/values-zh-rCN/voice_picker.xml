@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_picker_title">语音模式</string>
+    <string name="voice_picker_direct">保留识别原文</string>
+    <string name="voice_picker_translate">只翻译，不改写</string>
+    <string name="voice_picker_smooth">去除停顿与重复</string>
+    <string name="voice_picker_chat">自然口语，保留语气</string>
+    <string name="voice_picker_work">清晰、专业、有礼貌</string>
+    <string name="voice_picker_formal">规范严谨的书面表达</string>
+    <string name="voice_picker_minutes">整理结论与待办</string>
+    <string name="voice_picker_share">整理为可发布的内容</string>
+    <string name="voice_picker_prompt">整理为结构化提示词</string>
+    <string name="voice_picker_cancel">取消本次语音</string>
+    <string name="voice_picker_recover">插入上次原文 · 当前输入框，2 分钟内</string>
+    <string name="voice_picker_next_session">模式和语言更改从下次录音生效</string>
+    <string name="voice_picker_hint">选择模式后返回键盘</string>
+</resources>

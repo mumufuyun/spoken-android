@@ -21,6 +21,11 @@ sealed class KeyAction {
 
     data class CommitAction(val text: String) : KeyAction()
 
+    /** Literal touch English input must not be interpreted by the active Chinese engine. */
+    data class EditorTextAction(val text: String) : KeyAction()
+
+    data class EditorKeyAction(val keyCode: Int) : KeyAction()
+
     data class CapsAction(val lock: Boolean) : KeyAction()
 
     data object QuickPhraseAction : KeyAction()

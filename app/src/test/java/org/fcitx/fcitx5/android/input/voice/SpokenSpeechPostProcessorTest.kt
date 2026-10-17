@@ -9,9 +9,9 @@ import org.junit.Test
 
 class SpokenSpeechPostProcessorTest {
     @Test
-    fun appliesOnlyHighConfidenceTechnicalTerms() {
+    fun preservesAmbiguousNamesInsteadOfReplacingHomophones() {
         assertEquals(
-            "请检查API和JSON格式",
+            "请检查阿皮哎和杰森格式",
             SpokenSpeechPostProcessor.process("  请检查阿皮哎和杰森格式  ")
         )
     }
@@ -19,8 +19,8 @@ class SpokenSpeechPostProcessorTest {
     @Test
     fun collapsesSpacedAcronyms() {
         assertEquals(
-            "打开API设置",
-            SpokenSpeechPostProcessor.process("打开 a p i 设置")
+            "打开 API 设置",
+            SpokenSpeechPostProcessor.process("打开 A P I 设置")
         )
     }
 
@@ -30,5 +30,11 @@ class SpokenSpeechPostProcessorTest {
             "这是普通的一句话。",
             SpokenSpeechPostProcessor.process("这是普通的一句话。")
         )
+    }
+
+    @Test
+    fun doesNotJoinWordsAcrossLinesOrChangeLowercaseSpeech() {
+        val text = "a p i 和优爱克斯\nA B\nC"
+        assertEquals(text, SpokenSpeechPostProcessor.process(text))
     }
 }

@@ -10,17 +10,17 @@ import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.view.KeyEvent
 import android.view.View
+import androidx.core.view.updateLayoutParams
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.children
 import androidx.core.view.descendants
 import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.core.KeyState
-import org.fcitx.fcitx5.android.core.KeyStates
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemePreset
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
+import org.fcitx.fcitx5.android.input.voice.SpokenVoiceKeyDrawable
 import org.fcitx.fcitx5.android.input.voice.SpokenWorkModePopup
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
@@ -45,7 +45,7 @@ private class TouchT9DigitKey(
 ) : KeyDef(
     Appearance.Text(
         displayText = letters,
-        textSize = 25f,
+        textSize = 20f,
         percentWidth = 0.333f,
         border = Border.On,
         margin = false
@@ -66,12 +66,12 @@ private class TouchT9ReadingKey(slot: Int) : KeyDef(
     setOf(Behavior.Press(KeyAction.T9ReadingSlotAction(slot)))
 )
 
-private class TouchT9ModeKey : KeyDef(
+private class TouchT9ModeKey(percentWidth: Float = 0.15f) : KeyDef(
     Appearance.Text(
         displayText = "中/英",
         textSize = 14f,
         textStyle = Typeface.BOLD,
-        percentWidth = 0.15f,
+        percentWidth = percentWidth,
         variant = Variant.Normal,
         border = Border.On,
         margin = false,
@@ -80,10 +80,14 @@ private class TouchT9ModeKey : KeyDef(
     setOf(Behavior.Press(KeyAction.LangSwitchAction))
 )
 
-private class TouchT9VoiceKey : KeyDef(
-    Appearance.Image(
+private class TouchT9VoiceKey(percentWidth: Float = 1f) : KeyDef(
+    Appearance.ImageText(
+        displayText = "",
+        textSize = 13f,
         src = R.drawable.ic_spoken_waveform_36,
-        // Flat Pop keeps the voice key on the solid coral accent; recording shows breathing.
+        percentWidth = percentWidth,
+        viewId = R.id.button_voice,
+        // The waveform animates inside the stable solid accent key.
         variant = Variant.Accent,
         border = Border.On,
         margin = false
@@ -172,8 +176,7 @@ private class TouchCommitKey(
  *
  * Punctuation and digits occupy the first three rows. Bottom controls occupy row four. Delete
  * aligns with digit row one, the voice target spans digit rows two and three, and Return aligns
- * with the bottom controls. The waveform key stays presentation-only until the in-process Spoken
- * voice pipeline replaces the legacy external-IME handoff.
+ * with the bottom controls. The waveform key controls the in-process Spoken voice pipeline.
  */
 @SuppressLint("ViewConstructor")
 class T9Keyboard(
@@ -181,14 +184,15 @@ class T9Keyboard(
     theme: Theme
 ) : BaseKeyboard(context, theme, emptyList(), keyPreviewEnabled = false) {
 
-    private enum class CapsState { NONE, ONCE, LOCK }
-
     companion object {
         const val Name = "T9"
         private const val TOUCH_KEY_GAP_DP = 2
+        private const val TOUCH_T9_DIGIT_INSET_DP = 4
+        // Match the system Back launch strip; no letter target may sit underneath it.
+        private const val ENGLISH_EDGE_GUTTER_DP = 18
         private const val TOUCH_BOTTOM_KEY_VERTICAL_INSET_DP = 2
-        // Flat Pop compact metrics (mockup 15): bottom function row 38dp.
-        private const val TOUCH_BOTTOM_ROW_HEIGHT_DP = 38
+        // Keep auxiliary actions at a full touch target height.
+        private const val TOUCH_BOTTOM_ROW_HEIGHT_DP = 48
     }
 
     /** Macaron tints apply only while a Flat Pop preset is active. */
@@ -196,8 +200,8 @@ class T9Keyboard(
         theme.name == ThemePreset.FlatPopLight.name || theme.name == ThemePreset.FlatPopDark.name
 
     private fun createTouchKeyView(def: KeyDef): KeyView = createKeyView(def).apply {
-        // Keep the whole cell tappable while reducing the visible gap between adjacent keycaps.
-        padding = dp(TOUCH_KEY_GAP_DP)
+        // Lighten the large T9 keycaps without shrinking their full-cell touch targets.
+        padding = dp(if (def is TouchT9DigitKey) TOUCH_T9_DIGIT_INSET_DP else TOUCH_KEY_GAP_DP)
     }
 
     private fun createCompactBottomKeyView(def: KeyDef): KeyView = createKeyView(def).apply {
@@ -350,10 +354,11 @@ class T9Keyboard(
 
     private val qwertyRows = listOf(
         qwertyRow("qwertyuiop"),
-        qwertyRow("asdfghjkl"),
+        qwertyRow("asdfghjkl", 0.1f),
         horizontalRow(
             listOf(TouchCapsKey()) +
-                "zxcvbnm".map { TouchQwertyKey(it.toString(), 0.85f / 7f) }
+                "zxcvbnm".map { TouchQwertyKey(it.toString(), 0.1f) } +
+                BackspaceKey(0.15f, border = Border.On, margin = false)
         ).also { row ->
             row.children.filterIsInstance<TextKeyView>().forEach(qwertyLetterViews::add)
         }
@@ -452,6 +457,14 @@ class T9Keyboard(
         )
     )
 
+    private val englishSymbolSurface = symbolSurface(
+        listOf(
+            listOf(",", ".", "?", "!", ":", ";", "'"),
+            listOf("\"", "(", ")", "@", "#", "_", "/"),
+            listOf("%", "&", "*", "+", "-", "=", "$")
+        )
+    )
+
     private val secondarySymbolSurface = symbolSurface(
         listOf(
             listOf("[", "]", "{", "}", "<", ">", "/"),
@@ -466,6 +479,19 @@ class T9Keyboard(
             TouchPanelKey("123", TouchPanel.NUMBER, 0.15f, Variant.Normal),
             SpaceKey(0.52f, Border.On, margin = false, displayText = "spoken"),
             TouchT9ModeKey()
+        ),
+        compactBottomKeycaps = true
+    )
+
+    private val englishBottomRow = horizontalRow(
+        listOf(
+            TouchPanelKey("?123", TouchPanel.NUMBER, 0.13f),
+            TouchT9VoiceKey(0.12f),
+            TouchCommitKey(",", 0.08f),
+            SpaceKey(0.30f, Border.On, margin = false, displayText = "spoken"),
+            TouchCommitKey(".", 0.08f),
+            TouchT9ModeKey(0.13f),
+            ReturnKey(0.16f, Border.On, margin = false)
         ),
         compactBottomKeycaps = true
     )
@@ -501,10 +527,36 @@ class T9Keyboard(
     )
 
     private val backspace = createTouchKeyView(BackspaceKey(border = Border.On, margin = false))
-    private val voice = createTouchKeyView(TouchT9VoiceKey()).apply { id = R.id.button_voice }
+    private val voiceWaveform = SpokenVoiceKeyDrawable(theme.accentKeyTextColor)
+    private val voice = (createTouchKeyView(TouchT9VoiceKey()) as ImageTextKeyView).apply {
+        id = R.id.button_voice
+        contentDescription = "开始语音输入"
+        img.setImageDrawable(voiceWaveform)
+        img.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = dp(44)
+            height = dp(40)
+            topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+            bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+            topMargin = 0
+        }
+    }
 
-    /** Anchor for the work-mode popup shown on voice-key long press. */
-    val voiceKeyView: KeyView get() = voice
+    private val englishVoiceWaveform = SpokenVoiceKeyDrawable(theme.accentKeyTextColor)
+    private val englishVoice = englishBottomRow.findViewById<ImageTextKeyView>(R.id.button_voice).apply {
+        contentDescription = "开始语音输入"
+        img.setImageDrawable(englishVoiceWaveform)
+        img.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = dp(26)
+            height = dp(24)
+            topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+            bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+            topMargin = 0
+        }
+    }
+
+    /** Anchor to the visible voice key, including the compact QWERTY bottom row. */
+    val voiceKeyView: KeyView
+        get() = if (englishBottomRow.visibility == View.VISIBLE) englishVoice else voice
 
     private val returnKey = createTouchKeyView(ReturnKey(border = Border.On, margin = false)).apply {
         if (flatPopTintsActive) {
@@ -529,6 +581,10 @@ class T9Keyboard(
         })
     }
 
+    private val capsView: ImageKeyView by lazy { findViewById(R.id.button_caps) }
+    private val englishInput = TouchEnglishInput()
+    private var currentModeLabel = "中"
+
     init {
         add(leftRailSurface, lParams {
             leftOfParent()
@@ -544,9 +600,19 @@ class T9Keyboard(
         })
         add(qwertySurface, lParams {
             leftOfParent()
-            rightToLeftOf(rightActionSurface)
+            rightOfParent()
+            leftMargin = dp(ENGLISH_EDGE_GUTTER_DP)
+            rightMargin = dp(ENGLISH_EDGE_GUTTER_DP)
             topOfParent()
-            above(bottomRow)
+            above(englishBottomRow)
+        })
+        add(englishBottomRow, lParams {
+            leftOfParent()
+            rightOfParent()
+            leftMargin = dp(ENGLISH_EDGE_GUTTER_DP)
+            rightMargin = dp(ENGLISH_EDGE_GUTTER_DP)
+            bottomOfParent()
+            height = dp(TOUCH_BOTTOM_ROW_HEIGHT_DP)
         })
         add(numberSurface, lParams {
             leftOfParent()
@@ -555,6 +621,12 @@ class T9Keyboard(
             above(numberBottomRow)
         })
         add(primarySymbolSurface, lParams {
+            leftOfParent()
+            rightToLeftOf(rightActionSurface)
+            topOfParent()
+            above(primarySymbolBottomRow)
+        })
+        add(englishSymbolSurface, lParams {
             leftOfParent()
             rightToLeftOf(rightActionSurface)
             topOfParent()
@@ -619,94 +691,78 @@ class T9Keyboard(
         bottomKeys.getOrNull(1)?.tint(FlatPopTints.peach(dark))
         bottomKeys.getOrNull(3)?.tint(FlatPopTints.mint(dark))
         backspace.tint(FlatPopTints.peach(dark))
-        returnView.img.imageTintList = ColorStateList.valueOf(theme.keyTextColor)
+        qwertySurface.findViewById<KeyView>(R.id.button_backspace).tint(FlatPopTints.peach(dark))
+        englishBottomRow.children.filterIsInstance<KeyView>().toList().let { keys ->
+            keys[0].tint(FlatPopTints.lemon(dark))
+            keys[5].tint(FlatPopTints.mint(dark))
+        }
+        descendants.filterIsInstance<ImageKeyView>().filter { it.def.viewId == R.id.button_return }
+            .forEach {
+                it.returnKeyBackgroundOverride = FlatPopTints.lemon(dark)
+                it.img.imageTintList = ColorStateList.valueOf(theme.keyTextColor)
+            }
     }
 
-    private val mode: TextKeyView by lazy { findViewById(R.id.button_lang) }
-    private val returnView: ImageKeyView by lazy { findViewById(R.id.button_return) }
-    private val capsView: ImageKeyView by lazy { findViewById(R.id.button_caps) }
-    private var capsState = CapsState.NONE
-    private var currentModeLabel = "中"
-    private var currentPanel = TouchPanel.TEXT
-
     override fun onAction(action: KeyAction, source: KeyActionListener.Source) {
-        var transformed = action
-        when (action) {
-            is KeyAction.TouchPanelAction -> {
-                showPanel(TouchPanel.valueOf(action.panel))
-                return
-            }
-            is KeyAction.CapsAction -> {
-                capsState = if (action.lock) {
-                    if (capsState == CapsState.LOCK) CapsState.NONE else CapsState.LOCK
-                } else {
-                    if (capsState == CapsState.NONE) CapsState.ONCE else CapsState.NONE
-                }
-                updateQwertyCaps()
-                return
-            }
-            is KeyAction.FcitxKeyAction -> if (
-                currentPanel == TouchPanel.TEXT &&
-                currentModeLabel == "英" &&
-                action.act.length == 1 &&
-                action.act[0].isLetter()
-            ) {
-                transformed = when (capsState) {
-                    CapsState.NONE -> action.copy(act = action.act.lowercase())
-                    CapsState.ONCE -> action.copy(
-                        act = action.act.uppercase(),
-                        states = KeyStates(KeyState.Virtual, KeyState.Shift)
-                    ).also {
-                        capsState = CapsState.NONE
-                        updateQwertyCaps()
-                    }
-                    CapsState.LOCK -> action.copy(
-                        act = action.act.uppercase(),
-                        states = KeyStates(KeyState.Virtual, KeyState.CapsLock)
-                    )
-                }
-            }
-            else -> Unit
+        if (action is KeyAction.TouchPanelAction) {
+            showPanel(TouchPanel.valueOf(action.panel))
+            return
         }
-        super.onAction(transformed, source)
+        val previousCaps = englishInput.caps
+        val transformed = if (currentModeLabel == "英") englishInput.map(action) else action
+        if (previousCaps != englishInput.caps) updateQwertyCaps()
+        transformed?.let { super.onAction(it, source) }
+    }
+
+    /** A new editor must not inherit a symbol panel or Shift lock from the previous field. */
+    fun startEditor() {
+        englishInput.reset()
+        updateQwertyCaps()
+        showPanel(TouchPanel.TEXT)
     }
 
     private fun updateQwertyCaps() {
-        val uppercase = capsState != CapsState.NONE
+        val uppercase = englishInput.caps != TouchEnglishInput.Caps.NONE
         qwertyLetterViews.forEach { view ->
             val character = (view.def as KeyDef.Appearance.Text).displayText
             view.mainText.text = if (uppercase) character.uppercase() else character.lowercase()
         }
-        capsView.img.imageResource = when (capsState) {
-            CapsState.NONE -> R.drawable.ic_capslock_none
-            CapsState.ONCE -> R.drawable.ic_capslock_once
-            CapsState.LOCK -> R.drawable.ic_capslock_lock
+        capsView.img.imageResource = when (englishInput.caps) {
+            TouchEnglishInput.Caps.NONE -> R.drawable.ic_capslock_none
+            TouchEnglishInput.Caps.ONCE -> R.drawable.ic_capslock_once
+            TouchEnglishInput.Caps.LOCK -> R.drawable.ic_capslock_lock
         }
     }
 
     private fun showPanel(panel: TouchPanel) {
-        currentPanel = panel
         val showEnglish = panel == TouchPanel.TEXT && currentModeLabel == "英"
         leftRailSurface.visibility = if (panel == TouchPanel.TEXT && !showEnglish) View.VISIBLE else View.GONE
         digitSurface.visibility = if (panel == TouchPanel.TEXT && !showEnglish) View.VISIBLE else View.GONE
         qwertySurface.visibility = if (showEnglish) View.VISIBLE else View.GONE
         numberSurface.visibility = if (panel == TouchPanel.NUMBER) View.VISIBLE else View.GONE
-        primarySymbolSurface.visibility = if (panel == TouchPanel.SYMBOL_PRIMARY) View.VISIBLE else View.GONE
+        primarySymbolSurface.visibility = if (panel == TouchPanel.SYMBOL_PRIMARY && currentModeLabel != "英") View.VISIBLE else View.GONE
+        englishSymbolSurface.visibility = if (panel == TouchPanel.SYMBOL_PRIMARY && currentModeLabel == "英") View.VISIBLE else View.GONE
         secondarySymbolSurface.visibility = if (panel == TouchPanel.SYMBOL_SECONDARY) View.VISIBLE else View.GONE
-        bottomRow.visibility = if (panel == TouchPanel.TEXT) View.VISIBLE else View.GONE
+        englishBottomRow.visibility = if (showEnglish) View.VISIBLE else View.GONE
+        rightActionSurface.visibility = if (showEnglish) View.GONE else View.VISIBLE
+        returnKey.visibility = if (showEnglish) View.GONE else View.VISIBLE
+        bottomRow.visibility = if (panel == TouchPanel.TEXT && !showEnglish) View.VISIBLE else View.GONE
         numberBottomRow.visibility = if (panel == TouchPanel.NUMBER) View.VISIBLE else View.GONE
         primarySymbolBottomRow.visibility = if (panel == TouchPanel.SYMBOL_PRIMARY) View.VISIBLE else View.GONE
         secondarySymbolBottomRow.visibility = if (panel == TouchPanel.SYMBOL_SECONDARY) View.VISIBLE else View.GONE
     }
 
     override fun onReturnDrawableUpdate(returnDrawable: Int) {
-        returnView.img.imageResource = returnDrawable
+        descendants.filterIsInstance<ImageKeyView>().filter { it.def.viewId == R.id.button_return }
+            .forEach { it.img.imageResource = returnDrawable }
     }
 
     fun updateT9ModeLabel(modeLabel: String) {
+        val changed = currentModeLabel != modeLabel
         currentModeLabel = modeLabel
-        mode.mainText.text = modeLabel
-        showPanel(TouchPanel.TEXT)
+        descendants.filterIsInstance<TextKeyView>().filter { it.def.viewId == R.id.button_lang }
+            .forEach { it.mainText.text = modeLabel }
+        if (changed) startEditor()
     }
 
     fun updateT9ReadingOptions(options: List<String>) {
@@ -721,38 +777,33 @@ class T9Keyboard(
     }
 
     fun updateSpokenVoiceState(state: SpokenVoiceState) {
-        voice.animate().cancel()
-        if (state is SpokenVoiceState.Recording) {
-            startVoiceBreathing()
-        } else {
-            voiceBreathing = false
-            voice.alpha = 1f
+        val label = when (state) {
+            is SpokenVoiceState.Starting, is SpokenVoiceState.Recording -> "完成"
+            SpokenVoiceState.Finishing -> "识别中"
+            SpokenVoiceState.AiProcessing -> "用原文"
+            else -> ""
         }
+        listOf(voice, englishVoice).forEach { key ->
+            key.mainText.text = label
+            key.contentDescription = label.ifBlank { "开始语音输入" }
+            key.img.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                verticalBias = when {
+                    label.isEmpty() -> .5f
+                    key === englishVoice -> .2f
+                    else -> .35f
+                }
+            }
+        }
+        val recording = state is SpokenVoiceState.Starting || state is SpokenVoiceState.Recording
+        voiceWaveform.setRecording(recording)
+        englishVoiceWaveform.setRecording(recording)
     }
-
-    /** Flat Pop recording feedback: opacity breathing on the solid accent voice key. */
-    private var voiceBreathing = false
 
     override fun onDetach() {
         // The work-mode popup anchors to this view; it must not outlive the window token.
         SpokenWorkModePopup.dismissCurrent()
-        voice.animate().cancel()
-        voiceBreathing = false
-        voice.alpha = 1f
+        voiceWaveform.setRecording(false)
+        englishVoiceWaveform.setRecording(false)
         super.onDetach()
-    }
-
-    private fun startVoiceBreathing() {
-        if (voiceBreathing) return
-        voiceBreathing = true
-        fun phase(target: Float) {
-            if (!voiceBreathing || !voice.isAttachedToWindow) return
-            voice.animate()
-                .alpha(target)
-                .setDuration(800L)
-                .withEndAction { phase(if (target < 1f) 1f else 0.72f) }
-                .start()
-        }
-        phase(0.72f)
     }
 }

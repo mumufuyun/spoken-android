@@ -25,7 +25,6 @@ import org.fcitx.fcitx5.android.input.dependency.theme
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.popup.PopupActionListener
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
-import org.fcitx.fcitx5.android.input.voice.SpokenWorkModePopup
 import org.fcitx.fcitx5.android.input.wm.EssentialWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
@@ -103,6 +102,9 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     private val keyActionListener = KeyActionListener { it, source ->
+        if (it !is KeyAction.SpokenVoiceAction && it !is KeyAction.SpokenVoiceModeAction) {
+            service.interruptSpokenVoiceForEditing()
+        }
         when (it) {
             is KeyAction.LayoutSwitchAction -> {
                 if (
@@ -129,7 +131,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             is KeyAction.VirtualT9KeyAction -> service.handleVirtualT9Key(it.keyCode)
             is KeyAction.SpokenVoiceAction -> service.toggleSpokenVoiceInput()
             is KeyAction.SpokenVoiceModeAction ->
-                (currentKeyboard as? T9Keyboard)?.let { SpokenWorkModePopup.show(it.voiceKeyView, theme) }
+                (currentKeyboard as? T9Keyboard)?.let { service.showSpokenVoiceOptions(it.voiceKeyView, theme) }
             else -> commonKeyActionListener.listener.onKeyAction(it, source)
         }
     }
@@ -567,6 +569,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             else -> T9Keyboard.Name
         }
         switchLayout(targetLayout, remember = false)
+        if (!restarting) (currentKeyboard as? T9Keyboard)?.startEditor()
     }
 
     override fun onImeUpdate(ime: InputMethodEntry) {

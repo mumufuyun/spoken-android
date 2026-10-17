@@ -1,5 +1,6 @@
 # 拼音九键开源基线复现报告
 
+> 历史记录：本文仅对应下方固定的早期底座提交、设备与测试结果，不代表当前 Spoken 版本。
 > 状态：Basic device smoke passed / Interaction validation pending  
 > 日期：2026-08-24  
 > 当前范围：只验证 Android 触屏拼音九键技术路径，不讨论语音融合
@@ -133,7 +134,7 @@
 
 测试仅观察候选，没有向短信会话发送任何内容。当前输入法仍保持为系统默认，供后续手工体验。
 
-真机截图：[`evidence/touch-t9-ni-device-2026-08-25.png`](evidence/touch-t9-ni-device-2026-08-25.png)
+历史真机截图路径：`evidence/touch-t9-ni-device-2026-08-25.png`。当前仓库未收录该文件。
 
 ## 4. 能直接复用的部分
 

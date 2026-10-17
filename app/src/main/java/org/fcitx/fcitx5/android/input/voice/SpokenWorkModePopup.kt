@@ -4,31 +4,33 @@
  */
 package org.fcitx.fcitx5.android.input.voice
 
+import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.Rect
+import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
-import android.util.TypedValue
+import android.graphics.drawable.RippleDrawable
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.GridLayout
+import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupWindow
+import android.widget.ScrollView
 import android.widget.TextView
-import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.Theme
-import org.fcitx.fcitx5.android.input.keyboard.FlatPopTints
+import org.fcitx.fcitx5.android.input.InputUiFont
 import splitties.dimensions.dp
 
-/**
- * Scene × language picker shown on voice-key long press: a Flat Pop sheet with a row of output
- * language chips on top and a 3-column scene grid below (DIRECT first). Selections write the
- * voice prefs and take effect from the next voice session.
- */
+/** Keyboard-aligned scene/language sheet. Settings apply to the next voice session. */
 object SpokenWorkModePopup {
 
     private var current: PopupWindow? = null
@@ -39,190 +41,252 @@ object SpokenWorkModePopup {
         current = null
     }
 
-    @DrawableRes
-    private fun iconFor(scene: WorkScene): Int = when (scene) {
-        WorkScene.DIRECT -> R.drawable.ic_baseline_format_quote_24
-        WorkScene.CHAT -> R.drawable.ic_baseline_send_24
-        WorkScene.WORK -> R.drawable.ic_baseline_emoji_people_24
-        WorkScene.FORMAL -> R.drawable.ic_baseline_library_books_24
-        WorkScene.MINUTES -> R.drawable.ic_baseline_list_alt_24
-        WorkScene.SHARE -> R.drawable.ic_baseline_share_24
-        WorkScene.PROMPT -> R.drawable.ic_baseline_auto_awesome_24
+    @StringRes
+    private fun summaryFor(scene: WorkScene): Int = when (scene) {
+        WorkScene.DIRECT -> R.string.voice_picker_direct
+        WorkScene.SMOOTH -> R.string.voice_picker_smooth
+        WorkScene.CHAT -> R.string.voice_picker_chat
+        WorkScene.WORK -> R.string.voice_picker_work
+        WorkScene.FORMAL -> R.string.voice_picker_formal
+        WorkScene.MINUTES -> R.string.voice_picker_minutes
+        WorkScene.SHARE -> R.string.voice_picker_share
+        WorkScene.PROMPT -> R.string.voice_picker_prompt
     }
 
-    fun show(anchor: View, theme: Theme) {
+    fun show(
+        anchor: View,
+        keyboard: View,
+        theme: Theme,
+        onCancel: (() -> Unit)? = null,
+        onRecover: (() -> Unit)? = null
+    ) {
+        if (!anchor.isAttachedToWindow || !keyboard.isShown || keyboard.width <= 0 || keyboard.height <= 0) {
+            return
+        }
         val ctx = anchor.context
         fun Int.px() = ctx.dp(this)
-        val dark = theme.isDark
+        val location = IntArray(2).also(keyboard::getLocationOnScreen)
+        val keyboardBounds = Rect(
+            location[0], location[1], location[0] + keyboard.width, location[1] + keyboard.height
+        )
+        val display = ctx.resources.displayMetrics
+        val insets = ViewCompat.getRootWindowInsets(keyboard)
+            ?.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+        val safeLeft = maxOf(keyboardBounds.left, insets?.left ?: 0) + 12.px()
+        val safeRight = minOf(keyboardBounds.right, display.widthPixels - (insets?.right ?: 0)) - 12.px()
+        val safeTop = (insets?.top ?: 0) + 8.px()
+        val bottom = minOf(keyboardBounds.bottom, display.heightPixels - (insets?.bottom ?: 0)) - 8.px()
+        val sheetWidth = minOf(520.px(), safeRight - safeLeft)
+        val maxHeight = minOf(bottom - safeTop, (display.heightPixels * 0.65f).toInt())
+        if (sheetWidth <= 0 || maxHeight <= 0) return
+
         val voicePrefs = AppPrefs.getInstance().voice
         val scenePref = voicePrefs.defaultScene
         val languagePref = voicePrefs.outputLanguage
-        val cells = mutableMapOf<WorkScene, FrameLayout>()
+        val cells = mutableMapOf<WorkScene, LinearLayout>()
         val chips = mutableMapOf<OutputLanguage, TextView>()
-
-        val grid = GridLayout(ctx).apply {
-            columnCount = 3
-        }
-        val chipRow = LinearLayout(ctx).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-        val sheet = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(12.px(), 10.px(), 12.px(), 12.px())
-            addView(TextView(ctx).apply {
-                text = ctx.getString(R.string.scene_language_picker_title)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
-                setTextColor(theme.candidateCommentColor)
-                letterSpacing = 0.17f
-            }, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = 8.px() })
-            addView(chipRow, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = 8.px() })
-            addView(grid)
-        }
-
         lateinit var popup: PopupWindow
 
-        fun pill(selected: Boolean): GradientDrawable = GradientDrawable().apply {
-            cornerRadius = 999.px().toFloat()
-            setColor(
-                if (selected) theme.accentKeyBackgroundColor else theme.altKeyBackgroundColor
-            )
-        }
+        fun surface(selected: Boolean) = RippleDrawable(
+            ColorStateList.valueOf(theme.keyPressHighlightColor),
+            GradientDrawable().apply {
+                cornerRadius = 12.px().toFloat()
+                setColor(if (selected) theme.accentKeyBackgroundColor else theme.keyBackgroundColor)
+                setStroke(1.px(), if (selected) theme.accentKeyBackgroundColor else theme.dividerColor)
+            },
+            null
+        )
+
+        fun label(value: CharSequence, size: Float, color: Int, bold: Boolean = false) =
+            TextView(ctx).apply {
+                text = value
+                textSize = size
+                setTextColor(color)
+                InputUiFont.applyTo(this, if (bold) Typeface.BOLD else Typeface.NORMAL)
+            }
 
         fun renderSelection() {
             cells.forEach { (scene, cell) ->
                 val selected = scene == scenePref.getValue()
-                val tint = FlatPopTints.sceneTint(scene, dark)
-                cell.background = GradientDrawable().apply {
-                    cornerRadius = 12.px().toFloat()
-                    when {
-                        selected -> setColor(theme.accentKeyBackgroundColor)
-                        tint != null -> setColor(tint)
-                        else -> {
-                            setColor(theme.keyBackgroundColor)
-                            setStroke(1.px(), theme.dividerColor)
-                        }
-                    }
+                val translationOnly = scene == WorkScene.DIRECT && languagePref.getValue() != OutputLanguage.ORIGINAL
+                cell.isSelected = selected
+                cell.contentDescription = scene.label + "：" + if (translationOnly)
+                    ctx.getString(R.string.voice_picker_translate) else scene.description
+                cell.background = surface(selected)
+                val foreground = if (selected) theme.accentKeyTextColor else theme.keyTextColor
+                val titleRow = cell.getChildAt(0) as LinearLayout
+                (titleRow.getChildAt(0) as TextView).setTextColor(foreground)
+                (titleRow.getChildAt(1) as ImageView).apply {
+                    setColorFilter(foreground)
+                    visibility = if (selected) View.VISIBLE else View.INVISIBLE
                 }
-                val content = cell.getChildAt(0) as LinearLayout
-                val foreground =
-                    if (selected) theme.accentKeyTextColor else theme.keyTextColor
-                (content.getChildAt(0) as ImageView).setColorFilter(foreground)
-                (content.getChildAt(1) as TextView).setTextColor(foreground)
-                cell.getChildAt(1).visibility = if (selected) View.VISIBLE else View.GONE
+                (cell.getChildAt(1) as TextView).apply {
+                    setTextColor(if (selected) foreground else theme.candidateCommentColor)
+                    setText(
+                        if (translationOnly) R.string.voice_picker_translate else summaryFor(scene)
+                    )
+                }
             }
             chips.forEach { (language, chip) ->
                 val selected = language == languagePref.getValue()
-                chip.background = pill(selected)
-                chip.setTextColor(
-                    if (selected) theme.accentKeyTextColor else theme.keyTextColor
-                )
+                chip.isSelected = selected
+                chip.background = surface(selected)
+                chip.setTextColor(if (selected) theme.accentKeyTextColor else theme.keyTextColor)
             }
         }
 
-        OutputLanguage.entries.forEach { language ->
-            val chip = TextView(ctx).apply {
-                text = language.chipLabel
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
+        val header = LinearLayout(ctx).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(4.px(), 0, 0, 0)
+            addView(
+                label(ctx.getString(R.string.voice_picker_title), 17f, theme.keyTextColor, true),
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            )
+            addView(label(ctx.getString(R.string.done), 14f, theme.keyTextColor, true).apply {
                 gravity = Gravity.CENTER
-                setPadding(12.px(), 4.px(), 12.px(), 4.px())
+                minimumHeight = 48.px()
+                isFocusable = true
+                background = surface(false)
+                setOnClickListener { popup.dismiss() }
+            }, LinearLayout.LayoutParams(64.px(), ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        val body = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 12.px(), 0, 4.px())
+            addView(
+                label(ctx.getString(R.string.output_language), 12f, theme.candidateCommentColor),
+                LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8.px() }
+            )
+        }
+        val languageRow = LinearLayout(ctx)
+        OutputLanguage.entries.forEachIndexed { index, language ->
+            val chip = label(language.label, 13f, theme.keyTextColor).apply {
+                gravity = Gravity.CENTER
+                minimumHeight = 44.px()
+                setPadding(2.px(), 4.px(), 2.px(), 4.px())
+                isFocusable = true
                 setOnClickListener {
                     languagePref.setValue(language)
                     renderSelection()
                 }
             }
             chips[language] = chip
-            chipRow.addView(chip, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = 8.px() })
+            languageRow.addView(chip, LinearLayout.LayoutParams(0, -1, 1f).apply {
+                if (index > 0) marginStart = 6.px()
+            })
         }
+        body.addView(languageRow, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 16.px() })
 
-        WorkScene.entries.forEach { scene ->
-            val content = LinearLayout(ctx).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                val icon = ImageView(ctx).apply {
-                    setImageResource(iconFor(scene))
-                    layoutParams = LinearLayout.LayoutParams(20.px(), 20.px())
+        WorkScene.entries.chunked(2).forEachIndexed { rowIndex, scenes ->
+            val row = LinearLayout(ctx)
+            scenes.forEachIndexed { columnIndex, scene ->
+                val titleRow = LinearLayout(ctx).apply {
+                    gravity = Gravity.CENTER_VERTICAL
+                    addView(label(scene.label, 14f, theme.keyTextColor, true).apply {
+                        maxLines = 1
+                        ellipsize = TextUtils.TruncateAt.END
+                    }, LinearLayout.LayoutParams(0, -2, 1f))
+                    addView(ImageView(ctx).apply {
+                        setImageResource(R.drawable.ic_baseline_check_24)
+                        importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                    }, LinearLayout.LayoutParams(18.px(), 18.px()).apply { marginStart = 4.px() })
                 }
-                val name = TextView(ctx).apply {
-                    text = scene.label
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
-                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                val cell = LinearLayout(ctx).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    minimumHeight = 60.px()
+                    setPadding(12.px(), 8.px(), 10.px(), 8.px())
+                    isFocusable = true
+                    addView(titleRow, LinearLayout.LayoutParams(-1, -2))
+                    addView(label(ctx.getString(summaryFor(scene)), 11f, theme.candidateCommentColor).apply {
+                        maxLines = 2
+                        ellipsize = TextUtils.TruncateAt.END
+                    }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 3.px() })
+                    setOnClickListener {
+                        scenePref.setValue(scene)
+                        popup.dismiss()
+                    }
                 }
-                addView(icon)
-                addView(name, LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply { topMargin = 6.px() })
-            }
-            val check = TextView(ctx).apply {
-                text = "✓"
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
-                setTextColor(Color.WHITE)
-                gravity = Gravity.CENTER
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(SpokenVoiceVisuals.readyColor(dark))
-                }
-                visibility = View.GONE
-            }
-            val cell = FrameLayout(ctx).apply {
-                minimumHeight = 36.px()
-                addView(content)
-                addView(check, FrameLayout.LayoutParams(18.px(), 18.px()).apply {
-                    gravity = Gravity.TOP or Gravity.END
+                cells[scene] = cell
+                row.addView(cell, LinearLayout.LayoutParams(0, -1, 1f).apply {
+                    if (columnIndex > 0) marginStart = 8.px()
                 })
-                setOnClickListener {
-                    scenePref.setValue(scene)
-                    renderSelection()
-                    popup.dismiss()
-                }
             }
-            cells[scene] = cell
-            grid.addView(cell, GridLayout.LayoutParams().apply {
-                width = 88.px()
-                height = ViewGroup.LayoutParams.WRAP_CONTENT
-                val margin = 4.px()
-                setMargins(margin, margin, margin, margin)
+            body.addView(row, LinearLayout.LayoutParams(-1, -2).apply {
+                if (rowIndex > 0) topMargin = 8.px()
             })
         }
         renderSelection()
 
-        sheet.background = GradientDrawable().apply {
-            cornerRadius = 16.px().toFloat()
-            setColor(theme.popupBackgroundColor)
-            setStroke(1.px(), theme.dividerColor)
+        fun addAction(@StringRes text: Int, action: () -> Unit) {
+            body.addView(label(ctx.getString(text), 13f, theme.keyTextColor).apply {
+                gravity = Gravity.CENTER
+                minimumHeight = 44.px()
+                isFocusable = true
+                setPadding(8.px(), 6.px(), 8.px(), 6.px())
+                background = surface(false)
+                setOnClickListener {
+                    popup.dismiss()
+                    action()
+                }
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 8.px() })
         }
-        popup = PopupWindow(
-            sheet,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        ).apply {
+        onCancel?.let { addAction(R.string.voice_picker_cancel, it) }
+        onRecover?.let { addAction(R.string.voice_picker_recover, it) }
+        body.addView(label(
+            ctx.getString(if (onCancel != null) R.string.voice_picker_next_session else R.string.voice_picker_hint),
+            11f,
+            theme.candidateCommentColor
+        ).apply { setPadding(4.px(), 12.px(), 4.px(), 0) })
+
+        // Keep the header reachable when a small window or large text requires scrolling.
+        val sheet = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(12.px(), 10.px(), 12.px(), 12.px())
+            background = GradientDrawable().apply {
+                cornerRadius = 18.px().toFloat()
+                setColor(theme.popupBackgroundColor)
+                setStroke(1.px(), theme.dividerColor)
+            }
+            addView(header, LinearLayout.LayoutParams(-1, -2))
+            addView(ScrollView(ctx).apply {
+                isFillViewport = false
+                clipToPadding = false
+                addView(body)
+            }, LinearLayout.LayoutParams(-1, -2, 1f))
+        }
+        sheet.measure(
+            View.MeasureSpec.makeMeasureSpec(sheetWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(maxHeight, View.MeasureSpec.AT_MOST)
+        )
+        popup = PopupWindow(sheet, sheetWidth, sheet.measuredHeight, true).apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            elevation = 8.px().toFloat()
+            isOutsideTouchable = true
+            inputMethodMode = PopupWindow.INPUT_METHOD_NOT_NEEDED
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+            // Use screen coordinates, independent of the dock/voice button that opened us.
+            setIsLaidOutInScreen(true)
+            elevation = 0f
         }
 
+        val onLayoutChange = View.OnLayoutChangeListener { _, left, top, right, bottomEdge,
+                oldLeft, oldTop, oldRight, oldBottom ->
+            if (left != oldLeft || top != oldTop || right != oldRight || bottomEdge != oldBottom) {
+                popup.dismiss()
+            }
+        }
+        popup.setOnDismissListener {
+            keyboard.removeOnLayoutChangeListener(onLayoutChange)
+            if (current === popup) current = null
+        }
         dismissCurrent()
-        sheet.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
-        val x = (anchor.width - sheet.measuredWidth) / 2
-        val y = -(anchor.height + sheet.measuredHeight)
-        popup.showAsDropDown(anchor, x, y, Gravity.START)
         current = popup
-        popup.setOnDismissListener { if (current === popup) current = null }
+        popup.showAtLocation(
+            keyboard,
+            Gravity.TOP or Gravity.LEFT,
+            safeLeft + (safeRight - safeLeft - sheetWidth) / 2,
+            bottom - sheet.measuredHeight
+        )
+        keyboard.addOnLayoutChangeListener(onLayoutChange)
     }
 }

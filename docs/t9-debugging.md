@@ -40,7 +40,7 @@ release and debug builds installed:
 ```bash
 adb shell ime list -s
 adb shell settings get secure default_input_method
-adb shell ime set org.fcitx.fcitx5.android.debug/org.fcitx.fcitx5.android.input.FcitxInputMethodService
+adb shell ime set com.spoken.android.debug/org.fcitx.fcitx5.android.input.FcitxInputMethodService
 ```
 
 After installing or selecting the debug IME, focus a real text editor and wait
@@ -83,7 +83,7 @@ maintenance and can add several seconds before Chinese input is ready.
 After an ADB import, make shell-owned files group-writable once:
 
 ```bash
-RIME_DIR=/storage/emulated/0/Android/data/org.fcitx.fcitx5.android.debug/files/data/rime
+RIME_DIR=/storage/emulated/0/Android/data/com.spoken.android.debug/files/data/rime
 adb shell "find \"$RIME_DIR\" -type f -user shell -exec chmod 660 {} +"
 ```
 
@@ -111,7 +111,7 @@ text field focused and restart only the debug Fcitx instance:
 
 ```bash
 adb -s "$SERIAL" shell am broadcast \
-  -a org.fcitx.fcitx5.android.debug.action.RESTART_FCITX_INSTANCE
+  -a com.spoken.android.debug.action.RESTART_FCITX_INSTANCE
 adb -s "$SERIAL" shell input keyboard keyevent KEYCODE_7
 ```
 

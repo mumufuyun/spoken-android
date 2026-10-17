@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_picker_title">Voice mode</string>
+    <string name="voice_picker_direct">Keep the original transcript</string>
+    <string name="voice_picker_translate">Translate without rewriting</string>
+    <string name="voice_picker_smooth">Remove pauses and repetitions</string>
+    <string name="voice_picker_chat">Natural, everyday messages</string>
+    <string name="voice_picker_work">Clear, professional communication</string>
+    <string name="voice_picker_formal">Polished, formal writing</string>
+    <string name="voice_picker_minutes">Decisions and action items</string>
+    <string name="voice_picker_share">Content ready to share</string>
+    <string name="voice_picker_prompt">Structured AI instructions</string>
+    <string name="voice_picker_cancel">Cancel this voice session</string>
+    <string name="voice_picker_recover">Insert last original · same field, within 2 min</string>
+    <string name="voice_picker_next_session">Changes apply to your next recording</string>
+    <string name="voice_picker_hint">Choose a mode to return to the keyboard</string>
+</resources>

@@ -10,6 +10,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.FcitxDaemon
 import org.fcitx.fcitx5.android.utils.appContext
+import java.util.UUID
 
 class MainViewModel : ViewModel() {
 
@@ -27,7 +28,11 @@ class MainViewModel : ViewModel() {
 
     val aboutButton = MutableLiveData(false)
 
-    val fcitx: FcitxConnection = FcitxDaemon.connect(javaClass.name)
+    // Replacing a settings task can create its new ViewModel before clearing the old one.
+    // Each instance must own its connection so old cleanup cannot disconnect the new activity.
+    private val connectionName = "${javaClass.name}:${UUID.randomUUID()}"
+
+    val fcitx: FcitxConnection = FcitxDaemon.connect(connectionName)
 
     fun setToolbarTitle(title: String) {
         toolbarTitle.value = title
@@ -84,6 +89,6 @@ class MainViewModel : ViewModel() {
     }
 
     override fun onCleared() {
-        FcitxDaemon.disconnect(javaClass.name)
+        FcitxDaemon.disconnect(connectionName)
     }
 }

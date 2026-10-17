@@ -16,7 +16,8 @@ class SelectionBackCallbackPolicyTest {
             SelectionBackCallbackPolicy.shouldRegister(
                 hasSelection = true,
                 imeWindowVisible = false,
-                isVirtualKeyboard = false
+                isVirtualKeyboard = false,
+                hasPhysicalKeyboard = true
             )
         )
     }
@@ -27,7 +28,8 @@ class SelectionBackCallbackPolicyTest {
             SelectionBackCallbackPolicy.shouldRegister(
                 hasSelection = true,
                 imeWindowVisible = true,
-                isVirtualKeyboard = true
+                isVirtualKeyboard = true,
+                hasPhysicalKeyboard = true
             )
         )
     }
@@ -38,7 +40,8 @@ class SelectionBackCallbackPolicyTest {
             SelectionBackCallbackPolicy.shouldRegister(
                 hasSelection = true,
                 imeWindowVisible = true,
-                isVirtualKeyboard = false
+                isVirtualKeyboard = false,
+                hasPhysicalKeyboard = true
             )
         )
     }
@@ -49,7 +52,20 @@ class SelectionBackCallbackPolicyTest {
             SelectionBackCallbackPolicy.shouldRegister(
                 hasSelection = false,
                 imeWindowVisible = true,
-                isVirtualKeyboard = false
+                isVirtualKeyboard = false,
+                hasPhysicalKeyboard = true
+            )
+        )
+    }
+
+    @Test
+    fun `touch T9 using the physical engine path must not intercept navigation`() {
+        assertFalse(
+            SelectionBackCallbackPolicy.shouldRegister(
+                hasSelection = true,
+                imeWindowVisible = true,
+                isVirtualKeyboard = false,
+                hasPhysicalKeyboard = false
             )
         )
     }

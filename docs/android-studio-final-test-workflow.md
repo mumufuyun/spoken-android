@@ -1,104 +1,160 @@
-# Android Studio 最终测试和分发流程
+# Spoken Android Device Regression
 
-这份清单用于在 Android Studio 里本地构建、测试和准备分发包。输入法本体和 Rime 插件按两个独立 APK 分发。
+Use this workflow for a requested APK validation. Record the source commit, APK
+hash, build type, package, Android version, and explicit ADB device serial. A
+completed checklist describes only the tested build and device.
 
-## 1. 同步和构建
+## Build and Install
 
-1. 用 Android Studio 打开项目。
-2. 运行 **File > Sync Project with Gradle Files**。
-3. 构建输入法本体 APK：
-   - Debug 冒烟测试：Gradle task `:app:assembleDebug`
-   - Release 分发包：Gradle task `:app:assembleRelease`
-4. 构建 Rime 插件 APK：
-   - Debug 冒烟测试：Gradle task `:plugin:rime:assembleDebug`
-   - Release 分发包：Gradle task `:plugin:rime:assembleRelease`
+1. Prepare [the local toolchain](development.md) and sync the project in Android Studio.
+2. Build `:app:assembleDebug -PbuildABI=arm64-v8a` for a matching test device.
+   Build only `:app`; no separate Rime plugin is needed.
+3. Install the APK from `app/build/outputs/apk/debug/` onto the selected device.
+   The debug package is `com.spoken.android.debug`. After installation, resolve
+   its installed base APK with `adb -s SERIAL shell pm path com.spoken.android.debug`
+   and compare that file's SHA-256 with the local APK. A successful transfer or
+   install command is not sufficient if the installed bytes do not match. Stop
+   validation and reinstall the intended artifact on a mismatch.
+4. Enable and select Spoken Debug in Android settings. Reopen the host app and
+   focus a fresh text field after replacing an APK; a retained input connection
+   can display candidates without accepting committed text.
+5. Let the bundled Rime configuration initialize. No manual data copy or plugin
+   installation is part of normal setup. For provisioning changes, follow
+   [the clean-install procedure](rime-clean-install-validation.md).
 
-输出路径：
+Use a local notes app or an unsent draft. Do not send real messages during tests.
+An isolated native EditText and WebView test host can inspect composing ranges,
+underline spans, selection direction, and composition events without accessing
+personal drafts. This verifies those editor implementations; it does not establish
+compatibility with every messaging app. Remove temporary test hosts afterward.
 
-- 输入法本体 APK：`app/build/outputs/apk/<debug|release>/`
-- Rime 插件 APK：`plugin/rime/build/outputs/apk/<debug|release>/`
+## 1. Text Input
 
-如果生成的 release APK 没有签名，正式分发前请在 Android Studio 里使用 **Build > Generate Signed App Bundle / APK** 生成签名包。
+- Enter a Chinese sentence, disambiguate pinyin, expand candidates, select a word,
+  delete remaining composition, and then delete committed text.
+- Switch among Chinese, English QWERTY, numbers, and both symbol pages. Chinese
+  and auxiliary panels keep their side controls aligned; English puts Delete in
+  the third letter row and voice/Return in the bottom row.
+- Check chat/send, browser/search, URL/email, phone/number, and password fields.
+  Password fields must not start voice input or learn typed content.
+- Hide/reopen the keyboard and switch apps; old composition must not leak into a
+  different editor. For physical keys, use [the dedicated notes](t9-debugging.md).
+- On a gesture-navigation phone, swipe inward from either screen edge immediately
+  after opening the keyboard, before typing. The first Back should dismiss the
+  keyboard and the next should navigate the host page. Repeat with selected editor
+  text, symbols, and expanded candidates; Back must never delete editor text.
+  If a long press has opened the host's selection action toolbar, Back may first
+  dismiss that toolbar and collapse the selection before hiding the keyboard.
+  Continue Back through each visible layer and verify the editor text is unchanged.
 
-## 2. 安装顺序
+Expected: no lost/duplicate text, stale candidates, crash, or incorrect editor action.
 
-1. 安装输入法本体 APK。
-2. 安装 Rime 插件 APK。
-3. 在 Android 系统设置里启用输入法。
-4. 在输入法设置里：
-   - 确认 Rime 插件已被检测到。
-   - 启用中州韵 / Rime 附加组件。
-   - 添加 Rime 输入法。
-5. 打开任意文本输入框，进入键盘菜单，重新部署 Rime。
-6. 把 T9 Rime 数据包复制到：
-   `Android/data/org.fcitx.fcitx5.android/files/data/rime`
-7. 再次打开键盘菜单，同步 Rime。
-8. 选择拼音九键方案。
+### Touch English Regression
 
-安装或替换 APK 后，不要沿用安装前一直开着的文本框。先关闭并重新打开
-测试 App，再重新点进文本框，等输入法方案名和候选界面加载完成后才开始
-注入物理按键。旧文本框可能保留失效的 `InputConnection`，表现为候选仍会
-变化、`commitText()` 也返回成功，但文字不会进入 App；这不是输入规则本身
-的回归。
+- Tap all 26 letters, including the centers of Q/A/P, and type repeated-letter
+  words such as `bookkeeper mississippi`. Test overlapping two-finger taps as well
+  as sequential taps. Text must appear literally in the editor without Chinese
+  candidates, missing letters, or duplicate commits.
+- Test single Shift, double-tap/long-press Caps Lock, unlocking, and changing
+  editors while locked. A single Shift affects one letter; a new editor starts
+  without a stale lock or symbol panel.
+- Enter `hello, world.`, use both symbol pages for apostrophes, quotes, `@`, `_`,
+  and `/`, enter digits, and return to letters. English punctuation must remain
+  ASCII; returning to Chinese must restore its punctuation and T9 candidates.
+- Replace a selected range, delete a selected range, hold Delete, insert in the
+  middle, and swipe Space at both text boundaries. Preserve surrounding content
+  and keep the cursor within the editor's text.
+- Check multiline Return and single-line Search, Send, Next, Go, and Done.
+  Inspect the host action callback, not just the resulting text or key icon. A
+  test host that changes `inputType`/`imeOptions` at runtime must restart its input
+  connection after setting both, or it can advertise the preceding action.
+- Repeat input/replacement in native EditText, WebView textarea, and
+  contenteditable. Switch fields, hide/reopen, abandon pending Chinese pinyin for
+  English, and switch back to Chinese. Check portrait and landscape key bounds,
+  the visible voice key's long-press popup, and Back from both edges.
+- Some OEM password fields substitute a system secure keyboard. Record the
+  active IME before attributing password results to Spoken; preserve that security
+  setting and verify Spoken returns in ordinary fields.
 
-## 3. 最终 T9 冒烟测试
+## 2. Voice Start, Stop, and Cancellation
 
-分发前请完整跑一遍下面的测试。
+- Grant microphone permission and configure one ASR provider. Tap to record, then
+  tap to finish. Start between existing prefix/suffix text and repeat over a
+  selection. Partials must update one underlined range in the host editor; the
+  fixed keyboard dock supplies status and Cancel. Unsupported editors use the
+  dock preview instead.
+- Cancel while a partial is visible. Only the owned preview should disappear;
+  replaced text and its original selection direction should be restored. Move
+  the caret or manually edit the preview in separate runs: the visible text and
+  user edit should remain, the underline should clear, and delayed writes should
+  stop.
+- Immediately after starting, hide the keyboard or switch to a different field.
+  Repeat while the provider is connecting or microphone startup is retrying.
+- Start a new recording immediately after cancellation, then finish it normally.
+- Repeat with the other configured providers. Custom Whisper-compatible ASR
+  uploads after stop and does not offer streaming partial text.
 
-For physical-key injection, T9 responsiveness tracing, and screen-recording
-frame analysis, see `docs/t9-debugging.md`.
+Expected: cancelled sessions publish no late text; the microphone indicator clears
+when no recording is active; old cleanup does not stop the new recording. Permission,
+empty-audio, and network failures leave ordinary typing usable.
 
-### 中文 T9
+## 3. AI Processing
 
-- 输入 `24`，拼音行应该出现 `ai`。
-- 输入 `2496` 后选择 `ai`，顶部读音应继续显示未解析后缀，例如 `ai wo`。
-- 选择汉字候选后，应正常提交候选，不应把原始数字串漏到输入框。
-- 选择拼音 chip 后按删除，最后一个已选拼音段应回退成原始数字。
-- 分别测试屏幕删除键和物理 Back/删除键，选择后删除都不应闪退。
-- 把候选预算调低后，中文词、emoji、常用英文词都应按 T9 候选预算显示。
+1. Long-press the voice key and compare DIRECT/original with SMOOTH/original,
+   then work communication with English output. Include a name such as 杰森,
+   an uncertain deadline, and an explicit correction. DIRECT must preserve the
+   recognized string; AI scenes must preserve meaning, conditions, and uncertainty.
+   After Finish, the original stays underlined while AI runs. The final result
+   replaces that exact range automatically, clears the underline, and preserves
+   surrounding text without appending a second copy.
+2. Speak a suggestion in meeting-notes mode and a request in AI-instruction mode.
+   A suggestion must not become a decision, and an AI instruction must not become
+   the completed task. Treat this as live model-quality acceptance, not something
+   established by prompt unit tests.
+3. While AI is processing, tap the voice key to input the original. Separately
+   test an invalid AI key and an ASR disconnect after a partial appears. Expect
+   one original insertion, a separate fallback/incomplete notice, and no late
+   second insertion. Incomplete recognition must skip AI.
+4. Without changing fields or hiding the keyboard, long-press and choose the
+   previous-original action; it explicitly inserts the original at the current
+   cursor/selection. Repeat during another recording: recovery must cancel that
+   recording. The separate cancel action must insert nothing. Start typing again.
+5. Repeat after two minutes, switching fields/apps, hiding the keyboard, and in
+   a password/private field. No retained original may be offered or inserted in
+   those cases. Check the long-press sheet on a small screen, landscape, and large
+   font settings: all actions must remain reachable by scrolling.
+6. Confirm the dock shows AI processing before testing Cancel and a field switch
+   in separate recordings. Cancel restores the pre-recording content; switching
+   fields preserves the visible original and never inserts into the new field.
+   Wait beyond the normal provider response time and verify both fields remain
+   unchanged. Do not count a run where AI already finalized before the action as
+   coverage of this race.
 
-### 英文 T9
+Expected: scene/language selection persists, configuration changes affect the next
+recording, cancellation blocks late text, notices never enter the editor, and
+ordinary typing remains usable. There is no persistent or cross-app recovery.
 
-- 长按 `#` 切到 `En`。
-- 连续按 `2`，应在 `a`、`b`、`c` 之间循环。
-- Short-press `1` repeatedly; case should cycle through `abc`, `Abc`, `ABC`,
-  then return to `abc`.
-- With a Smart English candidate visible, short-press `*`; the candidate should
-  commit without a space and the English punctuation row should open.
-- Long-press `1` with candidates visible; it should still select shortcut `1`
-  rather than changing case.
-- Long-press `*`; it should insert a literal `*` rather than opening punctuation.
-- 按 `0` 时，如果有未确认的 multi-tap 字母，应先提交字母再输入空格。
+## 4. Offline Setup and Lifecycle
 
-### 数字模式
+- On a clean debug install, turn off networking and complete first Chinese input.
+- Restore networking, configure voice, and repeat text -> voice -> text editing.
+- Cold-start, rotate, and reopen the keyboard. Check for crashes, repeated Rime
+  provisioning, stuck recording, and credentials unexpectedly disappearing.
 
-- 长按 `#` 切到 `123`。
-- 按 `0-9`，每个按键都应直接输入对应数字。
-- 按 `*`，应直接输入普通 `*`。
-- Long-press a digit to enter its mapped operator, and long-press `*` to open
-  the number operator panel. Neither action should open Rime candidates or
-  repeat text unexpectedly.
+Expected: core text input remains local; voice failure does not block it. Never
+clear release data for this test.
 
-### 中文/数字模式的 `1` 和 `*` 行为
+## 5. Release and Updates
 
-- In idle Pinyin mode, short `1` should commit one literal apostrophe and long
-  `1` should commit one literal `1`. During Pinyin composition, short `1`
-  should append the syllable separator.
-- In Chinese mode, short `*` should open Chinese punctuation. With an active
-  composition it should first commit the highlighted Hanzi candidate.
-- During Chinese composition, long `*` should replace/clear the current
-  composition and insert a literal `*`. While idle, it should cycle enabled
-  Chinese schemes, or insert `*` when only one scheme is enabled.
-- 数字模式下，`*` 也应直接输入普通 `*`。
+Use the signed minified APK and [the release runbook](release-runbook.md). Verify
+package/signature/version/ABI, install/upgrade behavior, app updates from
+`mumufuyun/spoken-android`, and configuration updates from the Rime upstream.
+Debug builds offer only configuration updates because release APKs have a separate
+package ID. No published Spoken release means there is no app update to install.
 
-## 4. 分发包内容
+## Failure Report
 
-建议把下面这些文件一起打包：
-
-- 输入法本体 APK
-- Rime 插件 APK
-- `rime-ice-t9-phone` 的 Rime 数据包
-- 简短安装说明：先安装本体，再安装插件，然后部署并同步 Rime 数据
-
-正式发布前还需要按 `docs/release-runbook.md` 检查版本号、README /
-Release Notes / 百度盘文案分工、签名参数、APK 签名验证和上传清单。
+Include the exact steps, expected/actual result, source commit/APK hash, device and
+Android version, input field/app, ASR provider, scene/language, and relevant logs.
+Remove API keys and personal transcript text before sharing. Keep untested cases
+marked as pending instead of treating them as passed.
