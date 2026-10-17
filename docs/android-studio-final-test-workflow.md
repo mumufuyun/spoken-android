@@ -42,6 +42,9 @@ compatibility with every messaging app. Remove temporary test hosts afterward.
   after opening the keyboard, before typing. The first Back should dismiss the
   keyboard and the next should navigate the host page. Repeat with selected editor
   text, symbols, and expanded candidates; Back must never delete editor text.
+  If a long press has opened the host's selection action toolbar, Back may first
+  dismiss that toolbar and collapse the selection before hiding the keyboard.
+  Continue Back through each visible layer and verify the editor text is unchanged.
 
 Expected: no lost/duplicate text, stale candidates, crash, or incorrect editor action.
 
