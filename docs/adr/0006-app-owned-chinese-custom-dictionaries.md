@@ -25,6 +25,13 @@ Chinese phrases store both display text and normalized toneless Pinyin. Both
 dictionaries build exact and prefix T9 indexes when their revision changes,
 never during the physical-key reducer.
 
+Chinese phrases also retain selection counts and last-use times. Candidate
+indexes sort each exact/prefix group by usage, preserving exact-match priority.
+Older records default to zero usage. Replacing a management list retains usage
+for unchanged text/reading identities and removes usage for deleted identities.
+Removing a text entirely also removes app-owned learned prediction pairs that
+reference it.
+
 `ChineseT9CustomCandidateSource` merges matching custom entries before the
 existing width-budget pager. Every custom entry carries a direct-commit identity
 that is resolved by the candidate source session. Rime candidates retain their
@@ -53,8 +60,13 @@ remain outside `PhysicalT9KeyFlow`.
 - Custom candidate deletion is complete and immediate.
 - Shared English management has one logical list while unshared modes can
   diverge again.
-- Direct custom commits do not currently seed Rime's continuous Chinese
-  prediction context; they intentionally favor deterministic selection over a
-  hidden engine import.
+- Direct custom commits seed app-owned personal prediction context, but do not
+  alter Rime's commit history. Subsequent suggestions on this path come from
+  learned pairs; the prebuilt Rime predictor remains attached to native commits.
+- Personal prediction pairs require two observations of adjacent accepted
+  Chinese keyboard commits in the same editor. They are bounded, persisted
+  locally, and excluded from password and no-personalized-learning editors.
+- Candidate sources distinguish validated negative direct-commit identities
+  from the unselectable `-1` placeholder used by stale candidate frames.
 - Chinese phrase entries require explicit toneless Pinyin so polyphonic phrases
   are never assigned an incorrect automatic reading.

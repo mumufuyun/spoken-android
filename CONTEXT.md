@@ -272,6 +272,23 @@ a prediction; Zhuyin keeps `0` as a reading input key.
 The single prediction entry in Quick Settings is mode-aware: Chinese shows and
 toggles Predictive Chinese, while English shows and toggles Predictive English.
 
+`ChinesePersonalLearningSession` supplements the shipped prediction data with
+adjacent, accepted Chinese keyboard commits in the current editor. A pair must
+occur twice before appearing; suggestions rank by frequency, then recent use.
+The bounded local store holds at most 4,096 pairs, indexed by scheme, configured
+output script, and preceding committed word. Context expires after two minutes
+and breaks on editor changes, cursor edits, deletion, punctuation, Return, voice
+input, and mode changes. Password and no-personalized-learning editors cannot
+update this app-owned learning. Disk writes use `T9DictionaryPersistence`.
+
+Learned predictions join the existing candidate snapshot and pager. Matches
+already on the fresh Rime page retain their engine indices; additional personal
+predictions use validated direct-commit identities. Direct commits can continue
+through learned pairs without manufacturing Rime history. Ordinary Pinyin
+word-frequency learning remains owned by Rime; its primary translator keeps
+the default user dictionary enabled, while the two abbreviation fallbacks still
+disable it. See `docs/chinese-personal-learning-validation.md` for device checks.
+
 Pinyin initials use two bounded slow-path contracts. Raw numeric T9 remains on
 the primary full-Pinyin prism while its digits can still form dictionary-backed
 syllables. Once that becomes structurally impossible, an incremental segmentor
@@ -299,6 +316,13 @@ pretend to be Rime candidate indices. Matching entries can publish immediately
 while the corresponding Rime frame is still pending, then merge with the fresh
 engine page. Dictionary queries use revisioned in-memory exact/prefix indexes,
 and persistence remains off the physical-key reducer.
+
+Custom Chinese phrases persist selection counts and last-use times. Within
+each exact/prefix group, frequently selected phrases precede unused phrases;
+exact matches always precede prefix matches. Existing records without usage
+fields remain valid. Editing other entries preserves learning, while deleting
+a phrase removes its usage and any personal prediction pairs referring to its
+text. Only successful, permitted candidate commits update counts.
 
 Predictive English and Chinese Pinyin own separate custom English stores.
 `EnglishCustomDictionaryCoordinator` exposes their union when sharing is
