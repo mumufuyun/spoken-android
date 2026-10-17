@@ -410,7 +410,11 @@ follows the two-dimension model from the MVP spec: a `WorkScene` (verbatim, smoo
 transcription, chat, work, formal, minutes, share, AI prompt) combined with an
 `OutputLanguage` (original, English,
 Japanese, Korean); DIRECT with the original language bypasses AI, and DIRECT with another
-language is pure translation. The voice-key long-press sheet picks both dimensions.
+language is pure translation. The scene/language picker aligns to the bottom and
+horizontal bounds of the input panel, independent of its opener. It uses a two-column
+scene list with short descriptions and a separate language row; selecting a scene
+returns to the keyboard. The header remains visible while the body scrolls in small
+windows or at large font sizes. Keyboard resizing/hiding dismisses the picker.
 Non-secret voice settings live in the `AppPrefs.voice` category and are snapshotted at
 session start; API keys live in `SecureVoiceKeyStorage` (AndroidKeyStore AES/GCM) keyed
 by `VoiceKeyPurpose`.
