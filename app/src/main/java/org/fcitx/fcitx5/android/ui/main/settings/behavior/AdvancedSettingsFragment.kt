@@ -124,7 +124,7 @@ class AdvancedSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
                 }
             }) else null
         )
-        screen.addPreference(R.string.export_user_data) {
+        screen.addPreference(R.string.export_user_data, summary = R.string.spoken_backup_scope) {
             lifecycleScope.launch {
                 lifecycleScope.withLoadingDialog(ctx) {
                     viewModel.fcitx.runOnReady {
@@ -132,10 +132,10 @@ class AdvancedSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
                     }
                 }
                 exportTimestamp = System.currentTimeMillis()
-                exportLauncher.launch("fcitx5-android_${iso8601UTCDateTime(exportTimestamp)}.zip")
+                exportLauncher.launch("Spoken_${iso8601UTCDateTime(exportTimestamp)}.zip")
             }
         }
-        screen.addPreference(R.string.import_user_data) {
+        screen.addPreference(R.string.import_user_data, summary = R.string.spoken_backup_scope) {
             AlertDialog.Builder(ctx)
                 .setIconAttribute(android.R.attr.alertDialogIcon)
                 .setTitle(R.string.import_user_data)

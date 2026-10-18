@@ -1,0 +1,3 @@
+<resources>
+    <string name="spoken_backup_scope">Includes settings, dictionaries, personal learning, themes and key sounds. API keys stay on this device; configure them again on a new device.</string>
+</resources>

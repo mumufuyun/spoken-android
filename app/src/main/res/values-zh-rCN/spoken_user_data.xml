@@ -1,0 +1,3 @@
+<resources>
+    <string name="spoken_backup_scope">包含设置、词库、个人学习、主题和按键音。API 密钥仅保留在本机，换机后需重新配置。</string>
+</resources>

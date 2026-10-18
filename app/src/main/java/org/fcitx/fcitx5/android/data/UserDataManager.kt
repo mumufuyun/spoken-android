@@ -36,35 +36,15 @@ object UserDataManager {
         val exportTime: Long
     )
 
-    private fun writeFileTree(srcDir: File, destPrefix: String, dest: ZipOutputStream) {
-        dest.putNextEntry(ZipEntry("$destPrefix/"))
-        srcDir.walkTopDown().forEach { f ->
-            val related = f.relativeTo(srcDir)
-            if (related.path != "") {
-                if (f.isDirectory) {
-                    dest.putNextEntry(ZipEntry("$destPrefix/${related.path}/"))
-                } else if (f.isFile) {
-                    dest.putNextEntry(ZipEntry("$destPrefix/${related.path}"))
-                    f.inputStream().use { it.copyTo(dest) }
-                }
-            }
-        }
-    }
-
-    private val sharedPrefsDir = File(appContext.applicationInfo.dataDir, "shared_prefs")
-    private val dataBasesDir = File(appContext.applicationInfo.dataDir, "databases")
-    private val externalDir = appContext.getExternalFilesDir(null)!!
+    private val userFiles = UserDataFiles(
+        File(appContext.applicationInfo.dataDir), appContext.getExternalFilesDir(null)!!
+    )
     private val recentlyUsedDir = appContext.filesDir.resolve(RecentlyUsed.DIR_NAME)
 
     @OptIn(ExperimentalSerializationApi::class)
     fun export(dest: OutputStream, timestamp: Long = System.currentTimeMillis()) = runCatching {
         ZipOutputStream(dest.buffered()).use { zipStream ->
-            // shared_prefs
-            writeFileTree(sharedPrefsDir, "shared_prefs", zipStream)
-            // databases
-            writeFileTree(dataBasesDir, "databases", zipStream)
-            // external
-            writeFileTree(externalDir, "external", zipStream)
+            userFiles.writeTo(zipStream)
             // recently_used moved to SharedPreference and shoud not be exported
             // metadata
             zipStream.putNextEntry(ZipEntry("metadata.json"))
@@ -99,9 +79,7 @@ object UserDataManager {
                 val metadata = json.decodeFromString<Metadata>(metadataFile.readText())
                 if (metadata.packageName != BuildConfig.APPLICATION_ID)
                     errorRuntime(R.string.exception_user_data_package_name_mismatch)
-                copyDir(File(tempDir, "shared_prefs"), sharedPrefsDir)
-                copyDir(File(tempDir, "databases"), dataBasesDir)
-                copyDir(File(tempDir, "external"), externalDir)
+                userFiles.restoreFrom(tempDir)
                 // keep importing recently_used for backwords compatibility
                 copyDir(File(tempDir, "recently_used"), recentlyUsedDir)
                 metadata
