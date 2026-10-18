@@ -2,6 +2,13 @@
 
 ## Product Boundary
 
+The launcher and system input-method label is `Spoken` in both debug and release
+builds; package IDs remain distinct. `drawable-nodpi/spoken_app_icon.png` is an
+unchanged copy of the desktop `AppIcon.appiconset/icon_1024x1024.png` artwork.
+Legacy icons use that bitmap directly. Adaptive icons inset it by 20 percent on
+a dark background to retain the lettering under launcher masks. They omit the
+old microphone monochrome layer so themed launchers cannot revive obsolete branding.
+
 This repository adapts Fcitx5 for Android to physical T9-key smart/feature
 phones. The primary experience is physical-key input. The repository also carries a
 touch T9 spike that exposes the same short-press semantics through a full-height
