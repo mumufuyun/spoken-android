@@ -88,7 +88,7 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
                 isIconSpaceReserved = false
                 isSingleLineTitle = false
                 setTitle(R.string.toolbar_buttons)
-                setSummary(R.string.toolbar_buttons_summary)
+                setSummary(R.string.spoken_auxiliary_toolbar_summary)
                 setOnPreferenceClickListener {
                     showToolbarButtonsDialog()
                     true

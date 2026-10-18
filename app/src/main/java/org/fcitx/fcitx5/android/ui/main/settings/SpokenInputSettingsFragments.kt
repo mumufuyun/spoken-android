@@ -5,6 +5,7 @@
 package org.fcitx.fcitx5.android.ui.main.settings
 
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.view.Gravity
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -25,10 +26,13 @@ import splitties.dimensions.dp
 class KeyboardAppearanceFragment : SpokenSettingsPage() {
     override fun buildPage() {
         val prefs = AppPrefs.getInstance().keyboard
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val heightPreference = if (landscape) prefs.t9KeyboardHeightPercentLandscape else prefs.t9KeyboardHeightPercent
+        val heightLabel = if (landscape) R.string.spoken_height_value_landscape else R.string.spoken_height_value
         heading(getString(R.string.spoken_keyboard_appearance), getString(R.string.spoken_height_hint))
         card().apply {
             setPadding(dp(16), dp(16), dp(16), dp(12))
-            val value = label(getString(R.string.spoken_height_value, prefs.t9KeyboardHeightPercent.getValue()), 16f, true)
+            val value = label(getString(heightLabel, heightPreference.getValue()), 16f, true)
             addView(value)
             val choices = LinearLayout(context).apply {
                 gravity = Gravity.CENTER_VERTICAL
@@ -36,7 +40,7 @@ class KeyboardAppearanceFragment : SpokenSettingsPage() {
             }
             val buttons = mutableMapOf<Int, TextView>()
             fun refresh(percent: Int) {
-                value.text = getString(R.string.spoken_height_value, percent)
+                value.text = getString(heightLabel, percent)
                 buttons.forEach { (height, button) ->
                     button.background = rounded(if (height == percent) accent else surface, 12)
                     button.setTextColor(if (height == percent) android.graphics.Color.rgb(42, 23, 17) else ink)
@@ -45,26 +49,27 @@ class KeyboardAppearanceFragment : SpokenSettingsPage() {
             }
             val slider = SeekBar(context).apply {
                 max = 20
-                progress = prefs.t9KeyboardHeightPercent.getValue().coerceIn(20, 40) - 20
+                progress = heightPreference.getValue().coerceIn(20, 40) - 20
                 progressTintList = ColorStateList.valueOf(accent)
                 thumbTintList = ColorStateList.valueOf(accent)
                 contentDescription = getString(R.string.t9_keyboard_height)
                 setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                     override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
-                        if (fromUser) prefs.t9KeyboardHeightPercent.setValue(progress + 20)
+                        if (fromUser) heightPreference.setValue(progress + 20)
                         refresh(progress + 20)
                     }
                     override fun onStartTrackingTouch(bar: SeekBar?) = Unit
                     override fun onStopTrackingTouch(bar: SeekBar?) = Unit
                 })
             }
-            listOf(23 to R.string.spoken_height_compact, 28 to R.string.spoken_height_comfortable, 31 to R.string.spoken_height_spacious).forEach { (height, name) ->
+            val presets = if (landscape) listOf(32, 35, 38) else listOf(23, 28, 31)
+            presets.zip(listOf(R.string.spoken_height_compact, R.string.spoken_height_comfortable, R.string.spoken_height_spacious)).forEach { (height, name) ->
                 val button = label(getString(name), 14f, true).apply {
                     gravity = Gravity.CENTER
                     minHeight = dp(48)
                     isFocusable = true
                     setOnClickListener {
-                        prefs.t9KeyboardHeightPercent.setValue(height)
+                        heightPreference.setValue(height)
                         slider.progress = height - 20
                         refresh(height)
                     }
@@ -74,7 +79,7 @@ class KeyboardAppearanceFragment : SpokenSettingsPage() {
             }
             addView(choices)
             addView(slider, LinearLayout.LayoutParams(-1, dp(48)))
-            refresh(prefs.t9KeyboardHeightPercent.getValue())
+            refresh(heightPreference.getValue())
         }
         card().apply {
             row(getString(R.string.theme), getString(R.string.spoken_keyboard_appearance_summary), R.drawable.ic_baseline_palette_24) {

@@ -23,6 +23,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
@@ -69,10 +70,10 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
 
     private val previewPreferenceListener: ManagedPreferenceProvider.OnChangeListener =
         ManagedPreferenceProvider.OnChangeListener {
-        root.post {
-            setTheme(ThemeManager.activeTheme)
-            recalculateSize()
-        }
+            root.post {
+                setTheme(previewTheme)
+                recalculateSize()
+            }
         }
 
     private val t9Background = imageView {
@@ -184,6 +185,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             recalculateSize()
             onSizeMeasured?.invoke(intrinsicWidth, intrinsicHeight)
             ThemeManager.prefs.registerOnChangeListener(previewPreferenceListener)
+            AppPrefs.getInstance().keyboard.registerOnChangeListener(previewPreferenceListener)
         }
 
         override fun onConfigurationChanged(newConfig: Configuration?) {
@@ -192,6 +194,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
 
         override fun onDetachedFromWindow() {
             ThemeManager.prefs.unregisterOnChangeListener(previewPreferenceListener)
+            AppPrefs.getInstance().keyboard.unregisterOnChangeListener(previewPreferenceListener)
             super.onDetachedFromWindow()
         }
     }
@@ -203,9 +206,10 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         val displayMetrics = resources.displayMetrics
         val w = displayMetrics.widthPixels
         val displayHeight = displayMetrics.heightPixels
+        val keyboardPrefs = AppPrefs.getInstance().keyboard
         val (t9Percent, passwordPercent) = when (resources.configuration.orientation) {
-            Configuration.ORIENTATION_LANDSCAPE -> 15 to 45
-            else -> 10 to 40
+            Configuration.ORIENTATION_LANDSCAPE -> keyboardPrefs.t9KeyboardHeightPercentLandscape.getValue().coerceIn(20, 40) to 45
+            else -> keyboardPrefs.t9KeyboardHeightPercent.getValue().coerceIn(20, 40) to 40
         }
         t9KeyboardHeight = displayHeight * t9Percent / 100
         passwordKeyboardHeight = displayHeight * passwordPercent / 100
@@ -390,8 +394,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             })
         }
         rebuildAuxiliaryPreviews(theme)
-        // Both pages keep the password preview's stable viewport height; the T9
-        // controls are centered inside it so paging never shifts the surrounding UI.
+        // All pages share a stable viewport so paging does not move the surrounding controls.
         updatePageIndicator(previewPager.currentItem)
     }
 }

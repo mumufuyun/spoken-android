@@ -1,0 +1,11 @@
+<resources>
+    <string name="spoken_height_value_landscape">Landscape · %1$d%%</string>
+    <string name="spoken_timeout_range">Enter a timeout from 3 to 120 seconds.</string>
+    <string name="spoken_auxiliary_toolbar_summary">Applies to auxiliary panels, including the password keyboard. The Chinese T9 top bar stays fixed.</string>
+    <string name="spoken_physical_english_title">Physical T9 English prediction</string>
+    <string name="spoken_physical_english_summary">For physical number keys. The phone touchscreen English keyboard types letters directly.</string>
+    <string name="spoken_external_voice_title">External voice input (compatibility)</string>
+    <string name="spoken_external_voice_summary">Uses another voice input method from a physical 0 key or an auxiliary toolbar. Configure the touchscreen microphone under Voice &amp; AI.</string>
+    <string name="spoken_handwriting_entry_summary">Available from the auxiliary toolbar. The current Chinese T9 main panel has no handwriting entry.</string>
+    <string name="spoken_full_keyboard_style_summary">Border visibility, horizontal/vertical margins and punctuation placement apply to the password/full keyboard. Chinese T9 keeps fixed key spacing and visible keycaps.</string>
+</resources>

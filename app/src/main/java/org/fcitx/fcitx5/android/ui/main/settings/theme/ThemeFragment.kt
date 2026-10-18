@@ -4,13 +4,15 @@
  */
 package org.fcitx.fcitx5.android.ui.main.settings.theme
 
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
+import android.widget.LinearLayout
 import androidx.annotation.Keep
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -21,19 +23,7 @@ import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import splitties.dimensions.dp
-import splitties.resources.styledColor
-import splitties.views.backgroundColor
-import splitties.views.dsl.constraintlayout.below
-import splitties.views.dsl.constraintlayout.bottomOfParent
-import splitties.views.dsl.constraintlayout.centerHorizontally
-import splitties.views.dsl.constraintlayout.constraintLayout
-import splitties.views.dsl.constraintlayout.endOfParent
-import splitties.views.dsl.constraintlayout.lParams
-import splitties.views.dsl.constraintlayout.startOfParent
-import splitties.views.dsl.constraintlayout.topOfParent
-import splitties.views.dsl.core.add
-import splitties.views.dsl.core.matchParent
-import splitties.views.dsl.core.wrapContent
+import kotlin.math.roundToInt
 
 class ThemeFragment : Fragment() {
 
@@ -42,6 +32,8 @@ class ThemeFragment : Fragment() {
     private lateinit var tabLayout: TabLayout
 
     private lateinit var viewPager: ViewPager2
+
+    private var tabMediator: TabLayoutMediator? = null
 
     @Keep
     private val onThemeChangeListener = ThemeManager.OnThemeChangeListener {
@@ -57,10 +49,7 @@ class ThemeFragment : Fragment() {
     ): View = with(requireContext()) {
         previewUi = KeyboardPreviewUi(this, ThemeManager.activeTheme)
         ThemeManager.addOnChangedListener(onThemeChangeListener)
-        val preview = previewUi.root.apply {
-            scaleX = 0.5f
-            scaleY = 0.5f
-        }
+        val preview = ScaledKeyboardPreview(this, previewUi)
 
         tabLayout = TabLayout(this)
 
@@ -74,50 +63,21 @@ class ThemeFragment : Fragment() {
             }
         }
 
-        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+        tabMediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = getString(
                 when (position) {
                     0 -> R.string.theme
                     else -> R.string.configure
                 }
             )
-        }.attach()
+        }.also { it.attach() }
 
-        // The preview is transform-scaled, so its visual bounds cannot constrain
-        // siblings. Keep the tab's drawing bounds below the page hint instead of
-        // padding the tab itself, which still allowed the two views to paint over
-        // each other during a full redraw.
-        val tabContainer = FrameLayout(this).apply {
-            setPadding(0, dp(32), 0, 0)
-            addView(tabLayout, FrameLayout.LayoutParams(matchParent, wrapContent))
-        }
-
-        val previewWrapper = constraintLayout {
-            add(preview, lParams(wrapContent, wrapContent) {
-                topOfParent(dp(-52))
-                startOfParent()
-                endOfParent()
-            })
-            add(tabContainer, lParams(matchParent, wrapContent) {
-                centerHorizontally()
-                bottomOfParent()
-            })
-            backgroundColor = styledColor(android.R.attr.colorPrimary)
-            elevation = dp(4f)
-        }
-
-        constraintLayout {
-            add(previewWrapper, lParams(height = wrapContent) {
-                topOfParent()
-                startOfParent()
-                endOfParent()
-            })
-            add(viewPager, lParams {
-                below(previewWrapper)
-                startOfParent()
-                endOfParent()
-                bottomOfParent()
-            })
+        LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(ContextCompat.getColor(context, R.color.spoken_background))
+            addView(preview, LinearLayout.LayoutParams(-1, -2))
+            addView(tabLayout, LinearLayout.LayoutParams(-1, -2))
+            addView(viewPager, LinearLayout.LayoutParams(-1, 0, 1f))
         }
     }
 
@@ -128,8 +88,45 @@ class ThemeFragment : Fragment() {
         super.onStop()
     }
 
-    override fun onDestroy() {
+    override fun onDestroyView() {
+        tabMediator?.detach()
+        tabMediator = null
         ThemeManager.removeOnChangedListener(onThemeChangeListener)
-        super.onDestroy()
+        super.onDestroyView()
+    }
+}
+
+/** Measure the scaled bounds so the preview cannot leave phantom space or overlap the tabs. */
+private class ScaledKeyboardPreview(context: Context, private val preview: KeyboardPreviewUi) :
+    ViewGroup(context) {
+    private var previewScale = 1f
+
+    init {
+        setPadding(dp(16), dp(12), dp(16), dp(12))
+        addView(preview.root, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val width = MeasureSpec.getSize(widthMeasureSpec)
+        val nativeWidth = preview.intrinsicWidth.coerceAtLeast(1)
+        val nativeHeight = preview.intrinsicHeight + dp(16)
+        val availableWidth = (width - paddingLeft - paddingRight).coerceAtLeast(1)
+        val maxPreviewHeight = resources.displayMetrics.heightPixels * 0.30f
+        previewScale = minOf(availableWidth.toFloat() / nativeWidth, maxPreviewHeight / nativeHeight, 0.8f)
+        preview.root.measure(
+            MeasureSpec.makeMeasureSpec(nativeWidth, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(nativeHeight, MeasureSpec.EXACTLY)
+        )
+        setMeasuredDimension(width, (nativeHeight * previewScale).roundToInt() + paddingTop + paddingBottom)
+    }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        val child = preview.root
+        val x = ((width - child.measuredWidth * previewScale) / 2).roundToInt()
+        child.pivotX = 0f
+        child.pivotY = 0f
+        child.scaleX = previewScale
+        child.scaleY = previewScale
+        child.layout(x, paddingTop, x + child.measuredWidth, paddingTop + child.measuredHeight)
     }
 }

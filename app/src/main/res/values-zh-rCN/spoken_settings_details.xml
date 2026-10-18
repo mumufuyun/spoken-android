@@ -1,0 +1,11 @@
+<resources>
+    <string name="spoken_height_value_landscape">横屏 · %1$d%%</string>
+    <string name="spoken_timeout_range">请输入 3–120 秒的超时时间。</string>
+    <string name="spoken_auxiliary_toolbar_summary">适用于密码键盘等辅助面板，不改变拼音九键顶部工具栏。</string>
+    <string name="spoken_physical_english_title">实体九键英文联想</string>
+    <string name="spoken_physical_english_summary">仅用于实体数字键；手机触屏英文键盘逐字输入。</string>
+    <string name="spoken_external_voice_title">外部语音输入（兼容功能）</string>
+    <string name="spoken_external_voice_summary">通过实体 0 键或辅助工具栏调用其他语音输入法。手机九键麦克风请在“语音与 AI”中配置。</string>
+    <string name="spoken_handwriting_entry_summary">通过辅助面板工具栏进入；当前拼音九键主面板没有手写入口。</string>
+    <string name="spoken_full_keyboard_style_summary">按键边框开关、横纵边距和符号位置适用于密码全键盘；拼音九键使用固定间距和可见键帽。</string>
+</resources>

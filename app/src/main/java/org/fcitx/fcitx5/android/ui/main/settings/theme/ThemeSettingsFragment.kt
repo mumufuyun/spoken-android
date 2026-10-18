@@ -5,7 +5,9 @@
 package org.fcitx.fcitx5.android.ui.main.settings.theme
 
 import android.os.Bundle
+import androidx.preference.Preference
 import androidx.preference.SwitchPreference
+import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
@@ -32,6 +34,13 @@ class ThemeSettingsFragment : ManagedPreferenceFragment(ThemeManager.prefs) {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         super.onCreatePreferences(savedInstanceState, rootKey)
         switchPreference = findPreference(followSystemDayNightTheme.key)!!
+        preferenceScreen.addPreference(Preference(requireContext()).apply {
+            key = "full_keyboard_style_scope"
+            order = -1
+            isIconSpaceReserved = false
+            isSelectable = false
+            setSummary(R.string.spoken_full_keyboard_style_summary)
+        })
     }
 
     override fun onResume() {

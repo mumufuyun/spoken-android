@@ -5,8 +5,11 @@
 package org.fcitx.fcitx5.android.ui.common
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +23,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.ui.main.modified.MyPreferenceFragment
 import org.fcitx.fcitx5.android.utils.applyNavBarInsetsBottomPadding
 import splitties.dimensions.dp
+import splitties.resources.styledColor
 
 abstract class PaddingPreferenceFragment : MyPreferenceFragment() {
     @CallSuper
@@ -42,10 +46,19 @@ abstract class PaddingPreferenceFragment : MyPreferenceFragment() {
                     if (position == RecyclerView.NO_POSITION) return
                     val preference = (listView.adapter as? PreferenceGroupAdapter)?.getItem(position)
                     if (preference !is PreferenceCategory) {
-                        view.background = GradientDrawable().apply {
+                        val surface = GradientDrawable().apply {
                             setColor(ContextCompat.getColor(context, R.color.spoken_surface))
                             cornerRadius = dp(16).toFloat()
                         }
+                        val mask = GradientDrawable().apply {
+                            setColor(Color.WHITE)
+                            cornerRadius = dp(16).toFloat()
+                        }
+                        view.background = RippleDrawable(
+                            ColorStateList.valueOf(context.styledColor(android.R.attr.colorControlHighlight)),
+                            surface,
+                            mask
+                        )
                         view.minimumHeight = dp(72)
                     } else {
                         view.background = null

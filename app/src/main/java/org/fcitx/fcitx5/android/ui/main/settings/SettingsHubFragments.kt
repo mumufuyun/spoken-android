@@ -137,7 +137,7 @@ class InputOptionsSettingsFragment : GroupedManagedPreferenceFragment() {
             )
         ),
         Group(
-            R.string.voice_input,
+            R.string.spoken_external_voice_title,
             prefs.keyboard,
             setOf(
                 prefs.keyboard.preferredVoiceInput.key,
@@ -147,6 +147,24 @@ class InputOptionsSettingsFragment : GroupedManagedPreferenceFragment() {
     )
 
     override fun onGroupedPreferenceUiCreated(screen: PreferenceScreen) {
+        screen.findPreference<Preference>(prefs.keyboard.smartEnglishT9.key)?.apply {
+            setTitle(R.string.spoken_physical_english_title)
+            setSummary(R.string.spoken_physical_english_summary)
+        }
+        listOf(
+            R.string.spoken_external_voice_title to R.string.spoken_external_voice_summary,
+            R.string.handwriting_input to R.string.spoken_handwriting_entry_summary
+        ).forEach { (category, description) ->
+            screen.findPreference<PreferenceCategory>(groupKey(category))?.addPreference(
+                Preference(screen.context).apply {
+                    key = "scope_$category"
+                    order = -1
+                    isIconSpaceReserved = false
+                    isSelectable = false
+                    setSummary(description)
+                }
+            )
+        }
         val schemeSwitches = listOfNotNull(
             screen.findPreference<MySwitchPreference>(prefs.chineseT9.pinyin.key),
             screen.findPreference<MySwitchPreference>(prefs.chineseT9.stroke.key),
@@ -363,8 +381,7 @@ class InputOptionsSettingsFragment : GroupedManagedPreferenceFragment() {
                     HandwritingModelUiState.FAILED -> R.string.handwriting_model_failed
                 }
             )
-            isEnabled = state != HandwritingModelUiState.CHECKING &&
-                state != HandwritingModelUiState.DOWNLOADING
+            isEnabled = HandwritingModelRequestPolicy.canDownload(state)
         }
     }
 

@@ -14,8 +14,8 @@ import org.fcitx.fcitx5.android.R
 class MyEditTextPreferenceDialogFragment : EditTextPreferenceDialogFragmentCompat() {
     override fun onPrepareDialogBuilder(builder: AlertDialog.Builder) {
         val p = preference as EditTextPreference
-        builder.setNeutralButton(R.string.default_) { _, _ ->
-            p.restore()
+        if (p.hasDefaultValue()) {
+            builder.setNeutralButton(R.string.default_) { _, _ -> p.restore() }
         }
         super.onPrepareDialogBuilder(builder)
     }

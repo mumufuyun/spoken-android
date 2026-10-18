@@ -8,6 +8,7 @@ package org.fcitx.fcitx5.android.ui.main.settings
 import android.content.Context
 import android.os.Bundle
 import android.text.InputType
+import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
@@ -146,7 +147,7 @@ class VoiceConnectionSettingsFragment : PaddingPreferenceFragment() {
                 prefs.voice.asrProvider.setValue(kind)
                 preference.summary = labels[kinds.indexOf(kind)]
                 applyEngineVisibility(kind)
-                false
+                true
             }
         }
     }
@@ -157,6 +158,7 @@ class VoiceConnectionSettingsFragment : PaddingPreferenceFragment() {
         dialogTitle = ctx.getString(R.string.ai_timeout_sec)
         isPersistent = false
         isIconSpaceReserved = false
+        dialogMessage = ctx.getString(R.string.spoken_timeout_range)
         summary = prefs.voice.aiTimeoutSec.getValue().toString()
         setOnBindEditTextListener { editText ->
             editText.inputType = InputType.TYPE_CLASS_NUMBER
@@ -165,11 +167,13 @@ class VoiceConnectionSettingsFragment : PaddingPreferenceFragment() {
         }
         setOnPreferenceChangeListener { preference, newValue ->
             val seconds = VoiceSettingsPolicy.sanitizeTimeoutSec(newValue?.toString().orEmpty())
-            if (seconds != null) {
-                prefs.voice.aiTimeoutSec.setValue(seconds)
-                preference.summary = seconds.toString()
+            if (seconds == null) {
+                Toast.makeText(ctx, R.string.spoken_timeout_range, Toast.LENGTH_LONG).show()
+                return@setOnPreferenceChangeListener false
             }
-            false
+            prefs.voice.aiTimeoutSec.setValue(seconds)
+            preference.summary = seconds.toString()
+            true
         }
     }
 
@@ -193,7 +197,7 @@ class VoiceConnectionSettingsFragment : PaddingPreferenceFragment() {
                 val value = newValue?.toString()?.trim().orEmpty()
                 pref.setValue(value)
                 preference.summary = value
-                false
+                true
             }
         }
         addPreference(edit)
