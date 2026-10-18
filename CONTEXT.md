@@ -532,6 +532,24 @@ pages reuse rounded surfaces; app bars use neutral backgrounds without shadows.
 Configuration summaries indicate stored configuration, not a successful live
 provider connectivity test. No settings migration changes voice credentials.
 
+Height presets and the slider edit the current orientation's height. Theme
+previews use those same height preferences and a container measured to the
+scaled preview bounds. Detail rows retain touch feedback. Preference dialogs
+offer reset only when the preference defines a default, and rejected timeout
+values explain the supported range. Physical English prediction, external voice
+IME selection, auxiliary toolbar controls and full-keyboard styling carry scope
+descriptions: they do not configure the phone's fixed Chinese T9 controls.
+Handwriting remains reachable from the auxiliary toolbar; the main touch T9
+panel does not currently provide a handwriting entry.
+
+Manual user-data archives include shared preferences, databases, external user
+data, internal `t9` learning/dictionaries, key-sound packs and private font files.
+`UserDataFiles` owns this portable file set. Device-bound voice-key ciphertext
+and its backup file are excluded from export and ignored even in older imported
+archives, preserving the destination device's credentials. A new installation
+must configure its API keys separately. Older archives without the new personal
+data directories leave existing learning untouched.
+
 ## Handwriting
 
 `HandwritingWindow` is a transient auxiliary surface reached from the
