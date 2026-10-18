@@ -28,7 +28,8 @@ class SpokenVoiceCoordinator(
     private val prepareEditor: () -> Unit,
     private val previewIfCurrent: (Long, String) -> Unit,
     private val discardPreview: () -> Unit,
-    private val commitIfCurrent: (Long, String) -> Unit,
+    private val commitIfCurrent: (Long, String) -> Boolean,
+    private val onModeCompleted: (WorkScene) -> Unit,
     private val onState: (SpokenVoiceState) -> Unit
 ) {
     private data class Session(
@@ -242,7 +243,7 @@ class SpokenVoiceCoordinator(
             return
         }
         if (!transcript.allowsAi(current.config.scene, current.config.outputLanguage)) {
-            deliver(generation, transcript.text)
+            deliver(generation, transcript.text, completedScene = current.config.scene)
             return
         }
         val processor = current.aiProcessor
@@ -267,7 +268,8 @@ class SpokenVoiceCoordinator(
                     AiFallbackReason.UNSAFE_OUTPUT -> "AI 返回内容异常，已输入原文"
                     else -> "AI 整理未完成，已输入原文"
                 }
-                deliver(generation, if (result.fallback == null) result.text else transcript.text, notice)
+                deliver(generation, if (result.fallback == null) result.text else transcript.text,
+                    notice, current.config.scene.takeIf { result.fallback == null })
             }
         }
         aiJob?.start()
@@ -313,12 +315,15 @@ class SpokenVoiceCoordinator(
         }
     }
 
-    private fun deliver(generation: Long, text: String, notice: String? = null) {
+    private fun deliver(
+        generation: Long, text: String, notice: String? = null, completedScene: WorkScene? = null
+    ) {
         if (generation != editorGeneration() || !editorAllowsVoice()) {
             cancel()
             return
         }
-        commitIfCurrent(generation, text)
+        val accepted = commitIfCurrent(generation, text)
+        if (accepted && text.isNotBlank() && completedScene != null) onModeCompleted(completedScene)
         resetJob?.cancel()
         if (notice == null) {
             setState(SpokenVoiceState.Idle)

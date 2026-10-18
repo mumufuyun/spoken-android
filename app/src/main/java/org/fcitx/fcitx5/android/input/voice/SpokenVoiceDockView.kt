@@ -5,51 +5,66 @@
 package org.fcitx.fcitx5.android.input.voice
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
+import android.graphics.drawable.RippleDrawable
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
+import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.InputUiFont
 import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
 import splitties.dimensions.dp
 
-/** Fixed-height controls; the host editor owns the transcript whenever composing is supported. */
+/** Fixed-height controls. Scrolling browses scenes; only a tap changes the next recording. */
 class SpokenVoiceDockView(
     context: Context,
     private val theme: Theme,
+    initialOrder: List<WorkScene>,
     onCancel: () -> Unit,
     onOptions: (View) -> Unit,
     onSettings: () -> Unit,
     onHideKeyboard: () -> Unit
 ) : LinearLayout(context) {
+    private val prefs get() = AppPrefs.getInstance().voice
+    private var active = false
+    private var selected: WorkScene? = null
+    private val chips = linkedMapOf<WorkScene, TextView>()
+    private val modeRow = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
+    private val modes = HorizontalScrollView(context).apply {
+        isHorizontalScrollBarEnabled = false
+        isFillViewport = false
+        addView(modeRow, LayoutParams(-2, -1))
+    }
     private val status = TextView(context).apply {
         textSize = 13f
         setTextColor(theme.keyTextColor)
         gravity = Gravity.CENTER_VERTICAL
         maxLines = 2
         ellipsize = TextUtils.TruncateAt.END
-        setPadding(dp(12), 0, dp(4), 0)
+        setPadding(dp(4), 0, dp(4), 0)
     }
     private val cancel = TextView(context).apply {
-        text = "取消"
+        text = context.getString(android.R.string.cancel)
         textSize = 13f
         setTextColor(theme.keyTextColor)
         gravity = Gravity.CENTER
         isFocusable = true
         setOnClickListener { onCancel() }
     }
-    private val scene = TextView(context).apply {
+    private val language = TextView(context).apply {
         textSize = 12f
-        setTextColor(theme.keyTextColor)
         gravity = Gravity.CENTER
-        maxLines = 1
-        ellipsize = TextUtils.TruncateAt.END
+        setTextColor(theme.keyTextColor)
         isFocusable = true
-        contentDescription = "语音场景与输出语言"
-        setOnClickListener { onOptions(this) }
+        setOnClickListener { if (!active) onOptions(this) }
     }
     private val settings = ToolButton(context, R.drawable.ic_baseline_settings_24, theme).apply {
         contentDescription = context.getString(R.string.settings)
@@ -67,18 +82,84 @@ class SpokenVoiceDockView(
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        setPadding(dp(12), 0, dp(12), 0)
-        // One surface also covers the transparent action buttons and their bottom edge.
+        setPadding(dp(8), 0, dp(8), 0)
         setBackgroundColor(theme.backgroundColor)
-        addView(scene, LayoutParams(dp(80), -1))
-        addView(status, LayoutParams(0, -1, 1f))
+        addView(FrameLayout(context).apply {
+            addView(modes, FrameLayout.LayoutParams(-1, -1))
+            addView(status, FrameLayout.LayoutParams(-1, -1))
+        }, LayoutParams(0, -1, 1f))
         addView(cancel, LayoutParams(dp(48), -1))
-        addView(settings, LayoutParams(dp(48), -1))
-        addView(hideKeyboard, LayoutParams(dp(48), -1))
+        addView(language, LayoutParams(dp(44), -1))
+        addView(settings, LayoutParams(dp(44), -1))
+        addView(hideKeyboard, LayoutParams(dp(44), -1))
+        setModeOrder(initialOrder)
         render(SpokenVoiceState.Idle)
     }
 
+    fun setModeOrder(order: List<WorkScene>) {
+        modeRow.removeAllViews()
+        chips.clear()
+        order.forEach { scene ->
+            val chip = TextView(context).apply {
+                text = scene.chipLabel
+                textSize = 13f
+                InputUiFont.applyTo(this)
+                gravity = Gravity.CENTER
+                setPadding(dp(12), 0, dp(12), 0)
+                minimumWidth = dp(48)
+                maxLines = 1
+                isFocusable = true
+                contentDescription = scene.label + "：" + scene.description
+                tooltipText = scene.description
+                setOnClickListener {
+                    if (!active) {
+                        prefs.defaultScene.setValue(scene)
+                        renderSelection()
+                    }
+                }
+            }
+            chips[scene] = chip
+            modeRow.addView(chip, LayoutParams(-2, -1))
+        }
+        renderSelection()
+        revealSelection()
+    }
+
+    private fun renderSelection() {
+        val current = prefs.defaultScene.getValue()
+        chips.forEach { (scene, chip) ->
+            val checked = scene == current
+            chip.isSelected = checked
+            val description = if (scene == WorkScene.DIRECT &&
+                prefs.outputLanguage.getValue() != OutputLanguage.ORIGINAL
+            ) context.getString(R.string.voice_picker_translate) else scene.description
+            chip.contentDescription = scene.label + "：" + description
+            chip.tooltipText = description
+            chip.setTextColor(if (checked) theme.accentKeyTextColor else theme.keyTextColor)
+            chip.background = RippleDrawable(
+                ColorStateList.valueOf(theme.keyPressHighlightColor),
+                InsetDrawable(GradientDrawable().apply {
+                    cornerRadius = dp(10).toFloat()
+                    setColor(if (checked) theme.accentKeyBackgroundColor else theme.backgroundColor)
+                }, dp(2), dp(7), dp(2), dp(7)), null
+            )
+        }
+        if (selected != current) {
+            selected = current
+            revealSelection()
+        }
+    }
+
+    private fun revealSelection() {
+        modes.post {
+            val chip = chips[prefs.defaultScene.getValue()] ?: return@post
+            if (chip.left < modes.scrollX) modes.scrollTo(chip.left, 0)
+            else if (chip.right > modes.scrollX + modes.width) modes.scrollTo(chip.right - modes.width, 0)
+        }
+    }
+
     fun render(state: SpokenVoiceState, fallback: String = "") {
+        active = state.isActive
         status.text = fallback.ifBlank {
             when (state) {
                 SpokenVoiceState.Idle -> ""
@@ -91,7 +172,18 @@ class SpokenVoiceDockView(
             }
         }
         status.contentDescription = status.text
-        cancel.visibility = if (state.isActive) VISIBLE else GONE
-        scene.text = AppPrefs.getInstance().voice.defaultScene.getValue().label + "⌄"
+        val showStatus = status.text.isNotEmpty()
+        val returning = modes.visibility != VISIBLE && !showStatus
+        status.visibility = if (showStatus) VISIBLE else GONE
+        modes.visibility = if (showStatus) INVISIBLE else VISIBLE
+        cancel.visibility = if (active) VISIBLE else GONE
+        language.isEnabled = !active
+        settings.isEnabled = !active
+        language.alpha = if (active) 0.4f else 1f
+        settings.alpha = language.alpha
+        language.text = prefs.outputLanguage.getValue().chipLabel + "⌄"
+        language.contentDescription = context.getString(R.string.output_language) + "：" + prefs.outputLanguage.getValue().label
+        renderSelection()
+        if (returning) revealSelection()
     }
 }

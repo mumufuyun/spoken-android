@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_modes_order">Mode order</string>
+    <string name="voice_modes_order_summary">Pin modes and sort by recent use</string>
+    <string name="voice_modes_automatic">Sort other modes by recent use</string>
+    <string name="voice_modes_order_hint">Pinned modes come first; use the arrows to reorder them. Other modes rank by successful uses in the last 30 days, starting at 3 uses. Changes appear next time you open the keyboard. Only local mode counts are stored, never speech or text.</string>
+    <string name="voice_mode_move_up">Move %1$s up</string>
+    <string name="voice_mode_move_down">Move %1$s down</string>
+    <string name="voice_mode_pin">Pin</string>
+    <string name="voice_mode_unpin">Unpin</string>
+    <string name="voice_language_locked">Language is locked during recording and processing</string>
+    <string name="voice_language_hint">Choose an output language to return to the keyboard</string>
+</resources>

@@ -11,12 +11,10 @@ import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
-import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.ScrollView
@@ -30,7 +28,7 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.InputUiFont
 import splitties.dimensions.dp
 
-/** Keyboard-aligned scene/language sheet. Settings apply to the next voice session. */
+/** Keyboard-aligned language sheet with explicit cancel/original-recovery actions. */
 object SpokenWorkModePopup {
 
     private var current: PopupWindow? = null
@@ -39,18 +37,6 @@ object SpokenWorkModePopup {
     fun dismissCurrent() {
         current?.dismiss()
         current = null
-    }
-
-    @StringRes
-    private fun summaryFor(scene: WorkScene): Int = when (scene) {
-        WorkScene.DIRECT -> R.string.voice_picker_direct
-        WorkScene.SMOOTH -> R.string.voice_picker_smooth
-        WorkScene.CHAT -> R.string.voice_picker_chat
-        WorkScene.WORK -> R.string.voice_picker_work
-        WorkScene.FORMAL -> R.string.voice_picker_formal
-        WorkScene.MINUTES -> R.string.voice_picker_minutes
-        WorkScene.SHARE -> R.string.voice_picker_share
-        WorkScene.PROMPT -> R.string.voice_picker_prompt
     }
 
     fun show(
@@ -81,9 +67,7 @@ object SpokenWorkModePopup {
         if (sheetWidth <= 0 || maxHeight <= 0) return
 
         val voicePrefs = AppPrefs.getInstance().voice
-        val scenePref = voicePrefs.defaultScene
         val languagePref = voicePrefs.outputLanguage
-        val cells = mutableMapOf<WorkScene, LinearLayout>()
         val chips = mutableMapOf<OutputLanguage, TextView>()
         lateinit var popup: PopupWindow
 
@@ -106,27 +90,6 @@ object SpokenWorkModePopup {
             }
 
         fun renderSelection() {
-            cells.forEach { (scene, cell) ->
-                val selected = scene == scenePref.getValue()
-                val translationOnly = scene == WorkScene.DIRECT && languagePref.getValue() != OutputLanguage.ORIGINAL
-                cell.isSelected = selected
-                cell.contentDescription = scene.label + "：" + if (translationOnly)
-                    ctx.getString(R.string.voice_picker_translate) else scene.description
-                cell.background = surface(selected)
-                val foreground = if (selected) theme.accentKeyTextColor else theme.keyTextColor
-                val titleRow = cell.getChildAt(0) as LinearLayout
-                (titleRow.getChildAt(0) as TextView).setTextColor(foreground)
-                (titleRow.getChildAt(1) as ImageView).apply {
-                    setColorFilter(foreground)
-                    visibility = if (selected) View.VISIBLE else View.INVISIBLE
-                }
-                (cell.getChildAt(1) as TextView).apply {
-                    setTextColor(if (selected) foreground else theme.candidateCommentColor)
-                    setText(
-                        if (translationOnly) R.string.voice_picker_translate else summaryFor(scene)
-                    )
-                }
-            }
             chips.forEach { (language, chip) ->
                 val selected = language == languagePref.getValue()
                 chip.isSelected = selected
@@ -139,7 +102,7 @@ object SpokenWorkModePopup {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(4.px(), 0, 0, 0)
             addView(
-                label(ctx.getString(R.string.voice_picker_title), 17f, theme.keyTextColor, true),
+                label(ctx.getString(R.string.output_language), 17f, theme.keyTextColor, true),
                 LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             )
             addView(label(ctx.getString(R.string.done), 14f, theme.keyTextColor, true).apply {
@@ -153,10 +116,6 @@ object SpokenWorkModePopup {
         val body = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, 12.px(), 0, 4.px())
-            addView(
-                label(ctx.getString(R.string.output_language), 12f, theme.candidateCommentColor),
-                LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8.px() }
-            )
         }
         val languageRow = LinearLayout(ctx)
         OutputLanguage.entries.forEachIndexed { index, language ->
@@ -166,10 +125,14 @@ object SpokenWorkModePopup {
                 setPadding(2.px(), 4.px(), 2.px(), 4.px())
                 isFocusable = true
                 setOnClickListener {
-                    languagePref.setValue(language)
-                    renderSelection()
+                    if (onCancel == null) {
+                        languagePref.setValue(language)
+                        popup.dismiss()
+                    }
                 }
             }
+            chip.isEnabled = onCancel == null
+            chip.alpha = if (chip.isEnabled) 1f else 0.4f
             chips[language] = chip
             languageRow.addView(chip, LinearLayout.LayoutParams(0, -1, 1f).apply {
                 if (index > 0) marginStart = 6.px()
@@ -177,45 +140,6 @@ object SpokenWorkModePopup {
         }
         body.addView(languageRow, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 16.px() })
 
-        WorkScene.entries.chunked(2).forEachIndexed { rowIndex, scenes ->
-            val row = LinearLayout(ctx)
-            scenes.forEachIndexed { columnIndex, scene ->
-                val titleRow = LinearLayout(ctx).apply {
-                    gravity = Gravity.CENTER_VERTICAL
-                    addView(label(scene.label, 14f, theme.keyTextColor, true).apply {
-                        maxLines = 1
-                        ellipsize = TextUtils.TruncateAt.END
-                    }, LinearLayout.LayoutParams(0, -2, 1f))
-                    addView(ImageView(ctx).apply {
-                        setImageResource(R.drawable.ic_baseline_check_24)
-                        importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                    }, LinearLayout.LayoutParams(18.px(), 18.px()).apply { marginStart = 4.px() })
-                }
-                val cell = LinearLayout(ctx).apply {
-                    orientation = LinearLayout.VERTICAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    minimumHeight = 60.px()
-                    setPadding(12.px(), 8.px(), 10.px(), 8.px())
-                    isFocusable = true
-                    addView(titleRow, LinearLayout.LayoutParams(-1, -2))
-                    addView(label(ctx.getString(summaryFor(scene)), 11f, theme.candidateCommentColor).apply {
-                        maxLines = 2
-                        ellipsize = TextUtils.TruncateAt.END
-                    }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 3.px() })
-                    setOnClickListener {
-                        scenePref.setValue(scene)
-                        popup.dismiss()
-                    }
-                }
-                cells[scene] = cell
-                row.addView(cell, LinearLayout.LayoutParams(0, -1, 1f).apply {
-                    if (columnIndex > 0) marginStart = 8.px()
-                })
-            }
-            body.addView(row, LinearLayout.LayoutParams(-1, -2).apply {
-                if (rowIndex > 0) topMargin = 8.px()
-            })
-        }
         renderSelection()
 
         fun addAction(@StringRes text: Int, action: () -> Unit) {
@@ -234,7 +158,7 @@ object SpokenWorkModePopup {
         onCancel?.let { addAction(R.string.voice_picker_cancel, it) }
         onRecover?.let { addAction(R.string.voice_picker_recover, it) }
         body.addView(label(
-            ctx.getString(if (onCancel != null) R.string.voice_picker_next_session else R.string.voice_picker_hint),
+            ctx.getString(if (onCancel != null) R.string.voice_language_locked else R.string.voice_language_hint),
             11f,
             theme.candidateCommentColor
         ).apply { setPadding(4.px(), 12.px(), 4.px(), 0) })

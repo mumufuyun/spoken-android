@@ -223,12 +223,18 @@ class InputView(
     private val voiceSceneListener = ManagedPreference.OnChangeListener<org.fcitx.fcitx5.android.input.voice.WorkScene> { _, _ ->
         voiceDock.render(spokenVoiceState, spokenFallbackPreview)
     }
-    private val voiceDock = SpokenVoiceDockView(themedContext, theme,
+    @Keep
+    private val voiceLanguageListener = ManagedPreference.OnChangeListener<org.fcitx.fcitx5.android.input.voice.OutputLanguage> { _, _ ->
+        voiceDock.render(spokenVoiceState, spokenFallbackPreview)
+    }
+    private val voiceDock = SpokenVoiceDockView(themedContext, theme, service.spokenModeOrder,
         onCancel = { service.cancelSpokenVoiceInput() },
         onOptions = { service.showSpokenVoiceOptions(it, theme) },
         onSettings = { AppUtil.launchMain(context) },
         onHideKeyboard = { service.requestHideSelf(0) }
     )
+    fun refreshSpokenModeOrder() = voiceDock.setModeOrder(service.spokenModeOrder)
+
     private val horizontalCandidate = HorizontalCandidateComponent()
     private val keyboardWindow = KeyboardWindow()
     private val componentsCreated = StartupPerformanceTrace.endStage(componentsCreateStage)
@@ -474,6 +480,7 @@ class InputView(
 
         keyboardPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
         AppPrefs.getInstance().voice.defaultScene.registerOnChangeListener(voiceSceneListener)
+        AppPrefs.getInstance().voice.outputLanguage.registerOnChangeListener(voiceLanguageListener)
         ThemeManager.prefs.inputPanelTopRadius.registerOnChangeListener(inputPanelTopRadiusChangeListener)
     }
 
@@ -779,6 +786,7 @@ class InputView(
         windowManager.onActiveWindowChanged = null
         keyboardPrefs.unregisterOnChangeListener(onKeyboardSizeChangeListener)
         AppPrefs.getInstance().voice.defaultScene.unregisterOnChangeListener(voiceSceneListener)
+        AppPrefs.getInstance().voice.outputLanguage.unregisterOnChangeListener(voiceLanguageListener)
         ThemeManager.prefs.inputPanelTopRadius.unregisterOnChangeListener(inputPanelTopRadiusChangeListener)
         scope.clear()
         super.onDetachedFromWindow()

@@ -16,5 +16,16 @@ enum class WorkScene(val label: String, val description: String) {
     FORMAL("正式材料", "整理为规范严谨的正式书面文本"),
     MINUTES("会议记录", "区分讨论、结论、待办和待确认事项"),
     SHARE("内容分享", "整理为适合发布的分享内容"),
-    PROMPT("AI 指令", "将口语整理为结构化 AI 提示词"),
+    PROMPT("AI 指令", "将口语整理为结构化 AI 提示词");
+
+    val chipLabel: String get() = when (this) {
+        DIRECT -> "原样"
+        SMOOTH -> "流畅"
+        CHAT -> "聊天"
+        WORK -> "工作"
+        FORMAL -> "正式"
+        MINUTES -> "会议"
+        SHARE -> "分享"
+        PROMPT -> "AI 指令"
+    }
 }

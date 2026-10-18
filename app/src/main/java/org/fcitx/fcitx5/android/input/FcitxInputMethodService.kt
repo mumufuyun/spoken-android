@@ -94,6 +94,7 @@ import org.fcitx.fcitx5.android.input.voice.VoiceComposition
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceCoordinator
 import org.fcitx.fcitx5.android.input.voice.SpokenVoiceState
 import org.fcitx.fcitx5.android.input.voice.SpokenWorkModePopup
+import org.fcitx.fcitx5.android.input.voice.VoiceModePreferences
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionCoordinator
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionLifecycle
 import org.fcitx.fcitx5.android.input.t9.ChineseT9CompositionTicket
@@ -198,6 +199,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var spokenEditorGeneration = 0L
     private var spokenComposition: VoiceComposition? = null
     private var spokenPreview = ""
+    // Freeze order for the entire visible keyboard session, including view recreation.
+    var spokenModeOrder = VoiceModePreferences.orderedScenes()
+        private set
     private val spokenVoiceCoordinator by lazy {
         SpokenVoiceCoordinator(
             context = this,
@@ -224,10 +228,15 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             commitIfCurrent = { generation, text ->
                 if (generation == spokenEditorGeneration && isInputViewShown) {
                     val composition = spokenComposition
-                    if (composition?.commit(text) != true) composition?.abandon()
+                    val accepted = composition?.commit(text) == true
+                    if (!accepted) composition?.abandon()
                     spokenComposition = null
                     spokenPreview = ""
-                }
+                    accepted
+                } else false
+            },
+            onModeCompleted = { scene ->
+                if (shouldLearnEnglishWords()) VoiceModePreferences.recordCompleted(scene)
             },
             onState = ::publishSpokenVoiceState
         )
@@ -604,6 +613,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun publishSpokenVoiceState(state: SpokenVoiceState) {
+        if (state is SpokenVoiceState.Starting) SpokenWorkModePopup.dismissCurrent()
         val fallback = if (spokenComposition?.inlineAvailable == false) spokenPreview else ""
         inputView?.updateSpokenVoiceState(state, fallback)
         // Voice status belongs to the keyboard dock, never the cursor-following candidate window.
@@ -1973,6 +1983,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     override fun onWindowShown() {
         super.onWindowShown()
+        if (!imeWindowVisible && !spokenVoiceCoordinator.isActive) {
+            spokenModeOrder = VoiceModePreferences.orderedScenes()
+            inputView?.refreshSpokenModeOrder()
+        }
         imeWindowVisible = true
         updateSelectionBackCallback(selection.latest.isNotEmpty())
         try {

@@ -133,6 +133,9 @@ class VoiceSettingsFragment : SpokenSettingsPage() {
                         content.removeAllViews(); buildPage()
                     }.setNegativeButton(android.R.string.cancel, null).show()
             }
+            row(getString(R.string.voice_modes_order), getString(R.string.voice_modes_order_summary), R.drawable.ic_baseline_tune_24) {
+                VoiceModeOrderDialog.show(requireContext())
+            }
             row(getString(R.string.output_language), voice.outputLanguage.getValue().label, R.drawable.ic_baseline_language_24) {
                 val entries = OutputLanguage.entries
                 AlertDialog.Builder(requireContext()).setTitle(R.string.output_language)

@@ -363,6 +363,9 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             enumCodec<OutputLanguage>(),
             OutputLanguage.ORIGINAL
         )
+        val pinnedScenes = string("spoken_pinned_scenes", "")
+        val autoOrderScenes = bool("spoken_auto_order_scenes", true)
+        val sceneUsage = string("spoken_scene_usage", "")
         val xunfeiAppId = string("spoken_xunfei_app_id", "")
         val customAsrUrl = string("spoken_custom_asr_url", "")
         val customAsrModel = string("spoken_custom_asr_model", "whisper-1")

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_modes_order">模式排序</string>
+    <string name="voice_modes_order_summary">置顶常用模式，按使用习惯排序</string>
+    <string name="voice_modes_automatic">其他模式按近期使用排序</string>
+    <string name="voice_modes_order_hint">置顶的模式优先显示，可用箭头调整顺序。其他模式按近 30 天成功使用次数排序，至少使用 3 次后参与。下次打开键盘生效。仅在本机记录模式使用次数，不记录语音或文字。</string>
+    <string name="voice_mode_move_up">上移%1$s</string>
+    <string name="voice_mode_move_down">下移%1$s</string>
+    <string name="voice_mode_pin">置顶</string>
+    <string name="voice_mode_unpin">取消</string>
+    <string name="voice_language_locked">录音与处理期间，输出语言保持不变</string>
+    <string name="voice_language_hint">选择输出语言后返回键盘</string>
+</resources>
