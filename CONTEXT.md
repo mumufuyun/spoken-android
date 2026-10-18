@@ -438,9 +438,12 @@ described below.
 The touch T9 shell reserves its right-center two rows for a persistent, tap-based
 voice target. It starts and stops the in-process Spoken pipeline without leaving
 the keyboard. While AI is processing, another tap commits the recognized text
-and cancels AI processing. Long-press opens the scene and output-language picker,
-an explicit cancel action while active, and an optional action to insert the last
-original into the same editor.
+and cancels AI processing. Long-press opens output-language controls, an explicit
+cancel action while active, and an optional action to insert the last original into
+the same editor. Scene selection lives directly in the fixed 50 dp top dock:
+horizontal scrolling browses all eight modes; tapping selects one immediately.
+Pinyin candidates temporarily take precedence. Language, settings, and hide controls
+remain at the right; active voice replaces the mode strip with status and Cancel.
 
 `VoiceComposition` owns a recording's temporary editor range independently of
 Rime. `AndroidVoiceEditor` streams underlined composing text through the captured
@@ -489,11 +492,21 @@ follows the two-dimension model from the MVP spec: a `WorkScene` (verbatim, smoo
 transcription, chat, work, formal, minutes, share, AI prompt) combined with an
 `OutputLanguage` (original, English,
 Japanese, Korean); DIRECT with the original language bypasses AI, and DIRECT with another
-language is pure translation. The scene/language picker aligns to the bottom and
-horizontal bounds of the input panel, independent of its opener. It uses a two-column
-scene list with short descriptions and a separate language row; selecting a scene
-returns to the keyboard. The header remains visible while the body scrolls in small
-windows or at large font sizes. Keyboard resizing/hiding dismisses the picker.
+language is pure translation. The separate language picker aligns to the bottom and
+horizontal bounds of the input panel; selecting a language returns to the keyboard.
+Language changes are disabled during recording/processing. Keyboard resizing/hiding
+dismisses the picker.
+
+`VoiceModeOrder` ranks unpinned scenes by successful deliveries in the last 30 UTC
+calendar days, with a three-use minimum and canonical tie order. `VoiceModePreferences`
+persists only scene IDs, day buckets, and bounded counts in local preferences. Pinned
+scenes take precedence in the user-defined order; Voice and AI settings allow pinning,
+moving pins, and disabling automatic ordering. The service freezes the order for each
+visible keyboard session, including input-view recreation, and refreshes it only after
+hiding/reopening. Sorting never changes the selected scene. Cancel, recovery insertion,
+incomplete recognition, skipped/failed AI, empty results, rejected/stale editor commits,
+and editors forbidding personalized learning do not add usage. The successful commit
+callback uses the scene snapshotted at recording start, not the current preference.
 Non-secret voice settings live in the `AppPrefs.voice` category and are snapshotted at
 session start; API keys live in `SecureVoiceKeyStorage` (AndroidKeyStore AES/GCM) keyed
 by `VoiceKeyPurpose`.

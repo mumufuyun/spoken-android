@@ -6,8 +6,8 @@ Recognized speech appears at the host editor's caret as underlined composing tex
 The same region stays visible during AI processing. One tap on Finish ends capture;
 AI automatically commits the final text into that region without another confirmation
 button. The input method must never replace the entire host field or append a second
-copy of the recording. The fixed keyboard dock shows status, Cancel, and the scene
-picker instead of a cursor-following transcription window. The voice target stays in
+copy of the recording. The fixed keyboard dock shows a horizontal scene strip while
+idle, then status and Cancel during voice work. The voice target stays in
 place and becomes Use original during AI processing.
 
 `VoiceComposition` owns editor snapshots and replacement decisions separately from
@@ -43,6 +43,21 @@ percent preference is the actual rendered key-area height. Presets are 23, 28, a
 31 percent, plus the fixed 50 dp dock. The bottom action row has a 48 dp hit target.
 Previously capped values migrate once to a comfortable portrait default, while
 voice credentials remain unchanged.
+
+The dock reuses its existing height for a horizontally scrollable scene strip and
+fixed language/settings/hide actions. Scrolling does not select; tapping a scene does.
+Pinyin candidates retain precedence. Output language remains a separate sheet, and
+recording/processing locks scene and language controls. Long-press voice retains
+cancel and original-recovery actions.
+
+Personal ordering balances fewer taps with stable positions: manually ordered pins
+come first; other modes rank by successful committed recordings from the last 30 UTC
+calendar days, requiring at least three uses. Equal counts keep canonical order.
+Only scene IDs, day buckets, and bounded counts are stored locally. Failed, incomplete,
+skipped, cancelled, recovery, or rejected/stale deliveries do not count; private
+editors disable learning. Automatic ordering can be disabled. The order is frozen
+until the keyboard is hidden and reopened, including across view recreation, and
+sorting never changes the selected scene or a recording's configuration snapshot.
 
 Settings use neutral app bars, Flat Pop cards, and four primary categories. Voice
 connection fields are separate from everyday scene/language controls. The keyboard
