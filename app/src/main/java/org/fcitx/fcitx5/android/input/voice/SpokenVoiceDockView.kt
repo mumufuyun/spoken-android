@@ -11,13 +11,15 @@ import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.RippleDrawable
 import android.text.TextUtils
 import android.view.Gravity
+import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
-import android.widget.Space
 import android.widget.TextView
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.data.InputFeedbacks
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.InputUiFont
@@ -72,12 +74,45 @@ class SpokenVoiceDockView(
         isFocusable = true
         setOnClickListener { onSettings() }
     }
+    private val dismissTouchGuard = KeyboardDismissTouchGuard(
+        bottomInset = dp(10).toFloat(),
+        touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+    )
     private val hideKeyboard = ToolButton(
         context, R.drawable.ic_baseline_keyboard_arrow_down_24, theme
     ).apply {
         contentDescription = context.getString(R.string.hide_keyboard)
         isFocusable = true
+        // Keep semantic/accessibility clicks available without the touch-only guard.
         setOnClickListener { onHideKeyboard() }
+        setOnTouchListener { view, event ->
+            if (!view.isEnabled || event.pointerCount != 1) {
+                dismissTouchGuard.cancel()
+            } else when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    dismissTouchGuard.down(event.x, event.y, view.width.toFloat(),
+                        view.height.toFloat(), event.eventTime)
+                    if (dismissTouchGuard.isTracking) {
+                        view.drawableHotspotChanged(event.x, event.y)
+                        InputFeedbacks.hapticFeedback(view)
+                        InputFeedbacks.soundEffect(InputFeedbacks.SoundEffect.Standard)
+                    }
+                }
+                MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP -> {
+                    for (i in 0 until event.historySize) {
+                        dismissTouchGuard.move(event.getHistoricalX(i), event.getHistoricalY(i))
+                    }
+                    dismissTouchGuard.move(event.x, event.y)
+                    if (event.actionMasked == MotionEvent.ACTION_UP &&
+                        dismissTouchGuard.up(event.x, event.y, event.eventTime)
+                    ) view.performClick()
+                }
+                else -> dismissTouchGuard.cancel()
+            }
+            view.isPressed = dismissTouchGuard.isTracking
+            // Consume rejected touches instead of passing them to the key gesture handler.
+            true
+        }
     }
 
     init {
@@ -85,7 +120,6 @@ class SpokenVoiceDockView(
         gravity = Gravity.CENTER_VERTICAL
         setPadding(dp(8), 0, dp(8), 0)
         setBackgroundColor(theme.backgroundColor)
-        addView(hideKeyboard, LayoutParams(dp(44), -1))
         addView(FrameLayout(context).apply {
             addView(modes, FrameLayout.LayoutParams(-1, -1))
             addView(status, FrameLayout.LayoutParams(-1, -1))
@@ -93,10 +127,20 @@ class SpokenVoiceDockView(
         addView(cancel, LayoutParams(dp(48), -1))
         addView(language, LayoutParams(dp(44), -1))
         addView(settings, LayoutParams(dp(44), -1))
-        // Keep the former hide target empty above Backspace; do not shift Settings into it.
-        addView(Space(context), LayoutParams(dp(44), -1))
+        addView(hideKeyboard, LayoutParams(dp(44), -1))
         setModeOrder(initialOrder)
         render(SpokenVoiceState.Idle)
+    }
+
+    fun onKeyboardTouch(time: Long) {
+        dismissTouchGuard.keyboardTouched(time)
+        hideKeyboard.isPressed = false
+    }
+
+    override fun onDetachedFromWindow() {
+        dismissTouchGuard.cancel()
+        hideKeyboard.isPressed = false
+        super.onDetachedFromWindow()
     }
 
     fun setModeOrder(order: List<WorkScene>) {

@@ -8,6 +8,7 @@ package org.fcitx.fcitx5.android.input
 import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
@@ -20,6 +21,7 @@ import android.text.style.ForegroundColorSpan
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewOutlineProvider
 import android.view.WindowInsets
@@ -234,6 +236,23 @@ class InputView(
         onHideKeyboard = { service.requestHideSelf(0) }
     )
     fun refreshSpokenModeOrder() = voiceDock.setModeOrder(service.spokenModeOrder)
+
+    private val keyboardTouchBounds = Rect()
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (isT9KeyboardActive && windowManager.view.isShown) {
+            windowManager.view.getDrawingRect(keyboardTouchBounds)
+            offsetDescendantRectToMyCoords(windowManager.view, keyboardTouchBounds)
+            // Observe before dispatch so typing/held Delete protects a simultaneous hide tap.
+            for (i in 0 until event.pointerCount) {
+                if (keyboardTouchBounds.contains(event.getX(i).toInt(), event.getY(i).toInt())) {
+                    voiceDock.onKeyboardTouch(event.eventTime)
+                    break
+                }
+            }
+        }
+        return super.dispatchTouchEvent(event)
+    }
 
     private val horizontalCandidate = HorizontalCandidateComponent()
     private val keyboardWindow = KeyboardWindow()
