@@ -46,6 +46,10 @@ voice credentials remain unchanged.
 
 The dock reuses its existing height for a horizontally scrollable scene strip and
 fixed language/settings/hide actions. Scrolling does not select; tapping a scene does.
+Hide is fixed at the left to separate it from the top-right Backspace key. Its former
+44 dp slot stays empty: moving Settings into the vacated slot would replace accidental
+dismissal with accidental navigation. Hiding remains a single tap, and the dock height
+and deletion hit area do not change.
 Pinyin candidates retain precedence. Output language remains a separate sheet, and
 recording/processing locks scene and language controls. Long-press voice retains
 cancel and original-recovery actions.

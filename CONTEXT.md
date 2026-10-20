@@ -47,8 +47,11 @@ existing hit area, and width-based paging measures the same font sizes. Touch ca
 show only candidate text; numeric shortcut labels remain exclusive to
 physical-key operation. It suppresses the redundant
 floating preedit bubble.
-When that reserved area is idle, it exposes the scene picker on the left and
-settings plus a hide-keyboard action on the right, without a persistent wordmark.
+When that reserved area is idle, it exposes a fixed hide-keyboard action on the
+left, followed by the scrollable scene strip and language/settings controls.
+The former 44 dp hide-button slot at the right stays empty as a buffer above
+Backspace, so a high deletion tap cannot dismiss the keyboard or open Settings
+from that slot. Hiding remains a single tap; there is no persistent wordmark.
 The complete 50 dp row shares one solid theme background, including the transparent
 action buttons and their edges. The hide action uses Android's IME dismissal contract.
 During voice input it shows session status and an explicit Cancel action; the
@@ -442,8 +445,9 @@ and cancels AI processing. Long-press opens output-language controls, an explici
 cancel action while active, and an optional action to insert the last original into
 the same editor. Scene selection lives directly in the fixed 50 dp top dock:
 horizontal scrolling browses all eight modes; tapping selects one immediately.
-Pinyin candidates temporarily take precedence. Language, settings, and hide controls
-remain at the right; active voice replaces the mode strip with status and Cancel.
+Pinyin candidates temporarily take precedence. Hide stays at the left; language
+and settings stay after the strip, followed by the empty right-hand buffer.
+Active voice replaces the mode strip with status and Cancel.
 
 `VoiceComposition` owns a recording's temporary editor range independently of
 Rime. `AndroidVoiceEditor` streams underlined composing text through the captured
