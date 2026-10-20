@@ -15,6 +15,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import android.widget.Space
 import android.widget.TextView
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
@@ -84,6 +85,7 @@ class SpokenVoiceDockView(
         gravity = Gravity.CENTER_VERTICAL
         setPadding(dp(8), 0, dp(8), 0)
         setBackgroundColor(theme.backgroundColor)
+        addView(hideKeyboard, LayoutParams(dp(44), -1))
         addView(FrameLayout(context).apply {
             addView(modes, FrameLayout.LayoutParams(-1, -1))
             addView(status, FrameLayout.LayoutParams(-1, -1))
@@ -91,7 +93,8 @@ class SpokenVoiceDockView(
         addView(cancel, LayoutParams(dp(48), -1))
         addView(language, LayoutParams(dp(44), -1))
         addView(settings, LayoutParams(dp(44), -1))
-        addView(hideKeyboard, LayoutParams(dp(44), -1))
+        // Keep the former hide target empty above Backspace; do not shift Settings into it.
+        addView(Space(context), LayoutParams(dp(44), -1))
         setModeOrder(initialOrder)
         render(SpokenVoiceState.Idle)
     }
