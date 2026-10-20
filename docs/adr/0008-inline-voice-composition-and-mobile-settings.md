@@ -46,10 +46,15 @@ voice credentials remain unchanged.
 
 The dock reuses its existing height for a horizontally scrollable scene strip and
 fixed language/settings/hide actions. Scrolling does not select; tapping a scene does.
-Hide is fixed at the left to separate it from the top-right Backspace key. Its former
-44 dp slot stays empty: moving Settings into the vacated slot would replace accidental
-dismissal with accidental navigation. Hiding remains a single tap, and the dock height
-and deletion hit area do not change.
+Hide remains at the top-right: accidental dismissal is addressed through touch intent,
+not relocation. Its lower 10 dp edge ignores touches near Backspace. Down, all sampled
+moves, and Up must stay in the safe region without exceeding system touch slop; leaving
+it cancels the whole gesture. A 300 ms cooldown after key-area touches protects rapid
+input/deletion, including concurrent fingers. The guard consumes rejected gestures and
+has no delayed dismissal, so an ignored press cannot fire after the cooldown expires.
+A deliberate tap still hides directly; semantic/accessibility clicks bypass these
+physical-touch restrictions. Dock height, other controls, and deletion hit areas stay
+unchanged.
 Pinyin candidates retain precedence. Output language remains a separate sheet, and
 recording/processing locks scene and language controls. Long-press voice retains
 cancel and original-recovery actions.
