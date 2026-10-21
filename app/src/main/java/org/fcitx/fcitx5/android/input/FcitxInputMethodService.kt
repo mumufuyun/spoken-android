@@ -1083,6 +1083,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             // Chinese key so candidate lookup never turns a cold file read into input latency.
             ChineseT9CustomPhraseDictionary.Shared.entries()
             ChinesePersonalDictionary.Shared
+            org.fcitx.fcitx5.android.input.t9.ChinesePersonalPhraseDictionary.Shared
             ChineseT9EnglishDictionary.Shared.words()
             EnglishCustomDictionaryCoordinator.Shared.smartEnglishGeneration()
         }
@@ -1387,7 +1388,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleReturnKey() {
-        chinesePersonalLearning.reset()
+        chinesePersonalLearning.confirmBoundary(selection.latest.start, chinesePersonalLearningScope(),
+            currentT9Mode == T9InputMode.CHINESE && shouldLearnEnglishWords())
         if (commitT9PreviewPinyinFromReturn()) return
         if (isPasswordInputPreviewActive()) {
             clearPasswordInputPreview()
@@ -1476,13 +1478,18 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         val learningAllowed = learnChinese && currentT9Mode == T9InputMode.CHINESE &&
             shouldLearnEnglishWords() && selection.latest.start == selection.latest.end
         fun recordAcceptedCommit(accepted: Boolean) {
+            if (accepted && text.isNotEmpty() && text.all { it in "，。！？；、：,.!?;:\n " }) {
+                chinesePersonalLearning.confirmBoundary(start, chinesePersonalLearningScope(),
+                    currentT9Mode == T9InputMode.CHINESE && shouldLearnEnglishWords())
+                return
+            }
             if (!accepted || !learningAllowed) {
                 chinesePersonalLearning.reset()
                 return
             }
             chinesePersonalLearning.committed(
                 text, start, start + if (cursor == -1) text.length else cursor,
-                chinesePersonalLearningScope(), allowed = true
+                chinesePersonalLearningScope(), allowed = true, pinyin = customCandidate?.comment
             )
             customCandidate?.let {
                 ChineseT9CustomPhraseDictionary.Shared.recordSelection(it.text, it.comment, allowed = true)
@@ -2873,6 +2880,19 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     private fun chinesePersonalLearningScope(): String =
         "${activeChineseT9Scheme.name}:${prefs.chineseT9.outputScript(activeChineseT9Scheme).name}"
+
+    fun stageChineseLearningCandidate(candidate: FcitxEvent.Candidate): Any? =
+        if (shouldLearnEnglishWords() && activeChineseT9Scheme == ChineseT9Scheme.PINYIN) {
+            chinesePersonalLearning.stageSelection(candidate.text, candidate.comment)
+        } else null
+
+    fun rejectChineseLearningCandidate(token: Any?) = chinesePersonalLearning.rejectSelection(token)
+
+    fun chinesePersonalCandidates(snapshot: ChineseT9InputSnapshot): org.fcitx.fcitx5.android.input.t9.ChinesePersonalCandidates =
+        chinesePersonalLearning.candidates(chinesePersonalLearningScope(),
+            if (composing.isEmpty()) selection.latest.start else composing.start,
+            snapshot.digitSequence,
+            shouldLearnEnglishWords() && selection.latest.start == selection.latest.end)
 
     fun hideChinesePersonalPredictions() {
         chinesePersonalLearning.hidePredictions()

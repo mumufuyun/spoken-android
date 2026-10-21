@@ -24,12 +24,19 @@ class ChineseT9CustomCandidateSource(
     )
 
     private val directCommitTextByIndex = mutableMapOf<Int, String>()
+    private var typedDigits = ""
+    private var contextual = emptyList<String>()
+    private var learnedTexts = emptySet<String>()
 
     fun buildCustomCandidates(
         snapshot: ChineseT9InputSnapshot,
-        englishCandidatesEnabled: Boolean
+        englishCandidatesEnabled: Boolean,
+        personal: ChinesePersonalCandidates = ChinesePersonalCandidates()
     ): T9PagedCandidates? {
         directCommitTextByIndex.clear()
+        typedDigits = if (snapshot.scheme == ChineseT9Scheme.PINYIN) snapshot.digitSequence else ""
+        contextual = personal.context
+        learnedTexts = personal.phrases.mapTo(HashSet()) { it.text }
         if (snapshot.scheme != ChineseT9Scheme.PINYIN || snapshot.digitSequence.isEmpty()) {
             return null
         }
@@ -44,6 +51,7 @@ class ChineseT9CustomCandidateSource(
                         )
                     )
                 }
+            addAll(personal.phrases.take((CandidateLimit - size).coerceAtLeast(0)))
             if (englishCandidatesEnabled) {
                 englishDictionaries().candidatesForChinese(
                     snapshot.digitSequence,
@@ -84,12 +92,20 @@ class ChineseT9CustomCandidateSource(
             candidate.text !in customTexts &&
                 (englishCandidatesEnabled || !candidate.text.isPureLatinCandidate())
         }
-        if (customIndexed.isEmpty() && engineIndexed.size == engine.data.candidates.size) {
+        if (typedDigits.isEmpty() && customIndexed.isEmpty() && engineIndexed.size == engine.data.candidates.size) {
             return engine
         }
-        val merged = customIndexed + engineIndexed
+        val engineByText = engine.indexedCandidates().associateBy { it.value.text }
+        val merged = (customIndexed.map { candidate ->
+            // Keep Rime's identity when a learned phrase is already on its current page.
+            if (candidate.value.text in learnedTexts) engineByText[candidate.value.text] ?: candidate else candidate
+        } + engineIndexed).sortedWith(
+            compareBy<IndexedValue<FcitxEvent.Candidate>> {
+                ChinesePersonalPhraseDictionary.matchRank(it.value.comment, typedDigits)
+            }.thenBy { contextual.indexOf(it.value.text).takeIf { rank -> rank >= 0 } ?: Int.MAX_VALUE }
+        )
         val selectedOriginalIndex = engine.originalIndices.getOrNull(engine.data.cursorIndex)
-        val cursor = if (customIndexed.isNotEmpty()) {
+        val cursor = if (customIndexed.isNotEmpty() || typedDigits.isNotEmpty()) {
             0
         } else {
             merged.indexOfFirst { it.index == selectedOriginalIndex }
@@ -133,6 +149,9 @@ class ChineseT9CustomCandidateSource(
 
     fun reset() {
         directCommitTextByIndex.clear()
+        typedDigits = ""
+        contextual = emptyList()
+        learnedTexts = emptySet()
     }
 
     companion object {

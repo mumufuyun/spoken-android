@@ -122,9 +122,10 @@ class T9CandidateUiSnapshotPipeline(
 
         override fun buildChineseCustomCandidates(
             snapshot: ChineseT9InputSnapshot,
-            englishCandidatesEnabled: Boolean
+            englishCandidatesEnabled: Boolean,
+            personal: ChinesePersonalCandidates
         ): T9PagedCandidates? =
-            sourceSessions.buildChineseCustomCandidates(snapshot, englishCandidatesEnabled)
+            sourceSessions.buildChineseCustomCandidates(snapshot, englishCandidatesEnabled, personal)
 
         override fun mergeChineseCustomCandidates(
             engine: T9PagedCandidates,

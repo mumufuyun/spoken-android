@@ -350,7 +350,8 @@ class T9CandidateUiStateBuilderTest {
 
         override fun buildChineseCustomCandidates(
             snapshot: ChineseT9InputSnapshot,
-            englishCandidatesEnabled: Boolean
+            englishCandidatesEnabled: Boolean,
+            personal: ChinesePersonalCandidates
         ): T9PagedCandidates? = null
 
         override fun mergeChineseCustomCandidates(

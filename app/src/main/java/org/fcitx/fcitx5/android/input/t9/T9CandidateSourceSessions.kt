@@ -80,9 +80,10 @@ class T9CandidateSourceSessions(
 
     fun buildChineseCustomCandidates(
         snapshot: ChineseT9InputSnapshot,
-        englishCandidatesEnabled: Boolean
+        englishCandidatesEnabled: Boolean,
+        personal: ChinesePersonalCandidates = ChinesePersonalCandidates()
     ): T9PagedCandidates? =
-        chineseCustomCandidateSource.buildCustomCandidates(snapshot, englishCandidatesEnabled)
+        chineseCustomCandidateSource.buildCustomCandidates(snapshot, englishCandidatesEnabled, personal)
 
     fun mergeChineseCustomCandidates(
         engine: T9PagedCandidates,

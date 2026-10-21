@@ -23,6 +23,7 @@ data class T9CandidateUiInputSnapshot(
     val smartEnglishSnapshot: SmartEnglishUiSnapshot?,
     val chineseEnglishCandidatesEnabled: Boolean = true,
     val learnedChinesePredictions: List<String> = emptyList(),
+    val personalChineseCandidates: ChinesePersonalCandidates = ChinesePersonalCandidates(),
     val chinesePredictionPhase: ChinesePredictionCandidateSession.Phase =
         ChinesePredictionCandidateSession.Phase.OFF,
     val pendingPunctuationRawPaged: FcitxEvent.PagedCandidateEvent.Data?,
@@ -65,7 +66,8 @@ class T9CandidateUiStateBuilder(
         fun filterT9StrokeCandidates(data: FcitxEvent.PagedCandidateEvent.Data): T9PagedCandidates
         fun buildChineseCustomCandidates(
             snapshot: ChineseT9InputSnapshot,
-            englishCandidatesEnabled: Boolean
+            englishCandidatesEnabled: Boolean,
+            personal: ChinesePersonalCandidates
         ): T9PagedCandidates?
         fun mergeChineseCustomCandidates(
             engine: T9PagedCandidates,
@@ -153,7 +155,8 @@ class T9CandidateUiStateBuilder(
             val unfilteredChineseCustomPaged = chineseSnapshot?.let { snapshot ->
                 pipeline.buildChineseCustomCandidates(
                     snapshot = snapshot,
-                    englishCandidatesEnabled = input.chineseEnglishCandidatesEnabled
+                    englishCandidatesEnabled = input.chineseEnglishCandidatesEnabled,
+                    personal = input.personalChineseCandidates
                 )
             }
             val chineseCustomPaged = if (

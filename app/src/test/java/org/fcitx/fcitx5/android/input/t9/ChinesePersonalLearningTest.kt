@@ -45,6 +45,7 @@ class ChinesePersonalLearningTest {
             session.committed("项目", 0, 2, scope, true)
             session.hidePredictions() // Dismissing suggestions must not prevent learning the next word.
             session.committed("评审", 2, 4, scope, true)
+            session.confirmBoundary(4, scope, true)
         }
         session.reset()
         session.committed("项目", 0, 2, scope, true)

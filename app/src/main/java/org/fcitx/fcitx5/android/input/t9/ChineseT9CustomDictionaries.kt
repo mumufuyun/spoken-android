@@ -61,7 +61,10 @@ class ChineseT9CustomPhraseDictionary internal constructor(
             decode = ::decodePhrases,
             encode = PhraseJson::encodeToString
         ),
-        onTextsRemoved = { ChinesePersonalDictionary.Shared.forgetTexts(it) }
+        onTextsRemoved = {
+            ChinesePersonalDictionary.Shared.forgetTexts(it)
+            ChinesePersonalPhraseDictionary.Shared.forgetTexts(it)
+        }
     )
 
     private var entries = normalizeEntries(persistence.snapshot())

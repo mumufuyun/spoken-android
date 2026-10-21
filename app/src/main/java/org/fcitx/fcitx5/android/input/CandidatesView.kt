@@ -1071,6 +1071,8 @@ class CandidatesView(
                 chineseEnglishCandidatesEnabled =
                     service.isChineseEnglishCandidatesEnabled(),
                 learnedChinesePredictions = learnedPredictions,
+                personalChineseCandidates = chineseSnapshot?.let(service::chinesePersonalCandidates)
+                    ?: org.fcitx.fcitx5.android.input.t9.ChinesePersonalCandidates(),
                 chinesePredictionPhase = if (learnedPredictions.isNotEmpty()) {
                     ChinesePredictionCandidateSession.Phase.VISIBLE
                 } else chinesePredictionPhase,
@@ -1111,6 +1113,7 @@ class CandidatesView(
             null
         }
         var predictionArm: ChinesePredictionCandidateSession.ArmToken? = null
+        var learningToken: Any? = null
         chineseT9EngineOperation.enqueue(
             acceptBefore = {
                 val accepted = service.isCurrentChineseT9Composition(compositionTicket) &&
@@ -1120,6 +1123,7 @@ class CandidatesView(
                             candidate = selectedCandidate
                         ) == sourceTicket)
                 if (accepted) {
+                    learningToken = service.stageChineseLearningCandidate(selectedCandidate)
                     predictionArm = chinesePredictionCandidateSession.arm(
                         source = compositionTicket,
                         enabled = service.isChinesePredictionEnabled()
@@ -1146,6 +1150,7 @@ class CandidatesView(
                 onSelected?.invoke()
             },
             reject = {
+                service.rejectChineseLearningCandidate(learningToken)
                 chinesePredictionCandidateSession.cancel(predictionArm)
                 refreshT9Ui()
             }
