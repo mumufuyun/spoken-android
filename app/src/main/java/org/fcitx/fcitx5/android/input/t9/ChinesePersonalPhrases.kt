@@ -94,12 +94,14 @@ class ChinesePersonalPhraseDictionary internal constructor(
             val syllables = normalized.split('\'')
             if (syllables.size != text.codePointCount(0, text.length)) return null
             // Initials and display annotations are not evidence of a word's pronunciation.
-            if (syllables.any { syllable ->
-                (syllable.length == 1 && syllable !in setOf("a", "o", "e")) ||
-                    syllable !in T9PinyinUtils.t9KeyToPinyin(digits(syllable))
-            }) return null
+            if (syllables.any { !isFullSyllable(it) }) return null
             return normalized
         }
+
+        private fun isFullSyllable(syllable: String): Boolean =
+            (syllable.length > 1 || syllable in setOf("a", "o", "e")) &&
+                syllable !in setOf("zh", "ch", "sh") &&
+                syllable in T9PinyinUtils.t9KeyToPinyin(digits(syllable))
 
         internal fun digits(pinyin: String): String =
             T9EnglishDictionary.t9DigitsForLetters(pinyin.filter { it in 'a'..'z' }).orEmpty()
@@ -108,9 +110,10 @@ class ChinesePersonalPhraseDictionary internal constructor(
             if (typed.isEmpty()) return 0
             val normalized = ChineseT9CustomPhrase.normalizePinyin(pinyin) ?: return 3
             val full = digits(normalized)
+            val completeReading = normalized.split('\'').all(::isFullSyllable)
             return when {
-                full == typed -> 0
-                full.startsWith(typed) -> 1
+                completeReading && full == typed -> 0
+                completeReading && full.startsWith(typed) -> 1
                 digits(normalized.split('\'').joinToString("") { it.take(1) }) == typed -> 2
                 else -> 3
             }

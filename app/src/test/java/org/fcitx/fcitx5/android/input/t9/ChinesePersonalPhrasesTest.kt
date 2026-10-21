@@ -67,6 +67,9 @@ class ChinesePersonalPhrasesTest {
 
     @Test fun invalidReadingsAndRestrictedCommitsCannotLearn() {
         assertNull(ChinesePersonalPhraseDictionary.reading("重庆", "z q"))
+        assertNull(ChinesePersonalPhraseDictionary.reading("实施", "sh sh"))
+        assertNull(ChinesePersonalPhraseDictionary.reading("重庆", "ch qing"))
+        assertTrue(ChinesePersonalPhraseDictionary.matchRank("sh sh", "7474") > 0)
         assertNull(ChinesePersonalPhraseDictionary.reading("重庆", "chong"))
         assertNull(ChinesePersonalPhraseDictionary.reading("重庆", "［chong qing］"))
         assertEquals("chong'qing", ChinesePersonalPhraseDictionary.reading("重庆", "chong qing"))
