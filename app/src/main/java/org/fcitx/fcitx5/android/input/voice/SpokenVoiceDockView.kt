@@ -26,11 +26,12 @@ import org.fcitx.fcitx5.android.input.InputUiFont
 import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
 import splitties.dimensions.dp
 
-/** Fixed-height controls. Scrolling browses scenes; only a tap changes the next recording. */
+/** Fixed-height controls. Scrolling browses scenes; only a tap changes the current/next scene. */
 class SpokenVoiceDockView(
     context: Context,
     private val theme: Theme,
     initialOrder: List<WorkScene>,
+    private val onSceneSelected: (WorkScene) -> Unit,
     onCancel: () -> Unit,
     onOptions: (View) -> Unit,
     onSettings: () -> Unit,
@@ -159,10 +160,8 @@ class SpokenVoiceDockView(
                 contentDescription = scene.label + "：" + scene.description
                 tooltipText = scene.description
                 setOnClickListener {
-                    if (!active) {
-                        prefs.defaultScene.setValue(scene)
-                        renderSelection()
-                    }
+                    onSceneSelected(scene)
+                    renderSelection()
                 }
             }
             chips[scene] = chip
@@ -219,10 +218,17 @@ class SpokenVoiceDockView(
             }
         }
         status.contentDescription = status.text
-        val showStatus = status.text.isNotEmpty()
+        val showStatus = status.text.isNotEmpty() && (!active || fallback.isNotBlank())
         val returning = modes.visibility != VISIBLE && !showStatus
         status.visibility = if (showStatus) VISIBLE else GONE
-        modes.visibility = if (showStatus) INVISIBLE else VISIBLE
+        modes.visibility = if (showStatus && !active) INVISIBLE else VISIBLE
+        // Unsupported host editors retain a compact preview below the live scene strip.
+        modes.layoutParams = FrameLayout.LayoutParams(-1, if (showStatus && active) dp(28) else -1)
+        status.layoutParams = FrameLayout.LayoutParams(-1, if (active) dp(22) else -1,
+            if (active) Gravity.BOTTOM else Gravity.CENTER)
+        status.maxLines = if (active) 1 else 2
+        language.visibility = if (active) GONE else VISIBLE
+        settings.visibility = if (active) GONE else VISIBLE
         cancel.visibility = if (active) VISIBLE else GONE
         language.isEnabled = !active
         settings.isEnabled = !active

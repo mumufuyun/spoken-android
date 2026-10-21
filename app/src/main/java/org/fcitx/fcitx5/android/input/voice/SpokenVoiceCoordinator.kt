@@ -10,7 +10,6 @@ import android.content.pm.PackageManager
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -38,18 +37,15 @@ class SpokenVoiceCoordinator(
         val config: SpokenVoiceConfig,
         val aiProcessor: AiProcessor?,
         val audio: VoiceAudioSession,
+        var scene: WorkScene = config.scene,
         var providerReady: Boolean = false,
         var firstAudioSeen: Boolean = false,
         var latestPartial: String = ""
     )
 
-    private data class PendingAi(val id: UUID, val editorGeneration: Long, val original: String)
-
     private var session: Session? = null
     private var provider: SpokenAsrProvider? = null
-    private var aiJob: Job? = null
-    // Raw transcript fallback while AiProcessing; lets a voice-key tap skip the AI round trip.
-    private var aiFallback: PendingAi? = null
+    private var processing: VoiceProcessingSession? = null
     private var resetJob: Job? = null
     private val recovery = VoiceInputRecovery(SystemClock::elapsedRealtime)
     private var recoveryExpiryJob: Job? = null
@@ -62,6 +58,11 @@ class SpokenVoiceCoordinator(
 
     val isActive: Boolean
         get() = state.isActive
+
+    fun selectScene(scene: WorkScene) {
+        session?.scene = scene
+        processing?.selectScene(scene)
+    }
 
     fun toggle() {
         when (voiceKeyTapAction(state)) {
@@ -171,9 +172,8 @@ class SpokenVoiceCoordinator(
     fun cancel(clearRecovery: Boolean = true) {
         VoicePermissionResult.clear(permissionCallback)
         resetJob?.cancel()
-        aiJob?.cancel()
-        aiJob = null
-        aiFallback = null
+        processing?.cancel()
+        processing = null
         session?.audio?.stop()
         session = null
         provider?.cancel()
@@ -205,9 +205,6 @@ class SpokenVoiceCoordinator(
 
     private fun createAiProcessor(config: SpokenVoiceConfig): AiProcessor? {
         if (!config.aiEnabled) return null
-        if (config.scene == WorkScene.DIRECT && config.outputLanguage == OutputLanguage.ORIGINAL) {
-            return null
-        }
         val apiKey = keyStorage.load(VoiceKeyPurpose.AI_KEY)?.takeIf(String::isNotBlank) ?: return null
         return AiProcessor(
             enabled = true,
@@ -224,13 +221,14 @@ class SpokenVoiceCoordinator(
 
     private fun onTranscriptFinal(current: Session, transcript: SpokenTranscript) {
         val generation = current.editorGeneration
-        clearSession(closeProvider = true)
         if (transcript.text.isBlank()) {
+            clearSession(closeProvider = true)
             showError("未检测到语音")
             return
         }
         previewIfCurrent(generation, transcript.text)
-        if (generation != editorGeneration()) return
+        if (session?.id != current.id || generation != editorGeneration()) return
+        clearSession(closeProvider = true)
         recoveryExpiryJob?.cancel()
         recovery.capture(generation, transcript)?.let { entry ->
             recoveryExpiryJob = scope.launch {
@@ -242,46 +240,16 @@ class SpokenVoiceCoordinator(
             deliver(generation, transcript.text, "识别未完整结束，已保留已识别文字，未进行 AI 整理")
             return
         }
-        if (!transcript.allowsAi(current.config.scene, current.config.outputLanguage)) {
-            deliver(generation, transcript.text, completedScene = current.config.scene)
-            return
-        }
-        val processor = current.aiProcessor
-        if (processor == null) {
-            deliver(generation, transcript.text, if (current.config.aiEnabled) {
-                "AI 尚未配置，已输入原文"
-            } else "AI 未启用，已输入原文")
-            return
-        }
-        val pending = PendingAi(current.id, generation, transcript.text)
-        aiFallback = pending
+        val next = VoiceProcessingSession(
+            scope, transcript.text, current.scene, current.config.outputLanguage,
+            current.config.aiEnabled, current.aiProcessor
+        ) { text, notice, scene -> deliver(generation, text, notice, scene) }
+        processing = next
         setState(SpokenVoiceState.AiProcessing)
-        aiJob = scope.launch(start = CoroutineStart.LAZY) {
-            val processed = SpokenSpeechPostProcessor.process(transcript.text)
-            val result = processor.process(processed, current.config.scene, current.config.outputLanguage)
-            withContext(Dispatchers.Main.immediate) {
-                if (aiFallback?.id != pending.id) return@withContext
-                aiJob = null
-                aiFallback = null
-                val notice = when (result.fallback) {
-                    null -> null
-                    AiFallbackReason.UNSAFE_OUTPUT -> "AI 返回内容异常，已输入原文"
-                    else -> "AI 整理未完成，已输入原文"
-                }
-                deliver(generation, if (result.fallback == null) result.text else transcript.text,
-                    notice, current.config.scene.takeIf { result.fallback == null })
-            }
-        }
-        aiJob?.start()
+        next.start()
     }
 
-    private fun skipAiProcessing() {
-        val pending = aiFallback ?: return
-        aiFallback = null
-        aiJob?.cancel()
-        aiJob = null
-        deliver(pending.editorGeneration, pending.original, "已跳过 AI，输入原文")
-    }
+    private fun skipAiProcessing() = processing?.useOriginal()
 
     private fun onSession(id: UUID, block: (Session) -> Unit) {
         scope.launch(Dispatchers.Main.immediate) {

@@ -10,7 +10,7 @@ enum class SpokenAsrProviderKind { QWEN, XUNFEI, CUSTOM }
 
 /**
  * Immutable snapshot of voice-related settings captured when a session starts, so
- * preference changes mid-session do not affect the ongoing session.
+ * connections and output language stay fixed. The coordinator owns live scene changes.
  */
 data class SpokenVoiceConfig(
     val asrProvider: SpokenAsrProviderKind,

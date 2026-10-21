@@ -230,6 +230,7 @@ class InputView(
         voiceDock.render(spokenVoiceState, spokenFallbackPreview)
     }
     private val voiceDock = SpokenVoiceDockView(themedContext, theme, service.spokenModeOrder,
+        onSceneSelected = service::selectSpokenScene,
         onCancel = { service.cancelSpokenVoiceInput() },
         onOptions = { service.showSpokenVoiceOptions(it, theme) },
         onSettings = { AppUtil.launchMain(context) },

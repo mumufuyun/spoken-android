@@ -569,6 +569,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         spokenVoiceCoordinator.toggle()
     }
 
+    fun selectSpokenScene(scene: org.fcitx.fcitx5.android.input.voice.WorkScene) {
+        prefs.voice.defaultScene.setValue(scene)
+        spokenVoiceCoordinator.selectScene(scene)
+    }
+
     fun cancelSpokenVoiceInput() = spokenVoiceCoordinator.cancel(clearRecovery = false)
 
     /** Manual input keeps the visible original and invalidates all delayed ASR/AI results. */
