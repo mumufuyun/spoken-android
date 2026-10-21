@@ -243,7 +243,10 @@ class SpokenVoiceCoordinator(
         val next = VoiceProcessingSession(
             scope, transcript.text, current.scene, current.config.outputLanguage,
             current.config.aiEnabled, current.aiProcessor
-        ) { text, notice, scene -> deliver(generation, text, notice, scene) }
+        ) { text, notice, scene ->
+            processing = null
+            deliver(generation, text, notice, scene)
+        }
         processing = next
         setState(SpokenVoiceState.AiProcessing)
         next.start()
