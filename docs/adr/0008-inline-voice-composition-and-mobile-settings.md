@@ -6,8 +6,8 @@ Recognized speech appears at the host editor's caret as underlined composing tex
 The same region stays visible during AI processing. One tap on Finish ends capture;
 AI automatically commits the final text into that region without another confirmation
 button. The input method must never replace the entire host field or append a second
-copy of the recording. The fixed keyboard dock shows a horizontal scene strip while
-idle, then status and Cancel during voice work. The voice target stays in
+copy of the recording. The fixed keyboard dock keeps a horizontal scene strip during
+idle and active voice work. Cancel replaces language/settings while active. The voice target stays in
 place and becomes Use original during AI processing.
 
 `VoiceComposition` owns editor snapshots and replacement decisions separately from
@@ -56,8 +56,18 @@ A deliberate tap still hides directly; semantic/accessibility clicks bypass thes
 physical-touch restrictions. Dock height, other controls, and deletion hit areas stay
 unchanged.
 Pinyin candidates retain precedence. Output language remains a separate sheet, and
-recording/processing locks scene and language controls. Long-press voice retains
-cancel and original-recovery actions.
+output language stays fixed during a recording. Scenes remain tappable during connection,
+recording, ASR finalization, and AI processing. Recognition/audio continue unchanged;
+the last selected scene processes the full transcript. During AI work a new selection
+cancels the old request and starts from the original ASR text, never a prior AI output.
+Each request owns an identity, so cancelled results cannot deliver or count usage.
+DIRECT/original immediately commits exact original text; DIRECT with another language
+still translates. After delivery a scene tap affects only the next recording.
+
+The voice key carries state labels. Editors lacking composing support retain a 22 dp
+single-line preview under a 28 dp scene strip within the existing dock height. Hide
+keeps its rightmost position and touch guard. Long-press voice retains cancel and
+original-recovery actions.
 
 Personal ordering balances fewer taps with stable positions: manually ordered pins
 come first; other modes rank by successful committed recordings from the last 30 UTC
@@ -66,7 +76,8 @@ Only scene IDs, day buckets, and bounded counts are stored locally. Failed, inco
 skipped, cancelled, recovery, or rejected/stale deliveries do not count; private
 editors disable learning. Automatic ordering can be disabled. The order is frozen
 until the keyboard is hidden and reopened, including across view recreation, and
-sorting never changes the selected scene or a recording's configuration snapshot.
+sorting never changes the selected scene. Usage counts only the final delivered scene;
+manual scene changes are independent of frozen connection/language settings.
 
 Settings use neutral app bars, Flat Pop cards, and four primary categories. Voice
 connection fields are separate from everyday scene/language controls. The keyboard
@@ -82,13 +93,16 @@ installation are separate from live provider and host-app acceptance.
 
 User acceptance should include:
 
-1. Set each height preset and type in the settings playground; key and dock positions
+1. During a recording switch from Original to Work, then finish. During AI processing
+   switch to Formal and confirm only that result is inserted. Repeat with Original,
+   which should immediately preserve exact ASR text without duplication.
+2. Set each height preset and type in the settings playground; key and dock positions
    should remain stable when starting/stopping voice.
-2. Start with existing text, place the caret in the middle, and dictate a correction.
+3. Start with existing text, place the caret in the middle, and dictate a correction.
    Partials should be underlined; Finish should replace only that span and remove
    the underline once AI completes, without duplicate text.
-3. Replace selected text by voice, then Cancel; the original selection should return.
-4. While AI is running, type or move the caret, then switch fields/apps. A delayed
+4. Replace selected text by voice, then Cancel; the original selection should return.
+5. While AI is running, type or move the caret, then switch fields/apps. A delayed
    result must not overwrite the edit or enter another field.
-5. Repeat in notes, messaging, and browser editors. Report host app/version, action,
+6. Repeat in notes, messaging, and browser editors. Report host app/version, action,
    observed text, and whether the underline or dock preview was shown on failure.

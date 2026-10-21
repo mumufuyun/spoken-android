@@ -57,8 +57,9 @@ cannot become valid by sliding back in. Key-area touches suppress dismissal for
 normal deliberate taps and semantic/accessibility clicks still dismiss directly.
 The complete 50 dp row shares one solid theme background, including the transparent
 action buttons and their edges. The hide action uses Android's IME dismissal contract.
-During voice input it shows session status and an explicit Cancel action; the
-transcript belongs to the host editor. These controls yield to text candidates. In gesture-navigation
+During voice input the scene strip stays live beside Cancel and Hide; language/settings
+yield their space. The voice key shows session status and the transcript belongs to the host editor.
+Unsupported editors retain a single-line preview below the chips within the same 50 dp dock. These controls yield to text candidates. In gesture-navigation
 mode, phones without a hardware keyboard yield a narrow 18 dp launch strip on the left
 and right from the first visible keyboard frame, including voice, symbol, and expanded
 candidate surfaces, so an edge Back gesture cannot lose its initial touch to a flush keycap.
@@ -289,21 +290,34 @@ The single prediction entry in Quick Settings is mode-aware: Chinese shows and
 toggles Predictive Chinese, while English shows and toggles Predictive English.
 
 `ChinesePersonalLearningSession` supplements the shipped prediction data with
-adjacent, accepted Chinese keyboard commits in the current editor. A pair must
-occur twice before appearing; suggestions rank by frequency, then recent use.
-The bounded local store holds at most 4,096 pairs, indexed by scheme, configured
-output script, and preceding committed word. Context expires after two minutes
-and breaks on editor changes, cursor edits, deletion, punctuation, Return, voice
-input, and mode changes. Password and no-personalized-learning editors cannot
-update this app-owned learning. Disk writes use `T9DictionaryPersistence`.
+accepted Chinese keyboard commits in the current editor. Its context spans up to
+four adjacent commits; next-word observations index suffixes of up to eight UTF-16
+units so combined and separately selected words share context. A pair must occur
+twice; longer matching contexts precede shorter ones, then frequency and recent use
+break ties. The local store holds at most 4,096 pairs, separated by scheme and script.
+Context expires after two minutes. Each latest observation remains pending until
+the next adjacent accepted Chinese unit or punctuation/Return confirms it; edits,
+field changes, voice input, and mode changes discard pending learning. Password and
+no-personalized-learning editors neither query nor update app-owned personal data.
 
-Learned predictions join the existing candidate snapshot and pager. Matches
-already on the fresh Rime page retain their engine indices; additional personal
-predictions use validated direct-commit identities. Direct commits can continue
-through learned pairs without manufacturing Rime history. Ordinary Pinyin
-word-frequency learning remains owned by Rime; its primary translator keeps
-the default user dictionary enabled, while the two abbreviation fallbacks still
-disable it. See `docs/chinese-personal-learning-validation.md` for device checks.
+`ChinesePersonalPhraseDictionary` retains up to 4,096 scoped, confirmed text/reading
+identities in `t9/chinese-learned-phrases.json`. Only the actual selected candidate's
+complete Pinyin is accepted, with one valid full syllable per Han character. Initials,
+missing readings, and annotations do not establish pronunciations. Up to four adjacent
+selections may form a phrase of 2–16 characters, promoted after two confirmations.
+Revision-time indexes supply full digits, prefixes of at least four digits, and complete
+initial sequences of at least two digits without expanding Rime's ambiguous graph.
+Deleting a managed custom phrase also removes learned phrases and contexts containing it.
+
+Personal phrases join the existing custom candidate source before paging. Complete
+Pinyin matches precede completions, then learned initial matches and partial readings;
+within a group the current context promotes relevant candidates, while stable engine
+order and learned phrase frequency break ties. A learned phrase already on the engine
+page retains its native selection index. Missing phrases use validated direct-commit
+identities. Learned next-word suggestions use the same snapshot/pager and preserve
+native indices on matches. Ordinary Pinyin word-frequency learning remains owned by
+Rime. Persistence stays off key dispatch through `T9DictionaryPersistence`; see
+`docs/chinese-personal-learning-validation.md` for device checks.
 
 Pinyin initials use two bounded slow-path contracts. Raw numeric T9 remains on
 the primary full-Pinyin prism while its digits can still form dictionary-backed
@@ -449,7 +463,7 @@ cancel action while active, and an optional action to insert the last original i
 the same editor. Scene selection lives directly in the fixed 50 dp top dock:
 horizontal scrolling browses all eight modes; tapping selects one immediately.
 Pinyin candidates temporarily take precedence. Language, settings, and hide controls
-remain at the right; active voice replaces the mode strip with status and Cancel.
+remain at the right; active voice retains the strip and replaces language/settings with Cancel.
 
 `VoiceComposition` owns a recording's temporary editor range independently of
 Rime. `AndroidVoiceEditor` streams underlined composing text through the captured
@@ -512,9 +526,14 @@ visible keyboard session, including input-view recreation, and refreshes it only
 hiding/reopening. Sorting never changes the selected scene. Cancel, recovery insertion,
 incomplete recognition, skipped/failed AI, empty results, rejected/stale editor commits,
 and editors forbidding personalized learning do not add usage. The successful commit
-callback uses the scene snapshotted at recording start, not the current preference.
-Non-secret voice settings live in the `AppPrefs.voice` category and are snapshotted at
-session start; API keys live in `SecureVoiceKeyStorage` (AndroidKeyStore AES/GCM) keyed
+callback uses the scene of the delivered processing request, including in-session changes.
+Non-secret voice settings live in the `AppPrefs.voice` category. Connections and output
+language are snapshotted at session start. The scene can change while connecting,
+recording, finalizing ASR, or processing. `VoiceProcessingSession` cancels obsolete AI
+requests and always restarts from the same exact ASR original; request identity rejects
+late responses even if transport cancellation races. Switching to DIRECT/original
+commits the original immediately; translated DIRECT still calls AI. After delivery,
+scene selection configures the next recording and cannot rewrite existing text. API keys live in `SecureVoiceKeyStorage` (AndroidKeyStore AES/GCM) keyed
 by `VoiceKeyPurpose`.
 
 `VoiceInputRecovery` retains one original in memory for at most two minutes (20,000

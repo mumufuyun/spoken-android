@@ -63,10 +63,18 @@ remain outside `PhysicalT9KeyFlow`.
 - Direct custom commits seed app-owned personal prediction context, but do not
   alter Rime's commit history. Subsequent suggestions on this path come from
   learned pairs; the prebuilt Rime predictor remains attached to native commits.
-- Personal prediction pairs require two observations of adjacent accepted
-  Chinese keyboard commits in the same editor. They are bounded, persisted
-  locally, and excluded from password and no-personalized-learning editors.
+- Personal prediction pairs require two confirmed observations in the same editor.
+  Up to four adjacent commits supply suffix contexts, reducing dependence on word
+  selection boundaries. The next accepted unit or punctuation/Return confirms the
+  latest observation; immediate edits/cancellation discard it. Private editors are excluded.
+- Automatically learned phrases live separately from user-managed entries. Only
+  actual selected full Pinyin is trusted; 2–16-character sequences of up to four
+  commits become candidates after two confirmations. Full/prefix/initial indexes
+  keep lookups bounded without a global Rime abbreviation expansion. Full matches
+  outrank completions, context ranks within groups, and engine identities survive
+  merges. Existing Rime user dictionaries remain unchanged.
 - Candidate sources distinguish validated negative direct-commit identities
   from the unselectable `-1` placeholder used by stale candidate frames.
-- Chinese phrase entries require explicit toneless Pinyin so polyphonic phrases
-  are never assigned an incorrect automatic reading.
+- User-managed phrases require explicit toneless Pinyin. Automatic learning uses
+  the selected candidate's reading, validated against full syllables and Han length;
+  it never guesses a pronunciation from text or default T9 letters.

@@ -29,7 +29,9 @@ fixed number of selections always forces the first position.
 
 1. Enable Predictive Chinese. In one editor, manually select `项目`, then type
    and select `评审`. Commit punctuation and repeat the two separate selections.
-   One combined commit of `项目评审` is not the same training signal.
+   Punctuation confirms the latest observation; immediate deletion does not.
+   Train `项目` + `评审` + `安排`, then select `项目评审` in one commit: expect
+   `安排` to remain available despite the different word-selection boundaries.
 2. Select `项目` again. Expect `评审` among the personal suggestions even if it
    was absent from the shipped next-word list. Selecting it must insert exactly
    the displayed text. Repeat with enough alternatives to exercise paging.
@@ -37,10 +39,32 @@ fixed number of selections always forces the first position.
    or insert punctuation between two words; these must not establish a pair.
    Password and no-personalized-learning fields must not update the new store.
 
-Pairs require at least two observations, rank by frequency then last use, and
-use at most 32 Han characters per committed word. Context is limited to adjacent
-commits within two minutes and is separated by scheme and configured script.
+Pairs require at least two confirmed observations. Longer suffix contexts take
+precedence, then frequency and last use. Each word is at most 32 Han characters;
+context spans up to four adjacent commits within two minutes, separated by scheme
+and configured script. The latest observation waits for the next accepted unit or
+punctuation/Return; cursor changes, deletion, and field changes discard it.
 Disabling prediction hides personal suggestions as well as native predictions.
+
+## Automatically Learned Phrases And Candidate Ranking
+
+1. In Pinyin mode select `项目` (`xiang mu`) and `评审` (`ping shen`) separately,
+   then commit `。`. Repeat twice. Use complete Pinyin candidates with actual
+   readings; abbreviations without complete readings cannot teach pronunciation.
+2. Type `942646874647436` or the learned initials `9677`. Expect `项目评审` in the
+   personal candidates. Select it and confirm the exact text is inserted once.
+   Restart without clearing data and repeat.
+3. Repeat training with an unfamiliar phrase but immediately delete/move the caret
+   after its last word, before punctuation or a following selection. That latest
+   compound should not be promoted. Private/password fields must not teach it.
+4. Compare complete `744744` matches with a long custom `shi shi fang an` phrase.
+   Exact `实时`/`实施` should stay ahead of the completion. Train a relevant next-word
+   context and verify it promotes the matching exact candidate without changing the
+   text selected after paging. Check backspace and explicit reading filters too.
+
+Record first-page ranks, selections needed per phrase, full/initial input, and any
+noticeable delay. These are personal vocabulary improvements, not evidence of a
+new general-purpose sentence model. Rime schema/provisioning is unchanged.
 
 ## Custom Phrases
 
